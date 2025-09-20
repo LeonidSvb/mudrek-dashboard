@@ -687,11 +687,6 @@
                     <h3 class="chart-title"><span>🌐</span> <span data-i18n="traffic_sources">Traffic Sources Analysis</span></h3>
                     <canvas id="trafficChart"></canvas>
                 </div>
-
-                <div class="chart-card">
-                    <h3 class="chart-title"><span>💳</span> <span data-i18n="payment_methods">Payment Methods</span></h3>
-                    <canvas id="paymentMethodsChart"></canvas>
-                </div>
             </div>
 
             <div class="table-container">
@@ -723,9 +718,9 @@
                 <div>
                     <label data-i18n="forecast_period">Forecast Period:</label>
                     <div class="forecast-period-selector">
-                        <button class="preset-btn active" onclick="setForecastPeriod(30)" data-i18n="30_days">30 Days</button>
-                        <button class="preset-btn" onclick="setForecastPeriod(60)" data-i18n="60_days">60 Days</button>
-                        <button class="preset-btn" onclick="setForecastPeriod(90)" data-i18n="90_days">90 Days</button>
+                        <button class="preset-btn active" onclick="setForecastPeriod(30)" data-i18n="days_30">30 Days</button>
+                        <button class="preset-btn" onclick="setForecastPeriod(60)" data-i18n="days_60">60 Days</button>
+                        <button class="preset-btn" onclick="setForecastPeriod(90)" data-i18n="days_90">90 Days</button>
                     </div>
                 </div>
                 <div>
@@ -846,9 +841,9 @@
                 year_to_date: 'Year to Date',
                 custom_range: 'Custom Range',
                 forecast_period: 'Forecast Period:',
-                30_days: '30 Days',
-                60_days: '60 Days',
-                90_days: '90 Days',
+                days_30: '30 Days',
+                days_60: '60 Days',
+                days_90: '90 Days',
                 based_on: 'Based on:',
                 historical_trend: 'Trend',
                 pipeline: 'Pipeline',
@@ -920,9 +915,9 @@
                 year_to_date: 'من بداية السنة',
                 custom_range: 'فترة مخصصة',
                 forecast_period: 'فترة التوقع:',
-                30_days: '30 يوم',
-                60_days: '60 يوم',
-                90_days: '90 يوم',
+                days_30: '30 يوم',
+                days_60: '60 يوم',
+                days_90: '90 يوم',
                 based_on: 'بناء على:',
                 historical_trend: 'الاتجاه',
                 pipeline: 'الخط الأنابيب',
@@ -994,9 +989,9 @@
                 year_to_date: 'מתחילת השנה',
                 custom_range: 'טווח מותאם',
                 forecast_period: 'תקופת תחזית:',
-                30_days: '30 ימים',
-                60_days: '60 ימים',
-                90_days: '90 ימים',
+                days_30: '30 ימים',
+                days_60: '60 ימים',
+                days_90: '90 ימים',
                 based_on: 'מבוסס על:',
                 historical_trend: 'מגמה',
                 pipeline: 'צינור',
@@ -1037,7 +1032,14 @@
 
             // Update tab buttons
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
+            // Find the clicked button more reliably
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                if (btn.textContent.includes('Analytics') && tabName === 'analytics') {
+                    btn.classList.add('active');
+                } else if (btn.textContent.includes('Forecasts') && tabName === 'forecasts') {
+                    btn.classList.add('active');
+                }
+            });
 
             // Update tab content
             document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
@@ -1054,12 +1056,25 @@
         }
 
         // Time preset switching
-        function setTimePreset(preset) {
+        function setTimePreset(preset, clickedButton = null) {
             currentTimePreset = preset;
 
             // Update preset buttons
             document.querySelectorAll('#timePresetsContainer .preset-btn').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
+
+            // If called from click event, use event.target, otherwise find the button
+            if (clickedButton) {
+                clickedButton.classList.add('active');
+            } else if (typeof event !== 'undefined' && event.target) {
+                event.target.classList.add('active');
+            } else {
+                // Find button by preset value
+                document.querySelectorAll('#timePresetsContainer .preset-btn').forEach(btn => {
+                    if (btn.getAttribute('onclick').includes(preset)) {
+                        btn.classList.add('active');
+                    }
+                });
+            }
 
             // Calculate date range
             const today = new Date();
@@ -1097,9 +1112,13 @@
         function setForecastPeriod(days) {
             currentForecastPeriod = days;
 
-            // Update forecast period buttons
-            document.querySelectorAll('.forecast-period-selector .preset-btn').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
+            // Update forecast period buttons - be more specific
+            document.querySelectorAll('.forecast-controls .forecast-period-selector .preset-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.textContent.includes(days.toString())) {
+                    btn.classList.add('active');
+                }
+            });
 
             if (allData.length > 0) {
                 updateForecasts();
@@ -1109,10 +1128,19 @@
         function setForecastBasis(basis) {
             currentForecastBasis = basis;
 
-            // Update forecast basis buttons
-            const container = event.target.parentElement;
-            container.querySelectorAll('.preset-btn').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
+            // Update forecast basis buttons - find the right container
+            const allContainers = document.querySelectorAll('.forecast-period-selector');
+            allContainers.forEach(container => {
+                const buttons = container.querySelectorAll('.preset-btn');
+                buttons.forEach(btn => {
+                    if (btn.getAttribute('onclick') && btn.getAttribute('onclick').includes('setForecastBasis')) {
+                        btn.classList.remove('active');
+                        if (btn.getAttribute('onclick').includes(basis)) {
+                            btn.classList.add('active');
+                        }
+                    }
+                });
+            });
 
             if (allData.length > 0) {
                 updateForecasts();
@@ -1176,24 +1204,9 @@
             return `${symbol}${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
         }
 
-        // Auto-load CSV if exists
+        // Manual upload only - no auto-loading due to CORS
         window.addEventListener('DOMContentLoaded', () => {
-            fetch('export/20-sep/hubspot-crm-exports-all-deals-2025-09-20-1-enrich.csv')
-                .then(response => response.text())
-                .then(csvText => {
-                    parseCSV(csvText);
-                })
-                .catch(() => {
-                    console.log('Enhanced file not found, trying original...');
-                    fetch('export/20-sep/hubspot-crm-exports-all-deals-2025-09-20.csv')
-                        .then(response => response.text())
-                        .then(csvText => {
-                            parseCSV(csvText);
-                        })
-                        .catch(() => {
-                            console.log('Files not found, waiting for user upload');
-                        });
-                });
+            console.log('Dashboard loaded. Please upload a CSV file to begin.');
         });
 
         document.getElementById('csvFile').addEventListener('change', function(e) {
@@ -1208,28 +1221,55 @@
             }
         });
 
-        function parseCSV(csvText) {
+        function parseCSV(csvText, fileType = 'unknown') {
+            console.log('Parsing CSV, file type:', fileType);
             Papa.parse(csvText, {
                 header: true,
+                skipEmptyLines: true,
                 complete: function(results) {
-                    allData = results.data.filter(row => row['Deal Name']);
+                    console.log('CSV parsed successfully:', results.data.length, 'rows');
+                    allData = results.data.filter(row => row['Deal Name'] || row['fname']); // Support both formats
                     filteredData = [...allData];
+                    console.log('Filtered data:', allData.length, 'rows');
                     initializeDashboard();
+                },
+                error: function(error) {
+                    console.error('CSV parsing error:', error);
+                    alert('Error parsing CSV file: ' + error.message);
                 }
             });
         }
 
         function initializeDashboard() {
+            console.log('Initializing dashboard...');
             document.getElementById('filtersContainer').style.display = 'grid';
             document.getElementById('timePresetsContainer').style.display = 'flex';
-            document.getElementById('dashboardContent').style.display = 'block';
+
+            // Check if we're in analytics tab
+            if (currentTab === 'analytics') {
+                document.getElementById('dashboardContent').style.display = 'block';
+            }
 
             populateFilters();
             updateDashboard();
             setupEventListeners();
 
-            // Set default time preset
-            setTimePreset('30d');
+            // Set default time preset without event
+            currentTimePreset = '30d';
+            document.querySelectorAll('#timePresetsContainer .preset-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.textContent.includes('30') || btn.getAttribute('onclick').includes('30d')) {
+                    btn.classList.add('active');
+                }
+            });
+
+            // Apply default date range
+            const today = new Date();
+            const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+            document.getElementById('dateFrom').value = thirtyDaysAgo.toISOString().split('T')[0];
+            document.getElementById('dateTo').value = today.toISOString().split('T')[0];
+
+            console.log('Dashboard initialized successfully');
         }
 
         function populateFilters() {
@@ -1457,7 +1497,6 @@
             updateManagersChart();
             updateDealsDistribution();
             updateTrafficSourcesChart();
-            updatePaymentMethodsChart();
         }
 
         function updateSalesChart() {
@@ -1762,49 +1801,6 @@
             });
         }
 
-        function updatePaymentMethodsChart() {
-            const ctx = document.getElementById('paymentMethodsChart').getContext('2d');
-
-            const paymentMethods = {};
-            filteredData.forEach(deal => {
-                const method = deal['payment method'] || deal['Payment Type'] || 'Not specified';
-                if (!paymentMethods[method]) {
-                    paymentMethods[method] = 0;
-                }
-                paymentMethods[method]++;
-            });
-
-            const methods = Object.entries(paymentMethods)
-                .sort((a, b) => b[1] - a[1])
-                .slice(0, 5);
-
-            if (charts.payments) charts.payments.destroy();
-
-            charts.payments = new Chart(ctx, {
-                type: 'pie',
-                data: {
-                    labels: methods.map(m => m[0]),
-                    datasets: [{
-                        data: methods.map(m => m[1]),
-                        backgroundColor: [
-                            '#10b981',
-                            '#3b82f6',
-                            '#f59e0b',
-                            '#ef4444',
-                            '#8b5cf6'
-                        ]
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: {
-                            position: 'bottom'
-                        }
-                    }
-                }
-            });
-        }
 
         function updateTable() {
             const tbody = document.getElementById('dealsTableBody');
@@ -1849,9 +1845,19 @@
 
         // Forecast functions
         function updateForecasts() {
-            updateForecastMetrics();
-            updateForecastCharts();
-            updateForecastTable();
+            try {
+                console.log('Updating forecasts...');
+                if (allData.length === 0) {
+                    console.warn('No data available for forecasting');
+                    return;
+                }
+                updateForecastMetrics();
+                updateForecastCharts();
+                updateForecastTable();
+                console.log('Forecasts updated successfully');
+            } catch (error) {
+                console.error('Error updating forecasts:', error);
+            }
         }
 
         function updateForecastMetrics() {
@@ -1862,7 +1868,7 @@
                     icon: '📈',
                     label: translations[currentLang].realistic || 'Realistic Forecast',
                     value: formatCurrency(forecast.realistic),
-                    change: `${currentForecastPeriod} ${translations[currentLang][currentForecastPeriod + '_days'] || 'days'}`,
+                    change: `${currentForecastPeriod} ${translations[currentLang]['days_' + currentForecastPeriod] || 'days'}`,
                     positive: true
                 },
                 {

@@ -1,6 +1,9 @@
-# Ignore CSV data files
+# Ignore CSV data files (contains sensitive customer data)
 export/
 *.csv
+
+# Ignore legacy files
+dashboard.html
 
 # Ignore OS files
 .DS_Store
@@ -15,7 +18,12 @@ Thumbs.db
 
 # Ignore node modules if any
 node_modules/
+package-lock.json
 
 # Ignore temporary files
 *.tmp
 *.temp
+
+# Ignore backup files
+*.bak
+*.backup
