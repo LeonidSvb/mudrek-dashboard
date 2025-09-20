@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sales Dashboard - Shadi</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .dashboard {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .filters {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .filter-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .filter-group input, .filter-group select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .metric-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+        }
+
+        .metric-label {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .metric-value {
+            font-size: 32px;
+            font-weight: bold;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .metric-change {
+            font-size: 14px;
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .metric-change.positive {
+            color: #10b981;
+        }
+
+        .metric-change.negative {
+            color: #ef4444;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .chart-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .chart-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .funnel-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 20px;
+        }
+
+        .funnel-stage {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .funnel-bar {
+            height: 40px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            padding: 0 15px;
+            color: white;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .funnel-bar:hover {
+            transform: translateX(10px);
+        }
+
+        .funnel-label {
+            min-width: 120px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .funnel-count {
+            color: #666;
+            margin-left: auto;
+            padding-left: 20px;
+        }
+
+        .table-container {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        tr:hover {
+            background: #f9fafb;
+        }
+
+        .loading {
+            text-align: center;
+            color: white;
+            font-size: 20px;
+            padding: 50px;
+        }
+
+        .file-input-container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .file-input-label {
+            display: inline-block;
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform 0.3s ease;
+        }
+
+        .file-input-label:hover {
+            transform: scale(1.05);
+        }
+
+        #csvFile {
+            display: none;
+        }
+
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-badge.lead {
+            background: #fbbf24;
+            color: #78350f;
+        }
+
+        .status-badge.closed-won {
+            background: #34d399;
+            color: #065f46;
+        }
+
+        .status-badge.closed-lost {
+            background: #f87171;
+            color: #7f1d1d;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <h1>📊 Sales Dashboard</h1>
+
+        <div class="file-input-container">
+            <label for="csvFile" class="file-input-label">
+                📂 Загрузить CSV файл с данными HubSpot
+            </label>
+            <input type="file" id="csvFile" accept=".csv">
+            <div id="fileName" style="margin-top: 10px; color: #666;"></div>
+        </div>
+
+        <div class="filters" style="display: none;" id="filtersContainer">
+            <div class="filter-group">
+                <label for="dateFrom">От даты:</label>
+                <input type="date" id="dateFrom">
+            </div>
+            <div class="filter-group">
+                <label for="dateTo">До даты:</label>
+                <input type="date" id="dateTo">
+            </div>
+            <div class="filter-group">
+                <label for="dealOwner">Менеджер:</label>
+                <select id="dealOwner">
+                    <option value="">Все менеджеры</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="dealStage">Стадия сделки:</label>
+                <select id="dealStage">
+                    <option value="">Все стадии</option>
+                </select>
+            </div>
+        </div>
+
+        <div id="dashboardContent" style="display: none;">
+            <div class="metrics-grid" id="metricsGrid">
+                <!-- Метрики будут добавлены динамически -->
+            </div>
+
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <h3 class="chart-title">📈 Продажи по дням</h3>
+                    <canvas id="salesChart"></canvas>
+                </div>
+
+                <div class="chart-card">
+                    <h3 class="chart-title">🎯 Воронка продаж</h3>
+                    <div id="funnelChart" class="funnel-container"></div>
+                </div>
+
+                <div class="chart-card">
+                    <h3 class="chart-title">👥 Топ менеджеров</h3>
+                    <canvas id="managersChart"></canvas>
+                </div>
+
+                <div class="chart-card">
+                    <h3 class="chart-title">📊 Распределение сумм сделок</h3>
+                    <canvas id="dealsDistribution"></canvas>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <h3 class="chart-title">📋 Последние сделки</h3>
+                <table id="dealsTable">
+                    <thead>
+                        <tr>
+                            <th>Название сделки</th>
+                            <th>Менеджер</th>
+                            <th>Сумма</th>
+                            <th>Стадия</th>
+                            <th>Дата создания</th>
+                            <th>Последнее изменение</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dealsTableBody">
+                        <!-- Строки будут добавлены динамически -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allData = [];
+        let filteredData = [];
+        let charts = {};
+
+        // Автоматическая загрузка CSV если файл существует
+        window.addEventListener('DOMContentLoaded', () => {
+            // Попытка загрузить локальный файл
+            fetch('export/20-sep/hubspot-crm-exports-all-deals-2025-09-20.csv')
+                .then(response => response.text())
+                .then(csvText => {
+                    parseCSV(csvText);
+                })
+                .catch(() => {
+                    console.log('Файл не найден, ожидаем загрузки пользователем');
+                });
+        });
+
+        document.getElementById('csvFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                document.getElementById('fileName').textContent = `Загружен: ${file.name}`;
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    parseCSV(e.target.result);
+                };
+                reader.readAsText(file);
+            }
+        });
+
+        function parseCSV(csvText) {
+            Papa.parse(csvText, {
+                header: true,
+                complete: function(results) {
+                    allData = results.data.filter(row => row['Deal Name']); // Фильтруем пустые строки
+                    filteredData = [...allData];
+                    initializeDashboard();
+                }
+            });
+        }
+
+        function initializeDashboard() {
+            document.getElementById('filtersContainer').style.display = 'flex';
+            document.getElementById('dashboardContent').style.display = 'block';
+
+            populateFilters();
+            updateDashboard();
+            setupEventListeners();
+        }
+
+        function populateFilters() {
+            // Заполняем фильтр менеджеров
+            const owners = [...new Set(allData.map(d => d['Deal owner']))].filter(Boolean);
+            const ownerSelect = document.getElementById('dealOwner');
+            ownerSelect.innerHTML = '<option value="">Все менеджеры</option>';
+            owners.forEach(owner => {
+                ownerSelect.innerHTML += `<option value="${owner}">${owner}</option>`;
+            });
+
+            // Заполняем фильтр стадий
+            const stages = [...new Set(allData.map(d => d['Deal Stage']))].filter(Boolean);
+            const stageSelect = document.getElementById('dealStage');
+            stageSelect.innerHTML = '<option value="">Все стадии</option>';
+            stages.forEach(stage => {
+                stageSelect.innerHTML += `<option value="${stage}">${stage}</option>`;
+            });
+
+            // Устанавливаем даты
+            const dates = allData.map(d => new Date(d['Create Date'])).filter(d => !isNaN(d));
+            if (dates.length > 0) {
+                const minDate = new Date(Math.min(...dates));
+                const maxDate = new Date(Math.max(...dates));
+                document.getElementById('dateFrom').value = minDate.toISOString().split('T')[0];
+                document.getElementById('dateTo').value = maxDate.toISOString().split('T')[0];
+            }
+        }
+
+        function setupEventListeners() {
+            document.getElementById('dateFrom').addEventListener('change', filterData);
+            document.getElementById('dateTo').addEventListener('change', filterData);
+            document.getElementById('dealOwner').addEventListener('change', filterData);
+            document.getElementById('dealStage').addEventListener('change', filterData);
+        }
+
+        function filterData() {
+            const dateFrom = document.getElementById('dateFrom').value;
+            const dateTo = document.getElementById('dateTo').value;
+            const owner = document.getElementById('dealOwner').value;
+            const stage = document.getElementById('dealStage').value;
+
+            filteredData = allData.filter(deal => {
+                const dealDate = new Date(deal['Create Date']);
+
+                if (dateFrom && dealDate < new Date(dateFrom)) return false;
+                if (dateTo && dealDate > new Date(dateTo)) return false;
+                if (owner && deal['Deal owner'] !== owner) return false;
+                if (stage && deal['Deal Stage'] !== stage) return false;
+
+                return true;
+            });
+
+            updateDashboard();
+        }
+
+        function updateDashboard() {
+            updateMetrics();
+            updateCharts();
+            updateTable();
+        }
+
+        function updateMetrics() {
+            const totalDeals = filteredData.length;
+            const totalAmount = filteredData.reduce((sum, d) => sum + parseFloat(d['Amount'] || 0), 0);
+            const avgDealSize = totalDeals > 0 ? totalAmount / totalDeals : 0;
+
+            const closedWon = filteredData.filter(d =>
+                d['Deal Stage'] && d['Deal Stage'].toLowerCase().includes('closed won')
+            ).length;
+            const conversionRate = totalDeals > 0 ? (closedWon / totalDeals * 100) : 0;
+
+            // Подсчет сделок по времени
+            const today = new Date();
+            const thisMonth = filteredData.filter(d => {
+                const dealDate = new Date(d['Create Date']);
+                return dealDate.getMonth() === today.getMonth() &&
+                       dealDate.getFullYear() === today.getFullYear();
+            });
+
+            const thisWeek = filteredData.filter(d => {
+                const dealDate = new Date(d['Create Date']);
+                const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+                return dealDate >= weekAgo;
+            });
+
+            const metrics = [
+                {
+                    label: 'Всего сделок',
+                    value: totalDeals.toLocaleString(),
+                    change: `+${thisWeek.length} за неделю`,
+                    positive: true
+                },
+                {
+                    label: 'Общая сумма',
+                    value: `₪${totalAmount.toLocaleString()}`,
+                    change: `₪${thisMonth.reduce((sum, d) => sum + parseFloat(d['Amount'] || 0), 0).toLocaleString()} в этом месяце`,
+                    positive: true
+                },
+                {
+                    label: 'Средний чек',
+                    value: `₪${Math.round(avgDealSize).toLocaleString()}`,
+                    change: 'Средняя сумма сделки',
+                    positive: true
+                },
+                {
+                    label: 'Конверсия',
+                    value: `${conversionRate.toFixed(1)}%`,
+                    change: `${closedWon} закрытых сделок`,
+                    positive: conversionRate > 20
+                }
+            ];
+
+            const metricsGrid = document.getElementById('metricsGrid');
+            metricsGrid.innerHTML = metrics.map(metric => `
+                <div class="metric-card">
+                    <div class="metric-label">${metric.label}</div>
+                    <div class="metric-value">${metric.value}</div>
+                    <div class="metric-change ${metric.positive ? 'positive' : 'negative'}">
+                        ${metric.positive ? '↑' : '↓'} ${metric.change}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateCharts() {
+            // График продаж по дням
+            updateSalesChart();
+
+            // Воронка продаж
+            updateFunnelChart();
+
+            // График по менеджерам
+            updateManagersChart();
+
+            // Распределение сумм сделок
+            updateDealsDistribution();
+        }
+
+        function updateSalesChart() {
+            const ctx = document.getElementById('salesChart').getContext('2d');
+
+            // Группируем по дням
+            const salesByDay = {};
+            filteredData.forEach(deal => {
+                const date = new Date(deal['Create Date']).toLocaleDateString();
+                if (!salesByDay[date]) {
+                    salesByDay[date] = 0;
+                }
+                salesByDay[date] += parseFloat(deal['Amount'] || 0);
+            });
+
+            const sortedDates = Object.keys(salesByDay).sort((a, b) => new Date(a) - new Date(b));
+
+            if (charts.sales) {
+                charts.sales.destroy();
+            }
+
+            charts.sales = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: sortedDates.slice(-30), // Последние 30 дней
+                    datasets: [{
+                        label: 'Продажи (₪)',
+                        data: sortedDates.slice(-30).map(date => salesByDay[date]),
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '₪' + value.toLocaleString();
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateFunnelChart() {
+            const stageCount = {};
+            filteredData.forEach(deal => {
+                const stage = deal['Deal Stage'] || 'Unknown';
+                stageCount[stage] = (stageCount[stage] || 0) + 1;
+            });
+
+            const stages = Object.entries(stageCount)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 5);
+
+            const maxCount = Math.max(...stages.map(s => s[1]));
+
+            const funnelHTML = stages.map(([stage, count]) => {
+                const width = (count / maxCount * 100);
+                return `
+                    <div class="funnel-stage">
+                        <div class="funnel-label">${stage}</div>
+                        <div class="funnel-bar" style="width: ${width}%">
+                            ${count} сделок
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById('funnelChart').innerHTML = funnelHTML;
+        }
+
+        function updateManagersChart() {
+            const ctx = document.getElementById('managersChart').getContext('2d');
+
+            const salesByManager = {};
+            filteredData.forEach(deal => {
+                const manager = deal['Deal owner'] || 'Unknown';
+                if (!salesByManager[manager]) {
+                    salesByManager[manager] = { count: 0, amount: 0 };
+                }
+                salesByManager[manager].count++;
+                salesByManager[manager].amount += parseFloat(deal['Amount'] || 0);
+            });
+
+            const topManagers = Object.entries(salesByManager)
+                .sort((a, b) => b[1].amount - a[1].amount)
+                .slice(0, 5);
+
+            if (charts.managers) {
+                charts.managers.destroy();
+            }
+
+            charts.managers = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: topManagers.map(m => m[0]),
+                    datasets: [{
+                        label: 'Сумма продаж (₪)',
+                        data: topManagers.map(m => m[1].amount),
+                        backgroundColor: '#764ba2'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '₪' + value.toLocaleString();
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateDealsDistribution() {
+            const ctx = document.getElementById('dealsDistribution').getContext('2d');
+
+            const ranges = [
+                { label: '< ₪1000', min: 0, max: 1000 },
+                { label: '₪1000-2000', min: 1000, max: 2000 },
+                { label: '₪2000-3000', min: 2000, max: 3000 },
+                { label: '₪3000-4000', min: 3000, max: 4000 },
+                { label: '> ₪4000', min: 4000, max: Infinity }
+            ];
+
+            const distribution = ranges.map(range => {
+                return filteredData.filter(deal => {
+                    const amount = parseFloat(deal['Amount'] || 0);
+                    return amount >= range.min && amount < range.max;
+                }).length;
+            });
+
+            if (charts.distribution) {
+                charts.distribution.destroy();
+            }
+
+            charts.distribution = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ranges.map(r => r.label),
+                    datasets: [{
+                        data: distribution,
+                        backgroundColor: [
+                            '#667eea',
+                            '#764ba2',
+                            '#a855f7',
+                            '#d946ef',
+                            '#ec4899'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateTable() {
+            const tbody = document.getElementById('dealsTableBody');
+            const recentDeals = filteredData
+                .sort((a, b) => new Date(b['Last Modified Date']) - new Date(a['Last Modified Date']))
+                .slice(0, 10);
+
+            tbody.innerHTML = recentDeals.map(deal => {
+                const stage = deal['Deal Stage'] || 'Unknown';
+                let statusClass = 'lead';
+                if (stage.toLowerCase().includes('closed won')) statusClass = 'closed-won';
+                if (stage.toLowerCase().includes('closed lost')) statusClass = 'closed-lost';
+
+                return `
+                    <tr>
+                        <td>${deal['Deal Name']}</td>
+                        <td>${deal['Deal owner']}</td>
+                        <td>₪${parseFloat(deal['Amount'] || 0).toLocaleString()}</td>
+                        <td><span class="status-badge ${statusClass}">${stage}</span></td>
+                        <td>${new Date(deal['Create Date']).toLocaleDateString()}</td>
+                        <td>${new Date(deal['Last Modified Date']).toLocaleDateString()}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+    </script>
+</body>
+</html>

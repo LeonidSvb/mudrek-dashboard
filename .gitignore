@@ -1,0 +1,21 @@
+# Ignore CSV data files
+export/
+*.csv
+
+# Ignore OS files
+.DS_Store
+Thumbs.db
+
+# Ignore IDE files
+.vscode/
+.idea/
+
+# Ignore logs
+*.log
+
+# Ignore node modules if any
+node_modules/
+
+# Ignore temporary files
+*.tmp
+*.temp
