@@ -1252,6 +1252,7 @@
 
             populateFilters();
             updateDashboard();
+            updateForecasts(); // Ensure forecasts data is also initialized
             setupEventListeners();
 
             // Set default time preset without event
@@ -1846,7 +1847,7 @@
         // Forecast functions
         function updateForecasts() {
             try {
-                console.log('Updating forecasts...');
+                console.log('Updating forecasts...', 'Data length:', allData.length);
                 if (allData.length === 0) {
                     console.warn('No data available for forecasting');
                     return;
@@ -1911,6 +1912,8 @@
             const historical = calculateHistoricalTrend();
             const pipeline = calculatePipelineForecast();
             const installments = calculateInstallmentForecast();
+
+            console.log('Forecast calculations:', { historical, pipeline, installments, basis: currentForecastBasis });
 
             let forecast = {};
 
