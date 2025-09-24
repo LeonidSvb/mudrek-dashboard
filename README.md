@@ -1,44 +1,47 @@
-# 📊 Mudrek Sales Dashboard
+# Sales Dashboard Project
 
-Professional multilingual sales analytics dashboard for HubSpot CRM data.
+Современный дашборд продаж с интеграцией HubSpot и визуальным конфигуратором.
 
-## 🚀 Live Demo
+## 📁 Структура проекта
 
-[View Dashboard](https://leonidsvb.github.io/mudrek-dashboard/dashboard-multilang.html)
+```
+├── src/                    # Исходный код дашбордов
+├── dashboard-configurator/ # Визуальный конфигуратор дашбордов
+├── scripts/               # Скрипты загрузки и обработки данных
+├── tests/                 # Тесты
+├── data/                  # Примеры данных
+├── docs/                  # Документация
+└── export/                # Экспортированные файлы
+```
 
-## ✨ Key Features
+## 🚀 Быстрый старт
 
-- **Multilingual**: English, Arabic (RTL), Hebrew (RTL)
-- **Dual Currency**: ILS ₪ / USD $ with automatic conversion
-- **Analytics**: Sales trends, conversion rates, deal analysis
-- **Forecasting**: 30/60/90 day revenue projections
-- **Time Presets**: 7 days, 30 days, 3 months, 12 months, YTD
-- **Interactive Charts**: Built with Chart.js
+**Создать дашборд визуально:**
+```
+Откройте: dashboard-configurator/visual-dashboard-configurator.html
+```
 
-## 📋 How to Use
+**Запустить готовый дашборд:**
+```
+Откройте: src/dashboard-multilang.html
+```
 
-1. **Open the dashboard** in your browser
-2. **Upload CSV file** - Click "Choose file" and select your HubSpot export
-3. **Switch languages** - Click EN/AR/HE buttons in header
-4. **Toggle currency** - Click ILS/USD button to convert amounts
-5. **Select time periods** - Use preset buttons or custom date range
-6. **View forecasts** - Switch to "Forecasts" tab for revenue projections
+## 📊 Основные файлы
 
-## 📊 Supported Data
+- `src/dashboard-multilang.html` - Многоязычный дашборд (EN/AR/HE)
+- `dashboard-configurator/` - Визуальный конфигуратор для создания ТЗ
+- `scripts/hubspot-bulk-loader.js` - Массовая загрузка данных HubSpot
 
-Works with HubSpot CRM CSV exports containing:
-- Deal Name, Amount, Stage
-- Deal Owner, Create Date
-- Sales Activities, Days to Close
-- Traffic Source, Installments
+## ⚙️ Настройка
 
-## 🛠 Technical Stack
+1. Установите зависимости: `npm install`
+2. Создайте `.env` с HubSpot API ключом
+3. Откройте HTML файлы в браузере
 
-- Pure HTML/CSS/JavaScript
-- Chart.js for visualizations
-- PapaParse for CSV processing
-- Responsive design
+## ✨ Возможности
 
----
-
-Built with ❤️ for Mudrek sales team
+- Многоязычность (EN/AR/HE) с RTL поддержкой
+- Двойная валюта (ILS/USD) с автоконвертацией
+- Прогнозирование продаж на 30/60/90 дней
+- Интерактивные графики Chart.js
+- Экспорт данных в CSV/Excel

@@ -1,0 +1,26 @@
+{
+  "name": "shadi---new",
+  "version": "1.0.0",
+  "description": "Professional multilingual sales analytics dashboard for HubSpot CRM data.",
+  "main": "hubspot-api.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/LeonidSvb/mudrek-dashboard.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/LeonidSvb/mudrek-dashboard/issues"
+  },
+  "homepage": "https://github.com/LeonidSvb/mudrek-dashboard#readme",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.57.4",
+    "dotenv": "^17.2.2",
+    "node-fetch": "^3.3.2"
+  }
+}
