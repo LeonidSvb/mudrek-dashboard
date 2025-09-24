@@ -1,0 +1,111 @@
+{
+  "timestamp": "2025-09-24T11:50:49.844Z",
+  "fields_created": [
+    {
+      "field": "sales_script_version",
+      "success": true,
+      "existed": false,
+      "result": {
+        "updatedAt": "2025-09-24T11:50:46.344Z",
+        "createdAt": "2025-09-24T11:50:46.344Z",
+        "name": "sales_script_version",
+        "label": "Sales Script Version",
+        "type": "enumeration",
+        "fieldType": "select",
+        "description": "Версия продающего скрипта для A/B тестирования",
+        "groupName": "contactinformation",
+        "options": [
+          {
+            "label": "Script v1.0",
+            "value": "v1_0",
+            "displayOrder": 0,
+            "hidden": false
+          },
+          {
+            "label": "Script v1.1",
+            "value": "v1_1",
+            "displayOrder": 1,
+            "hidden": false
+          },
+          {
+            "label": "Script v2.0",
+            "value": "v2_0",
+            "displayOrder": 2,
+            "hidden": false
+          },
+          {
+            "label": "Script v2.1",
+            "value": "v2_1",
+            "displayOrder": 3,
+            "hidden": false
+          },
+          {
+            "label": "Custom Script",
+            "value": "custom",
+            "displayOrder": 4,
+            "hidden": false
+          }
+        ],
+        "createdUserId": "82827834",
+        "updatedUserId": "82827834",
+        "displayOrder": -1,
+        "calculated": false,
+        "externalOptions": false,
+        "archived": false,
+        "hasUniqueValue": false,
+        "hidden": false,
+        "modificationMetadata": {
+          "archivable": true,
+          "readOnlyDefinition": false,
+          "readOnlyValue": false
+        },
+        "formField": false,
+        "dataSensitivity": "non_sensitive"
+      }
+    },
+    {
+      "field": "vwo_variation",
+      "success": true,
+      "existed": false,
+      "result": {
+        "updatedAt": "2025-09-24T11:50:48.645Z",
+        "createdAt": "2025-09-24T11:50:48.645Z",
+        "name": "vwo_variation",
+        "label": "VWO Variation",
+        "type": "string",
+        "fieldType": "text",
+        "description": "Вариация VWO эксперимента (A/B/C)",
+        "groupName": "contactinformation",
+        "options": [],
+        "createdUserId": "82827834",
+        "updatedUserId": "82827834",
+        "displayOrder": -1,
+        "calculated": false,
+        "externalOptions": false,
+        "archived": false,
+        "hasUniqueValue": false,
+        "hidden": false,
+        "modificationMetadata": {
+          "archivable": true,
+          "readOnlyDefinition": false,
+          "readOnlyValue": false
+        },
+        "formField": false,
+        "dataSensitivity": "non_sensitive"
+      }
+    }
+  ],
+  "fields_existed": [],
+  "fields_failed": [
+    {
+      "field": "first_contact_within_30min",
+      "success": false,
+      "error": "HTTP 400: {\"status\":\"error\",\"message\":\"Boolean properties must have exactly two options; one with a value of 'true', the other with a value of 'false'. Property 'first_contact_within_30min' of object type '0-1' has more than two options\",\"correlationId\":\"6afbcb93-8311-4e36-a117-b97856adc784\",\"context\":{\"property\":[\"first_contact_within_30min\"],\"objectTypeId\":[\"0-1\"]},\"category\":\"VALIDATION_ERROR\",\"subCategory\":\"PropertyValidationError.INVALID_BOOLEAN_OPTION\"}"
+    }
+  ],
+  "summary": {
+    "created": 2,
+    "existed": 0,
+    "failed": 1
+  }
+}
