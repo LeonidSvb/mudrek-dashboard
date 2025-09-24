@@ -1,0 +1,1320 @@
+{
+  "summary": {
+    "total_metrics": 22,
+    "ready_count": 14,
+    "partial_count": 6,
+    "missing_count": 2,
+    "readiness_percentage": 64
+  },
+  "detailed_analysis": {
+    "sales_metrics": [
+      {
+        "name": "Total sales this month",
+        "description": "Общие продажи за месяц",
+        "required_fields": [
+          "amount",
+          "closedate",
+          "dealstage"
+        ],
+        "availability": [
+          {
+            "field": "amount",
+            "available": true,
+            "alternative": null
+          },
+          {
+            "field": "closedate",
+            "available": true,
+            "alternative": null
+          },
+          {
+            "field": "dealstage",
+            "available": true,
+            "alternative": null
+          }
+        ],
+        "completeness": "3/3",
+        "status": "READY"
+      },
+      {
+        "name": "Average deal size",
+        "description": "Средний размер сделки",
+        "required_fields": [
+          "amount",
+          "dealstage"
+        ],
+        "availability": [
+          {
+            "field": "amount",
+            "available": true,
+            "alternative": null
+          },
+          {
+            "field": "dealstage",
+            "available": true,
+            "alternative": null
+          }
+        ],
+        "completeness": "2/2",
+        "status": "READY"
+      },
+      {
+        "name": "Total deals sizes",
+        "description": "Общие размеры сделок",
+        "required_fields": [
+          "amount",
+          "dealstage"
+        ],
+        "availability": [
+          {
+            "field": "amount",
+            "available": true,
+            "alternative": null
+          },
+          {
+            "field": "dealstage",
+            "available": true,
+            "alternative": null
+          }
+        ],
+        "completeness": "2/2",
+        "status": "READY"
+      },
+      {
+        "name": "Upfront cash collected",
+        "description": "Собранные предварительные платежи",
+        "required_fields": [
+          "payment_method",
+          "amount",
+          "payment_status"
+        ],
+        "availability": [
+          {
+            "field": "payment_method",
+            "available": false,
+            "alternative": "deal_whole_amount"
+          },
+          {
+            "field": "amount",
+            "available": true,
+            "alternative": null
+          },
+          {
+            "field": "payment_status",
+            "available": false,
+            "alternative": "dealstage"
+          }
+        ],
+        "completeness": "3/3",
+        "status": "READY"
+      }
+    ],
+    "conversion_metrics": [
+      {
+        "name": "Cancellation rate",
+        "description": "Коэффициент отмены",
+        "required_fields": [
+          "dealstage",
+          "closed_lost_reason"
+        ],
+        "availability": [
+          {
+            "field": "dealstage",
+            "available": true,
+            "alternative": null
+          },
+          {
+            "field": "closed_lost_reason",
+            "available": true,
+            "alternative": null
+          }
+        ],
+        "completeness": "2/2",
+        "status": "READY"
+      },
+      {
+        "name": "Conversion rate",
+        "description": "Коэффициент конверсии",
+        "required_fields": [
+          "lifecyclestage",
+          "dealstage",
+          "createdate"
+        ],
+        "availability": [
+          {
+            "field": "lifecyclestage",
+            "available": false,
+            "alternative": null
+          },
+          {
+            "field": "dealstage",
+            "available": true,
+            "alternative": null
+          },
+          {
+            "field": "createdate",
+            "available": true,
+            "alternative": null
+          }
+        ],
+        "completeness": "2/3",
+        "status": "PARTIAL"
+      },
+      {
+        "name": "Pickup rate",
+        "description": "Коэффициент ответа на звонки",
+        "required_fields": [
+          "hs_number_of_inbound_calls",
+          "hs_number_of_outbound_calls",
+          "call_status"
+        ],
+        "availability": [
+          {
+            "field": "hs_number_of_inbound_calls",
+            "available": false,
+            "alternative": "hs_actual_duration"
+          },
+          {
+            "field": "hs_number_of_outbound_calls",
+            "available": false,
+            "alternative": "hs_actual_duration"
+          },
+          {
+            "field": "call_status",
+            "available": false,
+            "alternative": "call_back_notes"
+          }
+        ],
+        "completeness": "3/3",
+        "status": "READY"
+      },
+      {
+        "name": "Qualified rate",
+        "description": "Коэффициент квалификации",
+        "required_fields": [
+          "hs_lead_status",
+          "lifecyclestage"
+        ],
+        "availability": [
+          {
+            "field": "hs_lead_status",
+            "available": false,
+            "alternative": "hs_actual_duration"
+          },
+          {
+            "field": "lifecyclestage",
+            "available": false,
+            "alternative": null
+          }
+        ],
+        "completeness": "1/2",
+        "status": "PARTIAL"
+      },
+      {
+        "name": "Offers given & rate",
+        "description": "Предложения сделаны и коэффициент",
+        "required_fields": [
+          "offer_given",
+          "dealstage"
+        ],
+        "availability": [
+          {
+            "field": "offer_given",
+            "available": false,
+            "alternative": "dealstage"
+          },
+          {
+            "field": "dealstage",
+            "available": true,
+            "alternative": null
+          }
+        ],
+        "completeness": "2/2",
+        "status": "READY"
+      },
+      {
+        "name": "5min-reached-rate",
+        "description": "Коэффициент достижения 5-минутного разговора",
+        "required_fields": [
+          "call_duration",
+          "hs_actual_duration"
+        ],
+        "availability": [
+          {
+            "field": "call_duration",
+            "available": false,
+            "alternative": "hs_actual_duration"
+          },
+          {
+            "field": "hs_actual_duration",
+            "available": true,
+            "alternative": null
+          }
+        ],
+        "completeness": "2/2",
+        "status": "READY"
+      }
+    ],
+    "activity_metrics": [
+      {
+        "name": "Total calls made",
+        "description": "Общее количество звонков",
+        "required_fields": [
+          "hs_number_of_outbound_calls",
+          "hubspot_owner_id"
+        ],
+        "availability": [
+          {
+            "field": "hs_number_of_outbound_calls",
+            "available": false,
+            "alternative": "hs_actual_duration"
+          },
+          {
+            "field": "hubspot_owner_id",
+            "available": false,
+            "alternative": null
+          }
+        ],
+        "completeness": "1/2",
+        "status": "PARTIAL"
+      },
+      {
+        "name": "Followup rate",
+        "description": "Коэффициент повторных контактов",
+        "required_fields": [
+          "num_contacted_notes",
+          "notes_last_contacted"
+        ],
+        "availability": [
+          {
+            "field": "num_contacted_notes",
+            "available": false,
+            "alternative": null
+          },
+          {
+            "field": "notes_last_contacted",
+            "available": false,
+            "alternative": "call_back_notes"
+          }
+        ],
+        "completeness": "1/2",
+        "status": "PARTIAL"
+      },
+      {
+        "name": "Average call time",
+        "description": "Среднее время звонка",
+        "required_fields": [
+          "hs_actual_duration",
+          "hs_average_call_duration"
+        ],
+        "availability": [
+          {
+            "field": "hs_actual_duration",
+            "available": true,
+            "alternative": null
+          },
+          {
+            "field": "hs_average_call_duration",
+            "available": true,
+            "alternative": null
+          }
+        ],
+        "completeness": "2/2",
+        "status": "READY"
+      },
+      {
+        "name": "Total call time",
+        "description": "Общее время звонков",
+        "required_fields": [
+          "hs_actual_duration",
+          "hubspot_owner_id"
+        ],
+        "availability": [
+          {
+            "field": "hs_actual_duration",
+            "available": true,
+            "alternative": null
+          },
+          {
+            "field": "hubspot_owner_id",
+            "available": false,
+            "alternative": null
+          }
+        ],
+        "completeness": "1/2",
+        "status": "PARTIAL"
+      }
+    ],
+    "payment_metrics": [
+      {
+        "name": "Number of installments",
+        "description": "Количество рассрочек (1-9)",
+        "required_fields": [
+          "number_of_installments__months",
+          "installments"
+        ],
+        "availability": [
+          {
+            "field": "number_of_installments__months",
+            "available": false,
+            "alternative": null
+          },
+          {
+            "field": "installments",
+            "available": false,
+            "alternative": null
+          }
+        ],
+        "completeness": "0/2",
+        "status": "MISSING"
+      },
+      {
+        "name": "Payment tracking",
+        "description": "Отслеживание платежей",
+        "required_fields": [
+          "payment_method",
+          "payment_status",
+          "installment_monthly_amount"
+        ],
+        "availability": [
+          {
+            "field": "payment_method",
+            "available": false,
+            "alternative": "deal_whole_amount"
+          },
+          {
+            "field": "payment_status",
+            "available": false,
+            "alternative": "dealstage"
+          },
+          {
+            "field": "installment_monthly_amount",
+            "available": false,
+            "alternative": "amount"
+          }
+        ],
+        "completeness": "3/3",
+        "status": "READY"
+      }
+    ],
+    "new_metrics": [
+      {
+        "name": "Trial rate",
+        "description": "Коэффициент пробных периодов",
+        "required_fields": [
+          "trial_given",
+          "trial_converted"
+        ],
+        "availability": [
+          {
+            "field": "trial_given",
+            "available": false,
+            "alternative": null
+          },
+          {
+            "field": "trial_converted",
+            "available": false,
+            "alternative": "dealstage"
+          }
+        ],
+        "completeness": "1/2",
+        "status": "PARTIAL"
+      },
+      {
+        "name": "Time to sale",
+        "description": "Время до продажи",
+        "required_fields": [
+          "createdate",
+          "closedate",
+          "first_contact_date"
+        ],
+        "availability": [
+          {
+            "field": "createdate",
+            "available": true,
+            "alternative": null
+          },
+          {
+            "field": "closedate",
+            "available": true,
+            "alternative": null
+          },
+          {
+            "field": "first_contact_date",
+            "available": false,
+            "alternative": "createdate"
+          }
+        ],
+        "completeness": "3/3",
+        "status": "READY"
+      },
+      {
+        "name": "Time to contact",
+        "description": "Время до первого контакта",
+        "required_fields": [
+          "createdate",
+          "hs_first_outreach_date"
+        ],
+        "availability": [
+          {
+            "field": "createdate",
+            "available": true,
+            "alternative": null
+          },
+          {
+            "field": "hs_first_outreach_date",
+            "available": false,
+            "alternative": "hs_actual_duration"
+          }
+        ],
+        "completeness": "2/2",
+        "status": "READY"
+      },
+      {
+        "name": "Average followups per lead",
+        "description": "Среднее количество повторных контактов на лида",
+        "required_fields": [
+          "num_contacted_notes",
+          "num_notes"
+        ],
+        "availability": [
+          {
+            "field": "num_contacted_notes",
+            "available": false,
+            "alternative": null
+          },
+          {
+            "field": "num_notes",
+            "available": false,
+            "alternative": null
+          }
+        ],
+        "completeness": "0/2",
+        "status": "MISSING"
+      }
+    ],
+    "funnel_metrics": [
+      {
+        "name": "Sources breakdown",
+        "description": "Разбивка по источникам",
+        "required_fields": [
+          "hs_analytics_latest_source",
+          "source",
+          "campaign"
+        ],
+        "availability": [
+          {
+            "field": "hs_analytics_latest_source",
+            "available": true,
+            "alternative": null
+          },
+          {
+            "field": "source",
+            "available": false,
+            "alternative": "engagements_last_meeting_booked_source"
+          },
+          {
+            "field": "campaign",
+            "available": true,
+            "alternative": null
+          }
+        ],
+        "completeness": "3/3",
+        "status": "READY"
+      },
+      {
+        "name": "VSL effectiveness",
+        "description": "Эффективность VSL",
+        "required_fields": [
+          "video_watched",
+          "vsl_completion",
+          "dealstage"
+        ],
+        "availability": [
+          {
+            "field": "video_watched",
+            "available": false,
+            "alternative": "ad"
+          },
+          {
+            "field": "vsl_completion",
+            "available": false,
+            "alternative": "campaign"
+          },
+          {
+            "field": "dealstage",
+            "available": true,
+            "alternative": null
+          }
+        ],
+        "completeness": "3/3",
+        "status": "READY"
+      }
+    ]
+  },
+  "analysis": {
+    "ready": [
+      {
+        "name": "Total sales this month",
+        "description": "Общие продажи за месяц",
+        "required_fields": [
+          "amount",
+          "closedate",
+          "dealstage"
+        ],
+        "availability": [
+          {
+            "field": "amount",
+            "available": true,
+            "alternative": null
+          },
+          {
+            "field": "closedate",
+            "available": true,
+            "alternative": null
+          },
+          {
+            "field": "dealstage",
+            "available": true,
+            "alternative": null
+          }
+        ],
+        "completeness": "3/3",
+        "status": "READY",
+        "category": "sales_metrics"
+      },
+      {
+        "name": "Average deal size",
+        "description": "Средний размер сделки",
+        "required_fields": [
+          "amount",
+          "dealstage"
+        ],
+        "availability": [
+          {
+            "field": "amount",
+            "available": true,
+            "alternative": null
+          },
+          {
+            "field": "dealstage",
+            "available": true,
+            "alternative": null
+          }
+        ],
+        "completeness": "2/2",
+        "status": "READY",
+        "category": "sales_metrics"
+      },
+      {
+        "name": "Total deals sizes",
+        "description": "Общие размеры сделок",
+        "required_fields": [
+          "amount",
+          "dealstage"
+        ],
+        "availability": [
+          {
+            "field": "amount",
+            "available": true,
+            "alternative": null
+          },
+          {
+            "field": "dealstage",
+            "available": true,
+            "alternative": null
+          }
+        ],
+        "completeness": "2/2",
+        "status": "READY",
+        "category": "sales_metrics"
+      },
+      {
+        "name": "Upfront cash collected",
+        "description": "Собранные предварительные платежи",
+        "required_fields": [
+          "payment_method",
+          "amount",
+          "payment_status"
+        ],
+        "availability": [
+          {
+            "field": "payment_method",
+            "available": false,
+            "alternative": "deal_whole_amount"
+          },
+          {
+            "field": "amount",
+            "available": true,
+            "alternative": null
+          },
+          {
+            "field": "payment_status",
+            "available": false,
+            "alternative": "dealstage"
+          }
+        ],
+        "completeness": "3/3",
+        "status": "READY",
+        "category": "sales_metrics"
+      },
+      {
+        "name": "Cancellation rate",
+        "description": "Коэффициент отмены",
+        "required_fields": [
+          "dealstage",
+          "closed_lost_reason"
+        ],
+        "availability": [
+          {
+            "field": "dealstage",
+            "available": true,
+            "alternative": null
+          },
+          {
+            "field": "closed_lost_reason",
+            "available": true,
+            "alternative": null
+          }
+        ],
+        "completeness": "2/2",
+        "status": "READY",
+        "category": "conversion_metrics"
+      },
+      {
+        "name": "Pickup rate",
+        "description": "Коэффициент ответа на звонки",
+        "required_fields": [
+          "hs_number_of_inbound_calls",
+          "hs_number_of_outbound_calls",
+          "call_status"
+        ],
+        "availability": [
+          {
+            "field": "hs_number_of_inbound_calls",
+            "available": false,
+            "alternative": "hs_actual_duration"
+          },
+          {
+            "field": "hs_number_of_outbound_calls",
+            "available": false,
+            "alternative": "hs_actual_duration"
+          },
+          {
+            "field": "call_status",
+            "available": false,
+            "alternative": "call_back_notes"
+          }
+        ],
+        "completeness": "3/3",
+        "status": "READY",
+        "category": "conversion_metrics"
+      },
+      {
+        "name": "Offers given & rate",
+        "description": "Предложения сделаны и коэффициент",
+        "required_fields": [
+          "offer_given",
+          "dealstage"
+        ],
+        "availability": [
+          {
+            "field": "offer_given",
+            "available": false,
+            "alternative": "dealstage"
+          },
+          {
+            "field": "dealstage",
+            "available": true,
+            "alternative": null
+          }
+        ],
+        "completeness": "2/2",
+        "status": "READY",
+        "category": "conversion_metrics"
+      },
+      {
+        "name": "5min-reached-rate",
+        "description": "Коэффициент достижения 5-минутного разговора",
+        "required_fields": [
+          "call_duration",
+          "hs_actual_duration"
+        ],
+        "availability": [
+          {
+            "field": "call_duration",
+            "available": false,
+            "alternative": "hs_actual_duration"
+          },
+          {
+            "field": "hs_actual_duration",
+            "available": true,
+            "alternative": null
+          }
+        ],
+        "completeness": "2/2",
+        "status": "READY",
+        "category": "conversion_metrics"
+      },
+      {
+        "name": "Average call time",
+        "description": "Среднее время звонка",
+        "required_fields": [
+          "hs_actual_duration",
+          "hs_average_call_duration"
+        ],
+        "availability": [
+          {
+            "field": "hs_actual_duration",
+            "available": true,
+            "alternative": null
+          },
+          {
+            "field": "hs_average_call_duration",
+            "available": true,
+            "alternative": null
+          }
+        ],
+        "completeness": "2/2",
+        "status": "READY",
+        "category": "activity_metrics"
+      },
+      {
+        "name": "Payment tracking",
+        "description": "Отслеживание платежей",
+        "required_fields": [
+          "payment_method",
+          "payment_status",
+          "installment_monthly_amount"
+        ],
+        "availability": [
+          {
+            "field": "payment_method",
+            "available": false,
+            "alternative": "deal_whole_amount"
+          },
+          {
+            "field": "payment_status",
+            "available": false,
+            "alternative": "dealstage"
+          },
+          {
+            "field": "installment_monthly_amount",
+            "available": false,
+            "alternative": "amount"
+          }
+        ],
+        "completeness": "3/3",
+        "status": "READY",
+        "category": "payment_metrics"
+      },
+      {
+        "name": "Time to sale",
+        "description": "Время до продажи",
+        "required_fields": [
+          "createdate",
+          "closedate",
+          "first_contact_date"
+        ],
+        "availability": [
+          {
+            "field": "createdate",
+            "available": true,
+            "alternative": null
+          },
+          {
+            "field": "closedate",
+            "available": true,
+            "alternative": null
+          },
+          {
+            "field": "first_contact_date",
+            "available": false,
+            "alternative": "createdate"
+          }
+        ],
+        "completeness": "3/3",
+        "status": "READY",
+        "category": "new_metrics"
+      },
+      {
+        "name": "Time to contact",
+        "description": "Время до первого контакта",
+        "required_fields": [
+          "createdate",
+          "hs_first_outreach_date"
+        ],
+        "availability": [
+          {
+            "field": "createdate",
+            "available": true,
+            "alternative": null
+          },
+          {
+            "field": "hs_first_outreach_date",
+            "available": false,
+            "alternative": "hs_actual_duration"
+          }
+        ],
+        "completeness": "2/2",
+        "status": "READY",
+        "category": "new_metrics"
+      },
+      {
+        "name": "Sources breakdown",
+        "description": "Разбивка по источникам",
+        "required_fields": [
+          "hs_analytics_latest_source",
+          "source",
+          "campaign"
+        ],
+        "availability": [
+          {
+            "field": "hs_analytics_latest_source",
+            "available": true,
+            "alternative": null
+          },
+          {
+            "field": "source",
+            "available": false,
+            "alternative": "engagements_last_meeting_booked_source"
+          },
+          {
+            "field": "campaign",
+            "available": true,
+            "alternative": null
+          }
+        ],
+        "completeness": "3/3",
+        "status": "READY",
+        "category": "funnel_metrics"
+      },
+      {
+        "name": "VSL effectiveness",
+        "description": "Эффективность VSL",
+        "required_fields": [
+          "video_watched",
+          "vsl_completion",
+          "dealstage"
+        ],
+        "availability": [
+          {
+            "field": "video_watched",
+            "available": false,
+            "alternative": "ad"
+          },
+          {
+            "field": "vsl_completion",
+            "available": false,
+            "alternative": "campaign"
+          },
+          {
+            "field": "dealstage",
+            "available": true,
+            "alternative": null
+          }
+        ],
+        "completeness": "3/3",
+        "status": "READY",
+        "category": "funnel_metrics"
+      }
+    ],
+    "partial": [
+      {
+        "name": "Conversion rate",
+        "description": "Коэффициент конверсии",
+        "required_fields": [
+          "lifecyclestage",
+          "dealstage",
+          "createdate"
+        ],
+        "availability": [
+          {
+            "field": "lifecyclestage",
+            "available": false,
+            "alternative": null
+          },
+          {
+            "field": "dealstage",
+            "available": true,
+            "alternative": null
+          },
+          {
+            "field": "createdate",
+            "available": true,
+            "alternative": null
+          }
+        ],
+        "completeness": "2/3",
+        "status": "PARTIAL",
+        "category": "conversion_metrics"
+      },
+      {
+        "name": "Qualified rate",
+        "description": "Коэффициент квалификации",
+        "required_fields": [
+          "hs_lead_status",
+          "lifecyclestage"
+        ],
+        "availability": [
+          {
+            "field": "hs_lead_status",
+            "available": false,
+            "alternative": "hs_actual_duration"
+          },
+          {
+            "field": "lifecyclestage",
+            "available": false,
+            "alternative": null
+          }
+        ],
+        "completeness": "1/2",
+        "status": "PARTIAL",
+        "category": "conversion_metrics"
+      },
+      {
+        "name": "Total calls made",
+        "description": "Общее количество звонков",
+        "required_fields": [
+          "hs_number_of_outbound_calls",
+          "hubspot_owner_id"
+        ],
+        "availability": [
+          {
+            "field": "hs_number_of_outbound_calls",
+            "available": false,
+            "alternative": "hs_actual_duration"
+          },
+          {
+            "field": "hubspot_owner_id",
+            "available": false,
+            "alternative": null
+          }
+        ],
+        "completeness": "1/2",
+        "status": "PARTIAL",
+        "category": "activity_metrics"
+      },
+      {
+        "name": "Followup rate",
+        "description": "Коэффициент повторных контактов",
+        "required_fields": [
+          "num_contacted_notes",
+          "notes_last_contacted"
+        ],
+        "availability": [
+          {
+            "field": "num_contacted_notes",
+            "available": false,
+            "alternative": null
+          },
+          {
+            "field": "notes_last_contacted",
+            "available": false,
+            "alternative": "call_back_notes"
+          }
+        ],
+        "completeness": "1/2",
+        "status": "PARTIAL",
+        "category": "activity_metrics"
+      },
+      {
+        "name": "Total call time",
+        "description": "Общее время звонков",
+        "required_fields": [
+          "hs_actual_duration",
+          "hubspot_owner_id"
+        ],
+        "availability": [
+          {
+            "field": "hs_actual_duration",
+            "available": true,
+            "alternative": null
+          },
+          {
+            "field": "hubspot_owner_id",
+            "available": false,
+            "alternative": null
+          }
+        ],
+        "completeness": "1/2",
+        "status": "PARTIAL",
+        "category": "activity_metrics"
+      },
+      {
+        "name": "Trial rate",
+        "description": "Коэффициент пробных периодов",
+        "required_fields": [
+          "trial_given",
+          "trial_converted"
+        ],
+        "availability": [
+          {
+            "field": "trial_given",
+            "available": false,
+            "alternative": null
+          },
+          {
+            "field": "trial_converted",
+            "available": false,
+            "alternative": "dealstage"
+          }
+        ],
+        "completeness": "1/2",
+        "status": "PARTIAL",
+        "category": "new_metrics"
+      }
+    ],
+    "missing": [
+      {
+        "name": "Number of installments",
+        "description": "Количество рассрочек (1-9)",
+        "required_fields": [
+          "number_of_installments__months",
+          "installments"
+        ],
+        "availability": [
+          {
+            "field": "number_of_installments__months",
+            "available": false,
+            "alternative": null
+          },
+          {
+            "field": "installments",
+            "available": false,
+            "alternative": null
+          }
+        ],
+        "completeness": "0/2",
+        "status": "MISSING",
+        "category": "payment_metrics"
+      },
+      {
+        "name": "Average followups per lead",
+        "description": "Среднее количество повторных контактов на лида",
+        "required_fields": [
+          "num_contacted_notes",
+          "num_notes"
+        ],
+        "availability": [
+          {
+            "field": "num_contacted_notes",
+            "available": false,
+            "alternative": null
+          },
+          {
+            "field": "num_notes",
+            "available": false,
+            "alternative": null
+          }
+        ],
+        "completeness": "0/2",
+        "status": "MISSING",
+        "category": "new_metrics"
+      }
+    ]
+  },
+  "recommendations": [
+    {
+      "type": "READY_TO_IMPLEMENT",
+      "priority": "HIGH",
+      "title": "Готовые к реализации метрики",
+      "items": [
+        {
+          "name": "Total sales this month",
+          "description": "Общие продажи за месяц",
+          "fields": [
+            "amount",
+            "closedate",
+            "dealstage"
+          ]
+        },
+        {
+          "name": "Average deal size",
+          "description": "Средний размер сделки",
+          "fields": [
+            "amount",
+            "dealstage"
+          ]
+        },
+        {
+          "name": "Total deals sizes",
+          "description": "Общие размеры сделок",
+          "fields": [
+            "amount",
+            "dealstage"
+          ]
+        },
+        {
+          "name": "Upfront cash collected",
+          "description": "Собранные предварительные платежи",
+          "fields": [
+            "amount"
+          ]
+        },
+        {
+          "name": "Cancellation rate",
+          "description": "Коэффициент отмены",
+          "fields": [
+            "dealstage",
+            "closed_lost_reason"
+          ]
+        },
+        {
+          "name": "Pickup rate",
+          "description": "Коэффициент ответа на звонки",
+          "fields": []
+        },
+        {
+          "name": "Offers given & rate",
+          "description": "Предложения сделаны и коэффициент",
+          "fields": [
+            "dealstage"
+          ]
+        },
+        {
+          "name": "5min-reached-rate",
+          "description": "Коэффициент достижения 5-минутного разговора",
+          "fields": [
+            "hs_actual_duration"
+          ]
+        },
+        {
+          "name": "Average call time",
+          "description": "Среднее время звонка",
+          "fields": [
+            "hs_actual_duration",
+            "hs_average_call_duration"
+          ]
+        },
+        {
+          "name": "Payment tracking",
+          "description": "Отслеживание платежей",
+          "fields": []
+        },
+        {
+          "name": "Time to sale",
+          "description": "Время до продажи",
+          "fields": [
+            "createdate",
+            "closedate"
+          ]
+        },
+        {
+          "name": "Time to contact",
+          "description": "Время до первого контакта",
+          "fields": [
+            "createdate"
+          ]
+        },
+        {
+          "name": "Sources breakdown",
+          "description": "Разбивка по источникам",
+          "fields": [
+            "hs_analytics_latest_source",
+            "campaign"
+          ]
+        },
+        {
+          "name": "VSL effectiveness",
+          "description": "Эффективность VSL",
+          "fields": [
+            "dealstage"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "NEEDS_ADDITIONAL_FIELDS",
+      "priority": "MEDIUM",
+      "title": "Требуют дополнительных полей",
+      "items": [
+        {
+          "name": "Conversion rate",
+          "description": "Коэффициент конверсии",
+          "available_fields": [
+            "dealstage",
+            "createdate"
+          ],
+          "missing_fields": [
+            "lifecyclestage"
+          ]
+        },
+        {
+          "name": "Qualified rate",
+          "description": "Коэффициент квалификации",
+          "available_fields": [
+            "hs_lead_status"
+          ],
+          "missing_fields": [
+            "lifecyclestage"
+          ]
+        },
+        {
+          "name": "Total calls made",
+          "description": "Общее количество звонков",
+          "available_fields": [
+            "hs_number_of_outbound_calls"
+          ],
+          "missing_fields": [
+            "hubspot_owner_id"
+          ]
+        },
+        {
+          "name": "Followup rate",
+          "description": "Коэффициент повторных контактов",
+          "available_fields": [
+            "notes_last_contacted"
+          ],
+          "missing_fields": [
+            "num_contacted_notes"
+          ]
+        },
+        {
+          "name": "Total call time",
+          "description": "Общее время звонков",
+          "available_fields": [
+            "hs_actual_duration"
+          ],
+          "missing_fields": [
+            "hubspot_owner_id"
+          ]
+        },
+        {
+          "name": "Trial rate",
+          "description": "Коэффициент пробных периодов",
+          "available_fields": [
+            "trial_converted"
+          ],
+          "missing_fields": [
+            "trial_given"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "REQUIRES_NEW_IMPLEMENTATION",
+      "priority": "LOW",
+      "title": "Требуют новых полей и настроек",
+      "items": [
+        {
+          "name": "Number of installments",
+          "description": "Количество рассрочек (1-9)",
+          "required_new_fields": [
+            "number_of_installments__months",
+            "installments"
+          ]
+        },
+        {
+          "name": "Average followups per lead",
+          "description": "Среднее количество повторных контактов на лида",
+          "required_new_fields": [
+            "num_contacted_notes",
+            "num_notes"
+          ]
+        }
+      ]
+    }
+  ],
+  "generated_at": "2025-09-24T10:17:40.757Z"
+}

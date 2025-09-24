@@ -1,3 +1,10 @@
+# Environment variables (contains API keys)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
 # Ignore CSV data files (contains sensitive customer data)
 export/
 *.csv
@@ -5,25 +12,30 @@ export/
 # Ignore legacy files
 dashboard.html
 
-# Ignore OS files
+# Node modules
+node_modules/
+
+# OS files
 .DS_Store
 Thumbs.db
 
-# Ignore IDE files
+# IDE files
 .vscode/
 .idea/
 
-# Ignore logs
+# Logs
 *.log
 
-# Ignore node modules if any
-node_modules/
-package-lock.json
-
-# Ignore temporary files
+# Temporary files
 *.tmp
 *.temp
 
-# Ignore backup files
+# Backup files
 *.bak
 *.backup
+
+# HubSpot data exports (sensitive)
+*contacts*.json
+*deals*.json
+*sample*.json
+*all-*-properties.json

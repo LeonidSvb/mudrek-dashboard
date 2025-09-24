@@ -1,0 +1,74 @@
+[
+  {
+    "id": "87191519876",
+    "properties": {
+      "hs_call_body": "<strong><span style=\"color: #37761D;\">Outbound answered call </span></strong> from +972532082452 to +972503602441<br> <strong><span style=\"color: #5171911;\"> Agent:Mothanna</span></strong>",
+      "hs_call_direction": "OUTBOUND",
+      "hs_call_disposition": "f240bbac-87c9-4f6e-bf70-924b57d47db7",
+      "hs_call_duration": "2246640",
+      "hs_call_status": "COMPLETED",
+      "hs_createdate": "2025-08-26T11:03:40.567Z",
+      "hs_lastmodifieddate": "2025-08-26T11:03:49.592Z",
+      "hs_object_id": "87191519876",
+      "hs_timestamp": "2025-08-26T10:26:12Z",
+      "hubspot_owner_id": "726197388"
+    },
+    "createdAt": "2025-08-26T11:03:40.567Z",
+    "updatedAt": "2025-08-26T11:03:49.592Z",
+    "archived": false
+  },
+  {
+    "id": "87205094546",
+    "properties": {
+      "hs_call_body": "<strong><span style=\"color: #37761D;\">Outbound answered call </span></strong> from +972585998888 to 972503602441",
+      "hs_call_direction": "OUTBOUND",
+      "hs_call_disposition": "f240bbac-87c9-4f6e-bf70-924b57d47db7",
+      "hs_call_duration": "990320",
+      "hs_call_status": "COMPLETED",
+      "hs_createdate": "2025-08-26T13:46:57.946Z",
+      "hs_lastmodifieddate": "2025-08-26T13:46:59.459Z",
+      "hs_object_id": "87205094546",
+      "hs_timestamp": "2025-08-26T13:30:25Z",
+      "hubspot_owner_id": "682432124"
+    },
+    "createdAt": "2025-08-26T13:46:57.946Z",
+    "updatedAt": "2025-08-26T13:46:59.459Z",
+    "archived": false
+  },
+  {
+    "id": "87207162211",
+    "properties": {
+      "hs_call_body": "<strong><span style=\"color: #37761D;\">Outbound answered call </span></strong> from +972585998888 to 972503602441",
+      "hs_call_direction": "OUTBOUND",
+      "hs_call_disposition": "73a0d17f-1163-4015-bdd5-ec830791da20",
+      "hs_call_duration": "45100",
+      "hs_call_status": "COMPLETED",
+      "hs_createdate": "2025-08-26T13:30:16.659Z",
+      "hs_lastmodifieddate": "2025-08-26T13:30:19.843Z",
+      "hs_object_id": "87207162211",
+      "hs_timestamp": "2025-08-26T13:29:29Z",
+      "hubspot_owner_id": "682432124"
+    },
+    "createdAt": "2025-08-26T13:30:16.659Z",
+    "updatedAt": "2025-08-26T13:30:19.843Z",
+    "archived": false
+  },
+  {
+    "id": "87415995673",
+    "properties": {
+      "hs_call_body": "<strong><span style=\"color: #37761D;\">Outbound answered call </span></strong> from +972532560169 to +972503602441<br> <strong><span style=\"color: #5171911;\"> Agent:Areej</span></strong>",
+      "hs_call_direction": "OUTBOUND",
+      "hs_call_disposition": "f240bbac-87c9-4f6e-bf70-924b57d47db7",
+      "hs_call_duration": "51640",
+      "hs_call_status": "COMPLETED",
+      "hs_createdate": "2025-08-28T14:46:45.395Z",
+      "hs_lastmodifieddate": "2025-08-28T14:46:48.423Z",
+      "hs_object_id": "87415995673",
+      "hs_timestamp": "2025-08-28T14:45:52Z",
+      "hubspot_owner_id": "1315760486"
+    },
+    "createdAt": "2025-08-28T14:46:45.395Z",
+    "updatedAt": "2025-08-28T14:46:48.423Z",
+    "archived": false
+  }
+]
