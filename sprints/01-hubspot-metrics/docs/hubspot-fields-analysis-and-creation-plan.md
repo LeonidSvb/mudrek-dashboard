@@ -114,6 +114,22 @@ Analyzed via HubSpot Properties API:
 
 ## ❌ Missing Fields to Create
 
+### Архитектурное решение: Гибридный подход
+
+**HubSpot (8 полей)** - для полей, которые нужны команде продаж в CRM:
+- 7 deal fields: cancellation_reason, is_refunded, installment_plan, vsl_watched, upfront_payment, offer_given, offer_accepted
+- 1 contact field: vsl_watch_duration
+
+**Supabase Views (2 поля)** - вычисляемые поля из существующих данных:
+- followup_count - COUNT(calls) per contact
+- days_between_stages - closedate - createdate
+
+**Причины:**
+- HubSpot: Данные нужны менеджерам в интерфейсе, заполняются вручную или через Make.com
+- Supabase: Агрегации и производные значения, нужны только для дашборда
+
+---
+
 ### DEALS (10 fields)
 
 #### 1. cancellation_reason
@@ -148,27 +164,26 @@ Analyzed via HubSpot Properties API:
 ```
 
 #### 3. followup_count
-```javascript
-{
-  name: "followup_count",
-  label: "Followup Count",
-  description: "Number of followup attempts",
-  groupName: "dealinformation",
-  type: "number",
-  fieldType: "number"
-}
+**🔄 ВЫЧИСЛЯЕТСЯ В SUPABASE** - не создаем в HubSpot
+```sql
+-- View в Supabase
+SELECT
+  d.hubspot_id,
+  COUNT(ca.hubspot_id) as followup_count
+FROM hubspot_deals_raw d
+JOIN hubspot_contacts_raw c ON c.hubspot_id = d.raw_json->'associations'->'contacts'->'results'->0->>'id'
+JOIN hubspot_calls_raw ca ON REPLACE(ca.call_to_number, '+', '') = REPLACE(c.phone, '+', '')
+GROUP BY d.hubspot_id;
 ```
 
 #### 4. days_between_stages
-```javascript
-{
-  name: "days_between_stages",
-  label: "Days Between Stages",
-  description: "Days from qualified to closed",
-  groupName: "dealinformation",
-  type: "number",
-  fieldType: "number"
-}
+**🔄 ВЫЧИСЛЯЕТСЯ В SUPABASE** - не создаем в HubSpot
+```sql
+-- View в Supabase
+SELECT
+  hubspot_id,
+  EXTRACT(days FROM closedate - createdate) as days_between_stages
+FROM hubspot_deals_raw;
 ```
 
 #### 5. installment_plan
@@ -201,16 +216,13 @@ Analyzed via HubSpot Properties API:
 }
 ```
 
-#### 7. vsl_watch_duration
-```javascript
-{
-  name: "vsl_watch_duration",
-  label: "VSL Watch Duration",
-  description: "How many minutes of VSL watched (4min, 18min markers)",
-  groupName: "dealinformation",
-  type: "number",
-  fieldType: "number"
-}
+#### 7. vsl_watch_duration (Deal)
+**❌ НЕ СОЗДАЕМ** - берем из contact через JOIN
+```sql
+-- Берется из hubspot_contacts_raw.vsl_watch_duration
+SELECT d.*, c.vsl_watch_duration
+FROM hubspot_deals_raw d
+JOIN hubspot_contacts_raw c ON c.hubspot_id = d.raw_json->'associations'->'contacts'->'results'->0->>'id';
 ```
 
 #### 8. upfront_payment
@@ -362,6 +374,8 @@ import 'dotenv/config';
 const HUBSPOT_API_KEY = process.env.HUBSPOT_API_KEY;
 const BASE_URL = 'https://api.hubapi.com';
 
+// NOTE: followup_count и days_between_stages вычисляются в Supabase, не создаем в HubSpot
+
 const DEAL_FIELDS = [
   {
     name: "cancellation_reason",
@@ -385,20 +399,6 @@ const DEAL_FIELDS = [
     groupName: "dealinformation"
   },
   {
-    name: "followup_count",
-    label: "Followup Count",
-    type: "number",
-    fieldType: "number",
-    groupName: "dealinformation"
-  },
-  {
-    name: "days_between_stages",
-    label: "Days Between Stages",
-    type: "number",
-    fieldType: "number",
-    groupName: "dealinformation"
-  },
-  {
     name: "installment_plan",
     label: "Installment Plan",
     type: "enumeration",
@@ -416,13 +416,6 @@ const DEAL_FIELDS = [
     label: "VSL Watched",
     type: "bool",
     fieldType: "booleancheckbox",
-    groupName: "dealinformation"
-  },
-  {
-    name: "vsl_watch_duration",
-    label: "VSL Watch Duration (minutes)",
-    type: "number",
-    fieldType: "number",
     groupName: "dealinformation"
   },
   {
@@ -528,8 +521,9 @@ node src/scripts/create-missing-fields.js
 - [x] Document creation plan
 
 ### Phase 2: Field Creation
+- [x] Decide HubSpot vs Supabase approach (hybrid: 7 in HubSpot, 2 in Supabase)
 - [ ] Review field specs with client
-- [ ] Run creation script
+- [ ] Run creation script (creates 7 deal fields + 1 contact field)
 - [ ] Verify fields in HubSpot UI
 - [ ] Test with sample data
 
@@ -548,15 +542,22 @@ node src/scripts/create-missing-fields.js
 
 ## 🎯 Success Criteria
 
-- [ ] All 10 deal fields created in HubSpot
-- [ ] 1 contact field created in HubSpot
+**HubSpot Fields:**
+- [ ] 7 deal fields created in HubSpot (cancellation_reason, is_refunded, installment_plan, vsl_watched, upfront_payment, offer_given, offer_accepted)
+- [ ] 1 contact field created in HubSpot (vsl_watch_duration)
 - [ ] Fields visible in HubSpot UI
 - [ ] Fields appear in API responses
 - [ ] Test records have sample data
+
+**Supabase Views:**
+- [ ] followup_count view created
+- [ ] days_between_stages view created
+
+**Overall:**
 - [ ] Sync script includes new fields
 - [ ] All 22 metrics can be calculated
 
 ---
 
-**Status:** Ready for field creation
-**Next:** Run creation script after client approval
+**Status:** Architectural decision made - hybrid approach
+**Next:** Run creation script to create 8 fields in HubSpot
