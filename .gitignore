@@ -23,6 +23,9 @@ Thumbs.db
 .vscode/
 .idea/
 
+# MCP configuration (may contain sensitive paths)
+.mcp.json
+
 # Logs
 *.log
 
