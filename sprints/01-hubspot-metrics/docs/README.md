@@ -41,6 +41,52 @@
 - ❌ 1 contact field needs creation
 - ✅ All call fields exist (Kavkom integration)
 
+### 3. [Tech Stack Decisions](./tech-decisions.md)
+
+**What's inside:**
+- TypeScript vs JavaScript analysis
+- Next.js vs Vite comparison
+- @supabase/ssr rationale
+- Cost breakdown ($0/month!)
+- Migration strategy
+- Development workflow
+
+**Key decisions:**
+- ✅ TypeScript for AI coding advantage
+- ✅ Next.js for free Vercel hosting
+- ✅ @supabase/ssr for Server Components
+
+### 4. [Frontend Setup Summary](./setup-summary.md)
+
+**What's inside:**
+- Next.js 15 installation steps
+- 454 NPM packages installed
+- Configuration files overview
+- Verification checklist
+
+**Status:** ✅ Complete
+
+### 5. [Migration Plan](./MIGRATION_PLAN.md) ⭐ NEW
+
+**What's inside:**
+- Complete file-by-file migration strategy
+- Archive vs Delete vs Migrate decisions
+- TypeScript migration roadmap
+- Final project structure
+- Execution checklist with priorities
+
+**Key decisions:**
+- ✅ Keep & Migrate: `api.js`, `sync-parallel.js` → TypeScript
+- 📦 Archive: 7 analysis scripts (one-time use)
+- 🗑️ Delete: 5 obsolete test/utility scripts
+- ♻️ Rewrite: `sync.js` → Next.js API routes
+
+**Action Items:**
+1. Archive analysis scripts to `archive/sprint-01-analysis/`
+2. Delete obsolete scripts
+3. Migrate core API to TypeScript
+4. Create Next.js API routes
+
 ---
 
 ## 🎯 Quick Reference
