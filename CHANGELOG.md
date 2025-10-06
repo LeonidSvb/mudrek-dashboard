@@ -2,6 +2,119 @@
 
 Все значимые изменения в этом проекте будут задокументированы в этом файле.
 
+## [v3.2.0] - 2025-10-06
+
+### Frontend Setup: Next.js 15 + TypeScript
+
+#### Tech Stack Decisions
+- **TypeScript over JavaScript**: Выбран TypeScript для лучшего AI coding experience и type safety
+- **Next.js 15 over Vite**: Выбран Next.js (знакомый стек, Server Components, free hosting на Vercel)
+- **@supabase/ssr**: Правильный пакет для Next.js SSR (не @supabase/supabase-js)
+
+#### Frontend Project Created
+- **Next.js 15** с App Router и Turbopack
+- **TypeScript 5** с strict mode
+- **Tailwind CSS 4** для стилей
+- **454 NPM packages** установлено успешно (0 vulnerabilities)
+
+#### Key Dependencies Installed
+```json
+{
+  "next": "15.5.4",
+  "react": "19.1.0",
+  "@supabase/ssr": "^0.7.0",
+  "recharts": "^3.2.1",
+  "lucide-react": "^0.544.0",
+  "tailwind-merge": "^3.3.1",
+  "class-variance-authority": "^0.7.1"
+}
+```
+
+#### Documentation Updated
+- **docs/ADR.md**: Добавлено 3 новых архитектурных решения
+  - Decision 8: Why TypeScript (AI coding advantage)
+  - Decision 9: Why Next.js over Vite (cost $0/month vs $5-10/month)
+  - Decision 10: Why @supabase/ssr (Server Components support)
+
+- **CLAUDE.md**: Добавлено 526 строк React/Next.js guidelines
+  - TypeScript standards (interfaces, no enums)
+  - Next.js App Router patterns
+  - React Server Components (RSC)
+  - shadcn/ui integration
+  - Supabase SSR patterns (@supabase/ssr)
+  - API Routes для HubSpot proxy
+  - Performance optimization
+  - Component best practices
+
+- **Sprint 01 Docs**: Создана детальная техническая документация
+  - `sprints/01-hubspot-metrics/docs/tech-decisions.md` - Полный анализ решений
+  - `sprints/01-hubspot-metrics/docs/setup-summary.md` - Summary установки
+
+#### Project Structure
+```
+frontend/               # NEW - Next.js app
+├── app/               # App Router
+├── components/        # React components
+├── lib/              # Utilities
+├── package.json      # 454 packages
+└── tsconfig.json     # TypeScript config
+```
+
+#### Key Benefits
+- ✅ **TypeScript**: Claude Code получает full autocomplete, меньше ошибок
+- ✅ **Next.js**: Один проект вместо двух, бесплатный хостинг
+- ✅ **Server Components**: Безопасное хранение API ключей
+- ✅ **Vercel Free Tier**: $0/month для всего стека
+
+#### Next Steps
+- [ ] Migrate HubSpot API to TypeScript
+- [ ] Create Next.js API routes
+- [ ] Install shadcn/ui components
+- [ ] Build dashboard UI
+
+---
+
+## [v3.1.0] - 2025-10-06
+
+### Полный анализ данных и планирование архитектуры БД
+
+#### Анализ HubSpot данных
+- **Анализ 200 calls**: Проверка associations (результат: calls не имеют associations, но связь через phone работает)
+- **Анализ Deal Stages**: Выявлено что 100% deals в "closedwon", нужна новая структура stages
+- **Анализ существующих полей**: 213 deal properties, 421 contact properties, 96 call properties
+- **Определение недостающих полей**: 10 deal fields + 1 contact field нужно создать
+
+#### Архитектура базы данных
+- **Hybrid schema design**: 8-10 часто используемых колонок + JSONB для гибкости
+- **Parallel sync strategy**: Contacts, Deals, Calls синхронизируются параллельно (3x быстрее)
+- **Phone-based linking**: Calls связываются с Contacts через номера телефонов
+- **Associations в JSONB**: Хранение всех связей в raw_json для гибкости
+
+#### Документация Sprint 01
+- **database-architecture-and-data-flow.md**: Полная архитектура системы, data flow, schema design
+- **hubspot-fields-analysis-and-creation-plan.md**: Анализ 22 метрик, спецификации 11 новых полей
+- **Comprehensive analysis report**: Детальный отчет со всеми выводами и рекомендациями
+
+#### Скрипты анализа
+- `analyze-calls-associations.js`: Анализ связей calls (200 записей)
+- `analyze-calls-by-phone.js`: Проверка linking через phone
+- `analyze-dealstages.js`: Анализ pipeline и stages
+- `check-existing-fields.js`: Проверка существующих properties в HubSpot
+- `fetch-fresh-samples.js`: Запрос свежих данных из HubSpot API
+
+#### Ключевые решения
+- ✅ Hybrid approach (columns + JSONB) для оптимальной производительности
+- ✅ Parallel sync для максимальной скорости
+- ✅ Phone-based linking для calls (associations не работают)
+- ✅ 10 deal fields + 1 contact field для создания
+- ✅ Готова спецификация для всех 22 метрик
+
+#### Готовность к следующим этапам
+- SQL migration готова к созданию
+- Field creation script готов к запуску (после одобрения клиента)
+- Sync logic документирована и спроектирована
+- Frontend integration план составлен
+
 ## [v3.0.0] - 2025-10-06
 
 ### Полная реорганизация проекта

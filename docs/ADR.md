@@ -342,6 +342,92 @@ CRON_SECRET=xxx
 | 2025-10-06 | RAW layer pattern | Data preservation, flexibility |
 | 2025-10-06 | Hourly incremental sync | Balance of freshness + cost |
 | 2025-10-06 | No authentication | Internal use only |
+| 2025-10-06 | **TypeScript over JavaScript** | Better autocomplete for AI coding, type safety, easier refactoring |
+| 2025-10-06 | **Next.js over Vite** | Known stack, Server Components, built-in API routes, free Vercel hosting |
+| 2025-10-06 | **@supabase/ssr for Next.js** | Proper SSR support, cookie management, Server Components compatible |
+
+---
+
+### 8. Why TypeScript over JavaScript?
+
+**Decision:** Use TypeScript for frontend (Next.js) and optionally migrate backend
+
+**Reasons:**
+- **AI Coding Advantage:** Claude Code gets full autocomplete with TypeScript interfaces
+  - Knows exact structure of HubSpot/Supabase data
+  - Writes correct code first try (no guessing field names)
+  - Safe refactoring (finds all usages automatically)
+- **Type Safety:** Catches errors before runtime
+- **Better IDE Support:** Full IntelliSense for all data structures
+- **Easier Maintenance:** Clear contracts between functions
+- **Industry Standard:** All modern dashboards use TypeScript
+
+**Trade-offs:**
+- Slightly slower initial development (writing types)
+- Learning curve (minimal, team already knows basics)
+- Build step required (but Next.js already has it)
+
+**Impact on AI Development:**
+```typescript
+// With TypeScript - Claude knows everything
+interface Deal {
+  dealname: string;
+  amount: number;
+  dealstage: 'open' | 'won' | 'lost';
+}
+
+// Claude autocompletes: deal.dealname, deal.amount, deal.dealstage
+// Wrong code gets caught immediately: deal.amont → ERROR
+```
+
+---
+
+### 9. Why Next.js over Vite?
+
+**Decision:** Next.js 15 with App Router
+
+**Reasons:**
+- **Team Knowledge:** Already used Next.js in Outreach project
+- **Server Components:** Secure API key handling (HubSpot keys on server)
+- **Built-in API Routes:** No need for separate Express server
+- **Free Hosting:** Vercel free tier includes everything
+- **Production Ready:** Image optimization, caching, edge functions built-in
+- **One Codebase:** Frontend + API in same project
+
+**Vite Rejected Because:**
+- Would need separate backend server (more complexity)
+- Can't hide API keys (everything runs in browser)
+- Team unfamiliar with Vite patterns
+- Two deployments (frontend + backend)
+
+**Cost Comparison:**
+- Next.js on Vercel: **$0/month** (free tier sufficient)
+- Vite + Backend: **$5-10/month** (need Railway/Render for API)
+
+---
+
+### 10. Why @supabase/ssr over @supabase/supabase-js?
+
+**Decision:** Use `@supabase/ssr` for Next.js frontend
+
+**Reasons:**
+- **Server Components Compatible:** Works with Next.js App Router
+- **Proper Cookie Management:** `getAll()` and `setAll()` for auth
+- **SSR Support:** Handles server-side rendering correctly
+- **Official Recommendation:** Supabase docs recommend for Next.js 13+
+- **Future Proof:** Maintained actively, supabase-js deprecated for Next.js
+
+**Backend (Node.js scripts) Still Uses:**
+- `@supabase/supabase-js` with SERVICE_ROLE_KEY (correct for server-only)
+
+**Pattern:**
+```typescript
+// Frontend: @supabase/ssr
+import { createServerClient } from '@supabase/ssr';
+
+// Backend: @supabase/supabase-js
+import { createClient } from '@supabase/supabase-js';
+```
 
 ---
 
