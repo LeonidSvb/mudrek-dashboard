@@ -2,6 +2,32 @@
 
 Все значимые изменения в этом проекте будут задокументированы в этом файле.
 
+## [v3.3.0] - 2025-10-06
+
+### Архитектурное решение: Гибридный подход к созданию полей
+
+#### Решение по полям HubSpot vs Supabase
+- **Гибридный подход**: 8 полей создаем в HubSpot, 2 поля вычисляем в Supabase
+- **HubSpot (8 полей)**: cancellation_reason, is_refunded, installment_plan, vsl_watched, upfront_payment, offer_given, offer_accepted (deals) + vsl_watch_duration (contact)
+- **Supabase Views (2 поля)**: followup_count (COUNT calls), days_between_stages (closedate - createdate)
+
+#### Причины гибридного подхода
+- **HubSpot**: Поля нужны команде продаж в интерфейсе CRM, заполняются вручную или через Make.com
+- **Supabase**: Агрегации и производные значения, нужны только для дашборда
+
+#### Обновленная документация
+- **hubspot-fields-analysis-and-creation-plan.md**: Добавлена секция с архитектурным решением
+- **Creation script**: Обновлен, убраны поля которые не нужно создавать в HubSpot
+- **SQL примеры**: Добавлены примеры вычисления полей в Supabase
+
+#### Next Steps
+- [ ] Запустить creation script для создания 8 полей в HubSpot
+- [ ] Создать SQL views в Supabase для followup_count и days_between_stages
+- [ ] Создать SQL migration с полной схемой базы данных
+- [ ] Протестировать full sync с новыми полями
+
+---
+
 ## [v3.2.0] - 2025-10-06
 
 ### Frontend Setup: Next.js 15 + TypeScript
