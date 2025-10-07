@@ -2,7 +2,131 @@
 
 Все значимые изменения в этом проекте будут задокументированы в этом файле.
 
-## [v3.7.1] - 2025-10-07 (CURRENT)
+## [v3.8.0] - 2025-10-07 (CURRENT)
+
+### Codebase Cleanup + Owner Migration Complete - READY FOR DASHBOARD
+
+#### Session Summary
+
+**✅ Что сделали:**
+1. Data discovery - проверили все данные
+2. Owner migration - добавили hubspot_owner_id в обе таблицы
+3. Загрузили 8 менеджеров из HubSpot API
+4. Почистили проект - 11 временных скриптов в archive
+5. Документация - объяснили связи и JSONB usage
+
+**📊 Финальное состояние данных:**
+- Contacts: 31,636 (86.8% с owner_id)
+- Deals: 1,193 (100% с owner_id)
+- Calls: 118,799
+- Owners: 8 managers
+- Валюта: Israeli Shekels (₪)
+- Total Sales: ₪1,152,668
+
+**🎯 Главный менеджер:**
+- Shadi Halloun (ID: 682432124): 1,000 deals
+
+---
+
+#### Next Session: Dashboard Implementation
+
+**Приоритет 1 - Core Dashboard (2-3 часа):**
+
+1. **Setup API Routes** (30 min)
+   ```typescript
+   // frontend/app/api/metrics/route.ts
+   - GET /api/metrics?owner_id=...&date_from=...&date_to=...
+   - Return: { totalSales, avgDealSize, totalDeals, conversionRate }
+   ```
+
+2. **Create Base Components** (1 hour)
+   ```typescript
+   // frontend/app/dashboard/components/
+   - MetricCard.tsx (with trend indicator)
+   - DashboardLayout.tsx (responsive grid)
+   - FilterPanel.tsx (date range + owner select)
+   ```
+
+3. **First 4 Metrics** (1 hour)
+   - Total Sales (₪) with trend
+   - Average Deal Size (₪)
+   - Total Deals count
+   - Conversion Rate (%)
+
+4. **Owner Filter** (30 min)
+   - Dropdown с 8 менеджерами
+   - "All Managers" option
+   - Filter применяется ко всем метрикам
+
+**Приоритет 2 - Additional Metrics (1 час):**
+5. Average Call Time
+6. Total Call Time
+7. Qualified Rate
+8. Trial Rate
+
+**Приоритет 3 - Visualizations (1 час):**
+9. Sales Trend Chart (line chart по дням)
+10. Manager Performance (bar chart по менеджерам)
+
+---
+
+#### Technical Details for Next Session
+
+**Database Queries Ready:**
+```sql
+-- Total Sales по менеджеру
+SELECT SUM(amount) FROM hubspot_deals_raw
+WHERE dealstage = 'closedwon'
+AND hubspot_owner_id = '682432124';
+
+-- Conversion Rate
+SELECT
+  COUNT(*) as total_contacts,
+  (SELECT COUNT(*) FROM hubspot_deals_raw
+   WHERE dealstage = 'closedwon') as closed_deals
+FROM hubspot_contacts_raw;
+```
+
+**Component Structure:**
+```
+frontend/app/dashboard/
+├── page.tsx (Server Component - fetch data)
+├── components/
+│   ├── MetricCard.tsx
+│   ├── FilterPanel.tsx
+│   └── charts/
+│       ├── SalesChart.tsx
+│       └── ManagerChart.tsx
+```
+
+**Styling:**
+- Tailwind CSS (desktop-first)
+- shadcn/ui для UI components
+- Currency symbol: ₪ (NOT $)
+- Color scheme: blue для sales, purple для calls
+
+**Filters State:**
+- Use `nuqs` for URL params (date_from, date_to, owner_id)
+- Sharable URLs with filters
+
+---
+
+#### Документация обновлена
+
+**Новые файлы:**
+- `docs/RELATIONSHIPS_EXPLAINED.md` - Связи таблиц и JSONB usage
+- `scripts/discovery/README.md` - Архив discovery скриптов
+- Updated `CLAUDE.md` - One-time scripts policy
+
+**Ключевые выводы:**
+- ✅ JSONB очень полезен для гибких запросов
+- ✅ Связь через owner_id работает отлично
+- ✅ Foreign keys НЕ нужны (JOIN on-the-fly быстрее)
+- ✅ GIN индексы на JSONB для performance
+
+---
+
+## [v3.7.1] - 2025-10-07
 
 ### Data Discovery завершен - Выявлены критические требования
 
