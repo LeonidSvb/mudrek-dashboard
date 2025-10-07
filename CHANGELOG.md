@@ -2,6 +2,140 @@
 
 Все значимые изменения в этом проекте будут задокументированы в этом файле.
 
+## [v3.7.0] - 2025-10-07 (CURRENT)
+
+### Initial Sync завершена - Dashboard Design готов
+
+#### Статус миграции данных
+
+**Успешно синхронизировано в Supabase:**
+- Контакты: 31,636 записей
+- Сделки: 1,193 записей
+- Звонки: 118,799 записей
+- Время выполнения: ~10 минут
+- Статус: SUCCESS
+
+**Используемый скрипт:** `src/hubspot/sync-parallel.js`
+
+#### Incremental Sync
+
+**Создан:** `src/hubspot/sync-incremental.js`
+
+**Ключевые фичи:**
+- Smart filtering по `hs_lastmodifieddate`
+- Автоматический fallback на full sync если нет истории
+- Logging в sync_logs таблицу
+- 10-20x быстрее чем full sync
+
+**Рекомендуемый интервал:** 2-4 часа
+
+**Как работает:**
+```javascript
+// 1. Получить время последней синхронизации из sync_logs
+const lastSync = await getLastSyncTime('contacts');
+
+// 2. Fetch только измененные записи
+const searchBody = {
+  filterGroups: [{
+    filters: [{
+      propertyName: 'hs_lastmodifieddate',
+      operator: 'GTE',
+      value: new Date(lastSync).getTime()
+    }]
+  }]
+};
+
+// 3. UPSERT в Supabase
+// 4. Log результаты в sync_logs
+```
+
+**Опции для автоматизации:**
+1. Node-cron (в приложении)
+2. Vercel Cron Jobs
+3. GitHub Actions
+
+#### Dashboard Design
+
+**Создан:** `docs/dashboard-design.md`
+
+**22 метрики разбиты на 2 Milestone:**
+
+**Milestone 2 (Easy) - 13 метрик:**
+1. Total Sales
+2. Average Deal Size
+3. Total Deals
+4. Cancellation Rate
+5. Conversion Rate
+6. Qualified Rate
+7. Trial Rate
+8. Average Installments
+9. Time to Sale
+10. Average Call Time
+11. Total Call Time
+12. Sales Script Testing
+13. VSL Watch → Close Rate
+
+**Milestone 3 (Complex) - 9 метрик:**
+14. Upfront Cash Collected
+15. Follow-up Rate
+16. Total Calls Made
+17. 5min Reached Rate
+18. Pickup Rate
+19. Time to First Contact
+20. Avg Followups per Lead
+21. Offers Given Rate
+22. Offer → Close Rate
+
+**SQL queries:** Все 13 Milestone 2 метрик имеют готовые SQL запросы
+
+**Dashboard Layout:**
+- Следует индустриальным практикам (Stripe, Amplitude, Mixpanel)
+- 4 KPI cards вверху (большие цифры)
+- Sales Performance charts (agent breakdown, trend)
+- Call Metrics
+- Conversion Funnel visualization
+- A/B Testing comparison
+
+**Component Architecture:**
+```
+frontend/app/dashboard/
+├── page.tsx                    # Main dashboard (Server Component)
+├── components/
+│   ├── MetricCard.tsx          # Reusable metric card
+│   ├── SalesChart.tsx          # Trend visualization
+│   ├── ConversionFunnel.tsx    # Funnel chart
+│   └── FilterPanel.tsx         # Date/agent filters
+```
+
+**Estimated time:** ~8 часов для Milestone 2
+
+#### Документация
+
+**Новые файлы:**
+- `src/hubspot/README.md` - Полное руководство по sync скриптам
+- `docs/dashboard-design.md` - Дизайн дашборда и метрики
+- `sprints/01-hubspot-metrics/docs/SYNC_SCRIPT_EXPLAINED.md` - Детальное объяснение логики sync
+- `check-sync-status.js` - Утилита для проверки статуса синхронизации
+
+#### Следующие шаги
+
+**Приоритет 1: Dashboard Implementation**
+1. Создать MetricCard component
+2. Создать DashboardLayout
+3. Setup API routes (`/api/metrics`)
+4. Implement первые 4-6 метрик
+5. Добавить визуализации
+
+**Приоритет 2: Incremental Sync Scheduler**
+1. Выбрать подход (Node-cron / Vercel Cron / GitHub Actions)
+2. Настроить автоматический запуск каждые 2-4 часа
+3. Настроить мониторинг и alerts
+
+**Приоритет 3: Complex Metrics (Milestone 3)**
+Требуют дополнительных полей или API вызовов
+
+---
+
 ## [v3.6.0] - 2025-10-07
 
 ### TypeScript Migration завершена - Sync готов к работе
