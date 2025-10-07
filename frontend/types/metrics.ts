@@ -35,8 +35,15 @@ export interface MetricsResponse {
   conversionRate: number;
   avgCallTime: number;
   totalCallTime: number;
+  totalCalls: number;
+  fiveMinReachedRate: number;
   qualifiedRate: number;
   trialRate: number;
+  avgInstallments: number;
+  timeToSale: number; // days
+  followupRate: number;
+  avgFollowups: number;
+  timeToFirstContact: number;
 }
 
 export interface OwnerMetric {

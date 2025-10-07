@@ -175,7 +175,10 @@ async function syncCalls() {
     hubspot_id: call.id,
     call_duration: call.properties.hs_call_duration ? parseInt(call.properties.hs_call_duration) : null,
     call_direction: call.properties.hs_call_direction,
+    call_to_number: call.properties.hs_call_to_number,
+    call_from_number: call.properties.hs_call_from_number,
     call_timestamp: call.properties.hs_timestamp,
+    call_disposition: call.properties.hs_call_disposition,
     raw_json: call.properties,
     synced_at: new Date().toISOString()
   }));

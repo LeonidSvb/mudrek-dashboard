@@ -4,6 +4,8 @@ import {
   getCallMetrics,
   getConversionMetrics,
   getInstallmentMetrics,
+  getTimeToSale,
+  getFollowupMetrics,
 } from '@/lib/db/metrics';
 import { getLogger } from '@/lib/app-logger';
 
@@ -24,17 +26,21 @@ export async function GET(request: NextRequest) {
 
     logger.info('Fetching metrics', { filters, DATABASE_URL_present: !!process.env.DATABASE_URL });
 
-    // Fetch all metrics in parallel with Prisma
-    const [basicMetrics, callMetrics, conversionMetrics, installmentMetrics] = await Promise.all([
+    // Fetch all metrics in parallel
+    const [basicMetrics, callMetrics, conversionMetrics, installmentMetrics, timeToSaleMetrics, followupMetrics] = await Promise.all([
       getBasicMetrics(filters),
       getCallMetrics(filters),
       getConversionMetrics(filters),
       getInstallmentMetrics(filters),
+      getTimeToSale(filters),
+      getFollowupMetrics(filters),
     ]);
 
     logger.info('Metrics fetched successfully', {
       totalDeals: basicMetrics.totalDeals,
-      totalCalls: callMetrics.totalCalls
+      totalCalls: callMetrics.totalCalls,
+      timeToSale: timeToSaleMetrics.timeToSale,
+      followupRate: followupMetrics.followupRate
     });
 
     return NextResponse.json({
@@ -42,6 +48,8 @@ export async function GET(request: NextRequest) {
       ...callMetrics,
       ...conversionMetrics,
       ...installmentMetrics,
+      ...timeToSaleMetrics,
+      ...followupMetrics,
     });
   } catch (error) {
     logger.error('Metrics API error', error, {
