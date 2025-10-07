@@ -38,10 +38,54 @@
 - Group related functionality together
 - Remove unused code and imports
 
-## File Management
-- Avoid writing one-time scripts directly in files
-- If scripts are needed, create them in appropriate directories (e.g., `scripts/`)
-- Consider whether a script will be reused before embedding it in the codebase
+## File Management & One-time Scripts
+
+### Production Code Structure
+```
+project/
+├── src/              # Production source code
+├── migrations/       # Database migrations (keep all)
+├── scripts/
+│   ├── discovery/    # One-time discovery scripts (archived)
+│   └── utils/        # Reusable utility scripts
+├── tests/            # Test files
+└── check-*.js        # Only if reusable utilities
+```
+
+### One-time Scripts Policy
+**Discovery/testing scripts должны быть перемещены после использования:**
+
+**ARCHIVE (не DELETE):**
+- Discovery scripts (check-*, verify-*, test-*)
+- Migration helpers (run-migration-*.js, execute-migration.js)
+- Data analysis scripts
+→ Переместить в `scripts/discovery/` с README
+
+**KEEP in root:**
+- Reusable utilities (e.g., `check-sync-status.js`)
+- Scripts используемые в CI/CD
+- Скрипты упомянутые в документации
+
+**DELETE:**
+- Temporary debugging files
+- Scripts с hardcoded credentials
+- Duplicate functionality
+
+### When Creating Scripts
+1. Задай вопрос: "Будет ли этот скрипт использоваться более 1 раза?"
+2. Если НЕТ → создай в `scripts/discovery/` сразу
+3. Если ДА → создай в корне или `scripts/utils/`
+4. После использования discovery scripts → переместить с git mv
+
+### Example Workflow
+```bash
+# During discovery
+node scripts/discovery/check-data.js
+
+# After session - cleanup
+git mv check-*.js scripts/discovery/
+git commit -m "chore: Archive discovery scripts"
+```
 
 ## File Size Limits
 - Keep files under 200-300 lines of code
