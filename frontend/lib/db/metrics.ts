@@ -1,4 +1,9 @@
-import { SupabaseClient } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_KEY!
+);
 
 export interface MetricsFilters {
   ownerId?: string | null;
@@ -16,6 +21,8 @@ export interface BasicMetrics {
 export interface CallMetrics {
   avgCallTime: number;
   totalCallTime: number;
+  totalCalls: number;
+  fiveMinReachedRate: number;
 }
 
 export interface ConversionMetrics {
@@ -23,54 +30,53 @@ export interface ConversionMetrics {
   trialRate: number;
 }
 
+export interface InstallmentMetrics {
+  avgInstallments: number;
+}
+
 export async function getBasicMetrics(
-  supabase: SupabaseClient,
   filters: MetricsFilters = {}
 ): Promise<BasicMetrics> {
   const { ownerId, dateFrom, dateTo } = filters;
 
-  let dealsQuery = supabase
+  let query = supabase
     .from('hubspot_deals_raw')
     .select('amount, closedate')
     .eq('dealstage', 'closedwon');
 
   if (ownerId) {
-    dealsQuery = dealsQuery.eq('hubspot_owner_id', ownerId);
+    query = query.eq('hubspot_owner_id', ownerId);
   }
 
   if (dateFrom && dateTo) {
-    dealsQuery = dealsQuery.gte('closedate', dateFrom).lte('closedate', dateTo);
+    query = query.gte('closedate', dateFrom).lte('closedate', dateTo);
   }
 
-  const { data: deals, error: dealsError } = await dealsQuery;
+  const { data: deals, error } = await query;
 
-  if (dealsError) {
-    throw new Error(`Failed to fetch deals: ${dealsError.message}`);
+  if (error) {
+    throw new Error(`Failed to fetch deals: ${error.message}`);
   }
 
-  let contactsQuery = supabase
-    .from('hubspot_contacts_raw')
-    .select('*', { count: 'exact', head: true });
+  let contactQuery = supabase.from('hubspot_contacts_raw').select('*', { count: 'exact', head: true });
 
   if (ownerId) {
-    contactsQuery = contactsQuery.eq('hubspot_owner_id', ownerId);
+    contactQuery = contactQuery.eq('hubspot_owner_id', ownerId);
   }
 
-  const { count: totalContacts, error: contactsError } = await contactsQuery;
+  const { count: totalContacts, error: contactError } = await contactQuery;
 
-  if (contactsError) {
-    throw new Error(`Failed to count contacts: ${contactsError.message}`);
+  if (contactError) {
+    throw new Error(`Failed to count contacts: ${contactError.message}`);
   }
 
-  const totalSales = deals?.reduce((sum, deal) => sum + (deal.amount || 0), 0) || 0;
-  const dealsWithAmount = deals?.filter((deal) => deal.amount > 0) || [];
-  const avgDealSize =
-    dealsWithAmount.length > 0
-      ? dealsWithAmount.reduce((sum, deal) => sum + deal.amount, 0) / dealsWithAmount.length
-      : 0;
+  const totalSales = deals?.reduce((sum, deal) => sum + (Number(deal.amount) || 0), 0) || 0;
+  const dealsWithAmount = deals?.filter(deal => deal.amount && Number(deal.amount) > 0) || [];
+  const avgDealSize = dealsWithAmount.length > 0
+    ? dealsWithAmount.reduce((sum, deal) => sum + Number(deal.amount), 0) / dealsWithAmount.length
+    : 0;
   const totalDeals = deals?.length || 0;
-  const conversionRate =
-    totalContacts && totalContacts > 0 ? (totalDeals / totalContacts) * 100 : 0;
+  const conversionRate = (totalContacts || 0) > 0 ? (totalDeals / (totalContacts || 1)) * 100 : 0;
 
   return {
     totalSales: Math.round(totalSales),
@@ -81,27 +87,28 @@ export async function getBasicMetrics(
 }
 
 export async function getCallMetrics(
-  supabase: SupabaseClient,
   filters: MetricsFilters = {}
 ): Promise<CallMetrics> {
-  const { ownerId, dateFrom, dateTo } = filters;
+  const { dateFrom, dateTo } = filters;
 
-  let callsQuery = supabase
-    .from('hubspot_calls_raw')
-    .select('call_duration, call_timestamp');
+  let query = supabase.from('hubspot_calls_raw').select('call_duration');
 
   if (dateFrom && dateTo) {
-    callsQuery = callsQuery.gte('call_timestamp', dateFrom).lte('call_timestamp', dateTo);
+    query = query.gte('call_timestamp', dateFrom).lte('call_timestamp', dateTo);
   }
 
-  const { data: calls, error } = await callsQuery;
+  const { data: calls, error } = await query;
 
   if (error) {
     throw new Error(`Failed to fetch calls: ${error.message}`);
   }
 
-  const validCalls = calls?.filter((call) => call.call_duration > 0) || [];
+  const totalCalls = calls?.length || 0;
+  const validCalls = calls?.filter(call => call.call_duration && call.call_duration > 0) || [];
   const totalDuration = validCalls.reduce((sum, call) => sum + (call.call_duration || 0), 0);
+
+  const fiveMinCalls = calls?.filter(call => call.call_duration && call.call_duration >= 300000) || [];
+  const fiveMinReachedRate = totalCalls > 0 ? (fiveMinCalls.length / totalCalls) * 100 : 0;
 
   const avgCallTime = validCalls.length > 0 ? totalDuration / validCalls.length / 60000 : 0;
   const totalCallTime = totalDuration / 3600000;
@@ -109,36 +116,65 @@ export async function getCallMetrics(
   return {
     avgCallTime: Math.round(avgCallTime * 100) / 100,
     totalCallTime: Math.round(totalCallTime * 100) / 100,
+    totalCalls,
+    fiveMinReachedRate: Math.round(fiveMinReachedRate * 100) / 100,
   };
 }
 
 export async function getConversionMetrics(
-  supabase: SupabaseClient,
   filters: MetricsFilters = {}
 ): Promise<ConversionMetrics> {
   const { ownerId } = filters;
 
-  // FIXED: qualified_status и trial_status находятся в deals, НЕ в contacts!
-  let dealsQuery = supabase
-    .from('hubspot_deals_raw')
-    .select('qualified_status, trial_status');
+  let query = supabase.from('hubspot_deals_raw').select('qualified_status, trial_status');
 
   if (ownerId) {
-    dealsQuery = dealsQuery.eq('hubspot_owner_id', ownerId);
+    query = query.eq('hubspot_owner_id', ownerId);
   }
 
-  const { data: deals, error } = await dealsQuery;
+  const { data: deals, error } = await query;
 
   if (error) {
-    throw new Error(`Failed to fetch deals: ${error.message}`);
+    throw new Error(`Failed to fetch conversion metrics: ${error.message}`);
   }
 
   const total = deals?.length || 0;
-  const qualified = deals?.filter((d) => d.qualified_status === 'yes').length || 0;
-  const trial = deals?.filter((d) => d.trial_status === 'yes').length || 0;
+  const qualified = deals?.filter(d => d.qualified_status === 'yes').length || 0;
+  const trial = deals?.filter(d => d.trial_status === 'yes').length || 0;
 
   return {
     qualifiedRate: total > 0 ? Math.round((qualified / total) * 100 * 100) / 100 : 0,
     trialRate: total > 0 ? Math.round((trial / total) * 100 * 100) / 100 : 0,
+  };
+}
+
+export async function getInstallmentMetrics(
+  filters: MetricsFilters = {}
+): Promise<InstallmentMetrics> {
+  const { ownerId } = filters;
+
+  let query = supabase
+    .from('hubspot_deals_raw')
+    .select('number_of_installments__months')
+    .not('number_of_installments__months', 'is', null)
+    .gt('number_of_installments__months', 0);
+
+  if (ownerId) {
+    query = query.eq('hubspot_owner_id', ownerId);
+  }
+
+  const { data: deals, error } = await query;
+
+  if (error) {
+    throw new Error(`Failed to fetch installment metrics: ${error.message}`);
+  }
+
+  const avgInstallments =
+    (deals?.length || 0) > 0
+      ? deals!.reduce((sum, d) => sum + (d.number_of_installments__months || 0), 0) / deals!.length
+      : 0;
+
+  return {
+    avgInstallments: Math.round(avgInstallments * 10) / 10,
   };
 }

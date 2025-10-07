@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 interface MetricCardProps {
   title: string;
   value: string | number;
-  format?: 'number' | 'currency' | 'percentage' | 'duration';
+  format?: 'number' | 'currency' | 'percentage' | 'duration' | 'decimal';
   trend?: {
     direction: 'up' | 'down' | 'neutral';
     value: number;
@@ -82,6 +82,9 @@ function formatValue(value: string | number, format: string): string {
 
     case 'percentage':
       return `${numValue.toFixed(1)}%`;
+
+    case 'decimal':
+      return numValue.toFixed(2);
 
     case 'duration':
       const minutes = Math.floor(numValue);
