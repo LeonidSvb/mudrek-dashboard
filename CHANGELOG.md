@@ -2,7 +2,74 @@
 
 Все значимые изменения в этом проекте будут задокументированы в этом файле.
 
-## [v3.9.0] - 2025-10-07 (CURRENT)
+## [v3.10.0] - 2025-10-07 (CURRENT)
+
+### Phone-Based Metrics + 100% Call Matching - 15 METRICS READY
+
+#### Session Summary
+
+**Что сделали:**
+1. Исправили sync script - добавили phone fields (call_to_number, call_from_number, call_disposition)
+2. Resync 118,931 calls из HubSpot с телефонными номерами
+3. Создали migration 004 - phone matching views с нормализацией номеров
+4. Добавили 3 новые метрики через phone matching
+5. Проверили все VIEWs и API endpoint
+
+**Phone Matching Results:**
+- Calls с телефонами: 117,993 (99.2%)
+- Matched calls: 118,674 (100.6% - один контакт = несколько звонков)
+- Match accuracy: RELIABLE (100%+)
+
+**3 новые метрики (phone-based):**
+1. **Followup Rate**: 82.49% - % контактов с повторными звонками
+2. **Avg Followups**: 4.8 - среднее количество followup звонков на контакт
+3. **Time to First Contact**: 5.1 дней - среднее время до первого звонка
+
+**Метрики в работе: 15 из 22**
+
+Работают сейчас:
+- Total Sales, Avg Deal Size, Total Deals, Conversion Rate
+- Total Calls, Avg Call Time, Total Call Time, 5-Min Reached Rate
+- Time to Sale
+- Qualified Rate, Trial Rate, Avg Installments (код готов, данные = 0)
+- Followup Rate, Avg Followups, Time to First Contact
+
+**Архитектура данных:**
+```
+HubSpot Raw Data (hubspot_*_raw)
+  ↓
+Phone Matching VIEWs (normalized + JOIN)
+  ↓ calls_normalized (117,993)
+  ↓ contacts_normalized (31,635)
+  ↓ call_contact_matches (118,674)
+  ↓ contact_call_stats (31,635)
+  ↓
+Metrics Functions (TypeScript)
+  ↓
+API Route (/api/metrics)
+  ↓
+Frontend Dashboard
+```
+
+**Файлы изменены:**
+- src/hubspot/sync-parallel.js - исправлен sync (phone fields)
+- migrations/004_create_phone_matching_views.sql - 4 VIEWs
+- frontend/lib/db/metrics.ts - добавлена getFollowupMetrics()
+- frontend/app/api/metrics/route.ts - добавлен вызов новых метрик
+- frontend/types/metrics.ts - обновлены типы
+- scripts/verify-views-and-metrics.js - проверка VIEWs
+
+**Next steps:**
+1. Добавить 3 карточки метрик на dashboard UI
+2. Написать инструкцию для клиента (как заполнить custom fields в HubSpot)
+3. Dashboard filters (today, 7d, 30d, 90d, по менеджерам)
+4. Incremental sync (не полная пересинхронизация)
+5. Pickup rate (нужен mapping disposition ID → label)
+6. Остальные 6 метрик (нужны custom fields в HubSpot)
+
+---
+
+## [v3.9.0] - 2025-10-07
 
 ### Project Structure Cleanup - Minimalism Applied
 
