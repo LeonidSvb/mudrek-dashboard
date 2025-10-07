@@ -1,0 +1,110 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model hubspot_calls_raw {
+  hubspot_id       String    @id
+  call_duration    Int?
+  call_direction   String?
+  call_to_number   String?
+  call_from_number String?
+  call_timestamp   DateTime? @db.Timestamptz(6)
+  call_disposition String?
+  raw_json         Json
+  synced_at        DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@index([call_disposition], map: "idx_calls_disposition")
+  @@index([call_duration], map: "idx_calls_duration")
+  @@index([raw_json], map: "idx_calls_raw_json", type: Gin)
+  @@index([call_timestamp], map: "idx_calls_timestamp")
+  @@index([call_to_number], map: "idx_calls_to_number")
+}
+
+model hubspot_contacts_raw {
+  hubspot_id           String    @id
+  email                String?
+  phone                String?
+  firstname            String?
+  lastname             String?
+  createdate           DateTime? @db.Timestamptz(6)
+  lifecyclestage       String?
+  sales_script_version String?
+  vsl_watched          Boolean?
+  vsl_watch_duration   Int?
+  raw_json             Json
+  synced_at            DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at           DateTime? @default(now()) @db.Timestamptz(6)
+  hubspot_owner_id     String?
+
+  @@index([createdate], map: "idx_contacts_createdate")
+  @@index([email], map: "idx_contacts_email")
+  @@index([lifecyclestage], map: "idx_contacts_lifecyclestage")
+  @@index([hubspot_owner_id], map: "idx_contacts_owner")
+  @@index([phone], map: "idx_contacts_phone")
+  @@index([raw_json], map: "idx_contacts_raw_json", type: Gin)
+}
+
+model hubspot_deals_raw {
+  hubspot_id                     String    @id
+  amount                         Decimal?  @db.Decimal
+  dealstage                      String?
+  createdate                     DateTime? @db.Timestamptz(6)
+  closedate                      DateTime? @db.Timestamptz(6)
+  qualified_status               String?
+  trial_status                   String?
+  payment_status                 String?
+  number_of_installments__months Int?
+  cancellation_reason            String?
+  is_refunded                    Boolean?
+  installment_plan               String?
+  upfront_payment                Decimal?  @db.Decimal
+  offer_given                    Boolean?
+  offer_accepted                 Boolean?
+  raw_json                       Json
+  synced_at                      DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at                     DateTime? @default(now()) @db.Timestamptz(6)
+  hubspot_owner_id               String?
+
+  @@index([amount], map: "idx_deals_amount")
+  @@index([closedate], map: "idx_deals_closedate")
+  @@index([createdate], map: "idx_deals_createdate")
+  @@index([hubspot_owner_id], map: "idx_deals_owner")
+  @@index([payment_status], map: "idx_deals_payment_status")
+  @@index([raw_json], map: "idx_deals_raw_json", type: Gin)
+  @@index([dealstage], map: "idx_deals_stage")
+}
+
+model hubspot_owners {
+  owner_id    String    @id
+  owner_name  String?
+  owner_email String?
+  created_at  DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime? @default(now()) @db.Timestamptz(6)
+}
+
+model sync_logs {
+  id                BigInt    @id @default(autoincrement())
+  sync_started_at   DateTime? @default(now()) @db.Timestamptz(6)
+  sync_completed_at DateTime? @db.Timestamptz(6)
+  duration_seconds  Int?
+  object_type       String
+  records_fetched   Int?
+  records_inserted  Int?
+  records_updated   Int?
+  records_failed    Int?
+  status            String
+  error_message     String?
+  triggered_by      String?
+  metadata          Json?
+
+  @@index([object_type], map: "idx_sync_logs_object_type")
+  @@index([sync_started_at(sort: Desc)], map: "idx_sync_logs_started")
+  @@index([status], map: "idx_sync_logs_status")
+}

@@ -1018,3 +1018,273 @@ describe('MetricCard', () => {
 - Don't expose API keys to client
 - Don't use deprecated Supabase methods (`get`, `set`, `remove`)
 
+---
+
+## Prisma ORM Integration
+
+### Overview
+- **Package:** `@prisma/client` + `prisma` CLI
+- **Purpose:** Type-safe database queries with autocomplete
+- **Works with:** PostgreSQL (Supabase), MySQL, SQLite, MongoDB, etc.
+- **Cost:** FREE, open-source (MIT License)
+
+### Setup
+```bash
+# Already installed in this project
+npm install prisma @prisma/client
+
+# Pull schema from Supabase (when DB changes)
+cd frontend && npx prisma db pull
+
+# Generate TypeScript types
+npx prisma generate
+```
+
+### Configuration
+```typescript
+// frontend/lib/prisma.ts (already created)
+import { PrismaClient } from './generated/prisma';
+
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined;
+};
+
+export const prisma = globalForPrisma.prisma ?? new PrismaClient();
+
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
+```
+
+### Usage in Code
+```typescript
+// Import prisma client
+import { prisma } from '@/lib/prisma';
+
+// Type-safe queries with autocomplete
+const deals = await prisma.hubspot_deals_raw.findMany({
+  where: { dealstage: 'closedwon' },
+  select: { amount: true, dealstage: true, closedate: true }
+});
+
+// TypeScript knows: deals[0].amount is Decimal | null
+const totalSales = deals.reduce((sum, d) => sum + (d.amount || 0), 0);
+```
+
+### When to Use Prisma vs Supabase
+- ✅ **Prisma:** NEW metrics API, complex queries, need type safety & autocomplete
+- ✅ **Supabase:** Auth, RLS, existing sync code
+- ✅ **Hybrid approach:** Use both together (Prisma for queries, Supabase for auth)
+
+### Updating Schema
+When database changes (new tables, columns, etc.):
+```bash
+cd frontend
+npx prisma db pull    # Pull latest schema
+npx prisma generate   # Regenerate TypeScript types
+```
+
+---
+
+## Documentation Standards - Rule of Minimalism
+
+### ✅ WHAT TO KEEP
+
+**1. Source Code**
+- Production code in `src/`, `frontend/`, etc.
+- Reusable utility scripts
+
+**2. Essential Docs (only 3-4 files!)**
+- `README.md` - How to run the project
+- `CHANGELOG.md` - Current state & version history (**SOURCE OF TRUTH**)
+- `CLAUDE.md` - Coding guidelines (this file)
+- `docs/ADR.md` - Architecture Decision Records (optional)
+
+### ❌ WHAT NOT TO CREATE
+
+**Never create without explicit client request:**
+- ❌ "Analysis reports" (analyze, but don't save as MD)
+- ❌ "Migration plans" (plan in TODO list, not MD file)
+- ❌ "Summary documents" (results go in CHANGELOG)
+- ❌ "Explained" docs (code should be self-documenting)
+- ❌ "Setup summaries" (once setup is done, delete it)
+- ❌ "Tech decision docs" (use ADR.md or CHANGELOG)
+- ❌ One-time discovery scripts (see below)
+
+### 📝 CHANGELOG.md = Source of Truth
+
+**CHANGELOG.md is the ONLY documentation that matters:**
+- Current project state
+- What was done in each session
+- What needs to be done next
+- Technical decisions & their outcomes
+
+**Example:**
+```markdown
+## [v3.9.0] - 2025-10-07
+
+### Prisma Integration + Documentation Cleanup
+
+**What was done:**
+- Installed Prisma ORM for type-safe queries
+- Removed 8 outdated documentation files
+- Updated CLAUDE.md with Prisma guidelines
+- Created API sync template for future projects
+
+**Current state:**
+- Schema: 5 tables (contacts, deals, calls, owners, sync_logs)
+- Prisma Client: Generated in frontend/lib/generated/prisma
+- Ready for dashboard implementation
+
+**Next steps:**
+- Build /api/metrics route
+- Create MetricCard component
+- Implement first 4 KPIs
+```
+
+### 🔄 When Documentation Is Needed
+
+**ASK FIRST:**
+Before creating any MD file, ask yourself:
+1. Will this be read more than once?
+2. Is this for external stakeholders (client, team)?
+3. Can this go in CHANGELOG.md instead?
+
+**If answer is NO to all → Don't create MD file!**
+
+---
+
+## One-Time Scripts Policy
+
+### ❌ DO NOT Create Discovery Scripts in Root
+
+**Bad practice (creates clutter):**
+```
+project/
+├── check-schema.js          ❌ One-time use
+├── verify-data.js           ❌ One-time use
+├── test-connection.js       ❌ One-time use
+├── analyze-something.js     ❌ One-time use
+```
+
+### ✅ Instead: Run Code Without Saving
+
+**Use inline execution:**
+```bash
+# Run JavaScript code without creating file
+node -e "console.log('Hello')"
+
+# Multi-line with heredoc
+node << 'EOF'
+const { createClient } = require('@supabase/supabase-js');
+const supabase = createClient(url, key);
+// ... analysis code ...
+EOF
+```
+
+### 📦 When to Create Script Files
+
+**ONLY create script files if:**
+1. ✅ Will be reused multiple times
+2. ✅ Part of CI/CD pipeline
+3. ✅ Mentioned in documentation (README, package.json)
+4. ✅ Production utility (migrations, sync, etc.)
+
+**Examples of GOOD scripts:**
+- `src/hubspot/sync-parallel.js` - Reusable sync
+- `migrations/001-add-owners.sql` - Database migration
+- `frontend/scripts/generate-types.js` - Build script
+
+**Examples of BAD scripts (run inline instead):**
+- `check-schema.js` - One-time check (use Prisma now!)
+- `verify-migration.js` - Run once after migration
+- `test-api.js` - Temporary debugging
+
+### 🗂️ If You MUST Save Discovery Scripts
+
+**Create archive immediately:**
+```bash
+# If script is one-time but needs to be saved
+mkdir -p scripts/archive
+mv check-*.js scripts/archive/
+echo "# Archived discovery scripts" > scripts/archive/README.md
+```
+
+---
+
+## Database Schema - Source of Truth
+
+### ❌ NEVER Maintain Manual Schema Docs
+
+**BAD practice:**
+```markdown
+# DATABASE_SCHEMA.md (gets outdated immediately!)
+
+## hubspot_deals_raw
+- amount: Decimal
+- dealstage: String
+- closedate: DateTime
+...
+```
+
+### ✅ Database IS the Source of Truth
+
+**Always introspect from DB:**
+```bash
+# Option 1: Prisma (recommended)
+npx prisma db pull           # Generates schema.prisma
+npx prisma generate          # Generates TypeScript types
+
+# Option 2: Supabase CLI
+supabase db pull             # Generates migrations
+
+# Option 3: Inline query (one-time check)
+node -e "
+const { createClient } = require('@supabase/supabase-js');
+const supabase = createClient(url, key);
+const { data } = await supabase.from('hubspot_deals_raw').select('*').limit(1);
+console.log('Columns:', Object.keys(data[0]));
+"
+```
+
+**Where schema lives:**
+- ✅ **Live Database** (Supabase) - ALWAYS up-to-date
+- ✅ **Prisma schema.prisma** - Generated from DB, version controlled
+- ✅ **SQL Migrations** - History of changes
+- ❌ **MD documentation** - Gets outdated, DO NOT MAINTAIN
+
+### Workflow for Schema Changes
+
+```bash
+# 1. Change database (Supabase UI or migration)
+# 2. Update Prisma schema
+cd frontend && npx prisma db pull
+
+# 3. Regenerate types
+npx prisma generate
+
+# 4. Types are now updated! No MD file needed.
+```
+
+---
+
+## Summary: Clean Codebase Rules
+
+### Keep Only:
+1. ✅ **Source code** (`src/`, `frontend/`)
+2. ✅ **CHANGELOG.md** (source of truth)
+3. ✅ **README.md** (how to run)
+4. ✅ **CLAUDE.md** (this file)
+5. ✅ **Prisma schema.prisma** (auto-generated)
+
+### Delete or Avoid:
+1. ❌ Analysis/summary MD files
+2. ❌ One-time discovery scripts
+3. ❌ Manual schema documentation
+4. ❌ "Explained" documents
+5. ❌ Duplicate documentation
+
+### Philosophy:
+- **Code is documentation** (write self-documenting code)
+- **Database is schema source of truth** (introspect, don't document)
+- **CHANGELOG is project source of truth** (not scattered MD files)
+- **Less is more** (every file is maintenance burden)
+

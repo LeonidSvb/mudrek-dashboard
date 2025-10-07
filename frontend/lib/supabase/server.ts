@@ -1,5 +1,3 @@
-// Supabase Server Client (for Server Components and API Routes)
-
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
@@ -20,7 +18,7 @@ export async function createClient() {
               cookieStore.set(name, value, options)
             );
           } catch {
-            // Ignore if called from Server Component
+            // Ignore errors in Server Components
           }
         },
       },
