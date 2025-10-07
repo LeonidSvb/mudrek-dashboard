@@ -2,6 +2,71 @@
 
 Все значимые изменения в этом проекте будут задокументированы в этом файле.
 
+## [v3.5.0] - 2025-10-07
+
+### Массовая архивация и очистка кодабазы
+
+#### Архивация завершена
+- **Создан архив** `archive/sprint-01-analysis/` по индустрийным стандартам
+- **Архивировано 12 анализных скриптов** → `archive/sprint-01-analysis/analysis/`
+- **Архивировано 3 fixture скрипта** → `archive/sprint-01-analysis/fixtures/`
+- **Архивировано 2 legacy скрипта** → `archive/sprint-01-analysis/legacy/`
+- **Удалено 8 тестовых скриптов** (одноразовые, больше не нужны)
+
+#### Результат очистки
+**До архивации:** 24 JavaScript файла в `src/`
+
+**После архивации:** Только 2 активных файла:
+- `src/hubspot/api.js` (482 строки) - готов к миграции на TypeScript
+- `src/hubspot/sync-parallel.js` (246 строк) - готов к миграции на TypeScript
+
+#### Структура архива
+```
+archive/sprint-01-analysis/
+├── README.md              # Полное описание всех заархивированных скриптов
+├── analysis/              # 12 скриптов анализа данных
+│   ├── analyze-calls-associations.js
+│   ├── analyze-calls-by-phone.js
+│   ├── analyze-dealstages.js
+│   ├── analyze-fields.js
+│   ├── analyze-raw-data.js
+│   ├── check-associations.js
+│   ├── check-existing-fields.js
+│   ├── fetch-fresh-samples.js
+│   └── metrics-mapping.js
+├── fixtures/              # 3 скрипта получения тестовых данных
+│   ├── get-sample-data.js
+│   ├── get-calls-data.js
+│   └── decode-call-statuses.js
+└── legacy/                # 2 старых версии sync логики
+    ├── sync.js            # Старая последовательная синхронизация
+    └── hubspot-bulk-loader.js  # Старый bulk loader
+```
+
+#### Удаленные скрипты (8 файлов)
+Одноразовые тестовые скрипты, которые больше не нужны:
+- `create-test-deal.js`
+- `create-test-deal-fixed.js`
+- `fix-boolean-field.js`
+- `test-connection.js`
+- `check-deal-fields.js`
+- `create-essential-fields.js`
+- `create-fields-safe.js`
+- `create-missing-contact-fields.js`
+
+#### Документация
+- **Создан README** в архиве с подробным описанием всех скриптов
+- **Задокументированы результаты** каждого анализа
+- **Указаны причины** архивации каждого скрипта
+
+#### Следующие шаги (Phase 3: TypeScript Migration)
+- [ ] Создать TypeScript interfaces в `frontend/types/hubspot.ts`
+- [ ] Мигрировать `api.js` → `frontend/lib/hubspot/api.ts`
+- [ ] Создать API routes в `frontend/app/api/sync/route.ts`
+- [ ] Протестировать sync flow end-to-end
+
+---
+
 ## [v3.4.0] - 2025-10-06
 
 ### Создан план миграции на TypeScript
