@@ -2,7 +2,123 @@
 
 Все значимые изменения в этом проекте будут задокументированы в этом файле.
 
-## [v3.7.0] - 2025-10-07 (CURRENT)
+## [v3.7.1] - 2025-10-07 (CURRENT)
+
+### Data Discovery завершен - Выявлены критические требования
+
+#### Результаты анализа данных
+
+**Валюта:**
+- Все суммы в Israeli Shekels (₪), НЕ USD
+- Total Sales: ₪1,152,668 (не $1.15M!)
+- Average Deal Size: ₪1,152.67
+- На дашборде использовать символ ₪
+
+**Payment Model:**
+- НЕТ рассрочки (installment payments)
+- Все deals - полная оплата (upfront_payment пустое)
+- amount = вся сумма что клиент заплатил
+- НЕ нужна метрика "Cash Collected" отдельно
+
+**Связи данных:**
+- ❌ Звонки НЕ связаны с contacts/deals (нет associations)
+- ❌ hubspot_owner_id НЕ извлечен в колонки (только в raw_json)
+- ❌ raw_json пустой (associations не сохранены)
+
+**Deal Stages:**
+- closedwon: 1,143 deals (основная)
+- appointmentscheduled: 50 deals (в процессе)
+
+#### Критическое требование от клиента
+
+**Фильтр по менеджерам - ОБЯЗАТЕЛЕН (не апселл!):**
+
+Из тех задания клиента (call transcript):
+- "conversion rate **per agent**"
+- "cancellation rate **per agent**"
+- "follow-up rate **per agent**"
+- "**per manager** what's the pick-up rate"
+- "I want to see **each agent**"
+
+Это CORE функционал, без него дашборд неполноценный.
+
+#### Проблема с текущими данными
+
+**Что отсутствует:**
+1. hubspot_owner_id не извлечен в колонки
+2. Associations (Contact → Deal) не сохранены
+3. raw_json пустой
+
+**Почему:**
+- Sync скрипт запрашивает hubspot_owner_id из API ✅
+- НО сохраняет только в raw_json, не в колонку ❌
+- Associations вообще не запрашиваются ❌
+
+#### План исправления (для новой сессии)
+
+**Шаг 1: Database Migration**
+```sql
+-- Добавить owner columns
+ALTER TABLE hubspot_contacts_raw ADD COLUMN hubspot_owner_id TEXT;
+ALTER TABLE hubspot_deals_raw ADD COLUMN hubspot_owner_id TEXT;
+
+-- Создать таблицу owners
+CREATE TABLE hubspot_owners (
+  owner_id TEXT PRIMARY KEY,
+  owner_name TEXT,
+  owner_email TEXT
+);
+
+-- Indexes
+CREATE INDEX idx_contacts_owner ON hubspot_contacts_raw(hubspot_owner_id);
+CREATE INDEX idx_deals_owner ON hubspot_deals_raw(hubspot_owner_id);
+```
+
+**Шаг 2: Обновить Sync Script**
+```javascript
+// В transform functions добавить:
+hubspot_owner_id: contact.properties.hubspot_owner_id || null
+
+// В fetchAllFromHubSpot добавить associations:
+const url = `${BASE_URL}/crm/v3/objects/${objectType}?limit=100&associations=deals,contacts`;
+```
+
+**Шаг 3: Re-sync**
+```bash
+node src/hubspot/sync-parallel.js
+# ~10 минут
+```
+
+**Шаг 4: Fetch Owners**
+```javascript
+// Получить список всех owners из HubSpot Owners API
+// Сохранить в hubspot_owners таблицу
+```
+
+**Шаг 5: Build Dashboard с фильтрами**
+```typescript
+// FilterPanel component:
+- Date Range (last 7d, 30d, 90d, custom)
+- Manager/Agent (dropdown, multi-select)
+- Deal Stage (closedwon, appointmentscheduled)
+
+// Metrics по агентам:
+- Total Sales per agent
+- Conversion Rate per agent
+- Avg Deal Size per agent
+- Calls per agent
+```
+
+#### Estimated time
+
+- Migration + Resync: ~15 минут
+- Dashboard (без фильтров): ~2 часа
+- Filters + Owner logic: ~1 час
+- **Total: ~3-4 часа**
+
+---
+
+## [v3.7.0] - 2025-10-07
 
 ### Initial Sync завершена - Dashboard Design готов
 
