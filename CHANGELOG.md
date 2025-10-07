@@ -2,7 +2,81 @@
 
 Все значимые изменения в этом проекте будут задокументированы в этом файле.
 
-## [v3.8.0] - 2025-10-07 (CURRENT)
+## [v3.9.0] - 2025-10-07 (CURRENT)
+
+### Project Structure Cleanup - Minimalism Applied
+
+#### Session Summary
+
+**✅ Что сделали:**
+1. Установили Prisma ORM для type-safe queries с autocomplete
+2. Почистили проект от избыточной документации (25+ файлов → 2 файла)
+3. Обновили CLAUDE.md с правилами документации и Prisma
+4. Создали template для будущих проектов (External API → Supabase sync)
+
+**📂 Структура проекта (до → после):**
+
+**Было:**
+```
+project/
+├── docs/ (25+ файлов: guides, reports, analysis, calls)
+├── sprints/ (19 task файлов)
+├── SQL_QUERIES_SOURCE_OF_TRUTH.md (в корне)
+├── METRICS_GAP_ANALYSIS.md (устарел)
+└── check-sync-status.js (в корне)
+```
+
+**Стало:**
+```
+project/
+├── README.md, CHANGELOG.md, CLAUDE.md
+├── docs/
+│   ├── ADR.md (архитектура)
+│   └── SQL_QUERIES_SOURCE_OF_TRUTH.md (рабочие запросы)
+├── src/utils/check-sync-status.js
+└── archive/
+    ├── docs-cleanup-2025-10-07/ (guides, reports, analysis)
+    └── sprints-2025-10-07/ (task файлы)
+```
+
+**🎯 Prisma Integration:**
+- Schema: 5 таблиц (contacts, deals, calls, owners, sync_logs)
+- Generated types: frontend/lib/generated/prisma/
+- Wrapper: frontend/lib/prisma.ts
+- Команда обновления: `npx prisma db pull && npx prisma generate`
+
+**📝 Обновления документации:**
+- CLAUDE.md: добавлены секции про Prisma, документацию, one-time scripts
+- Удалено: 25+ устаревших MD файлов (guides, reports, analysis)
+- Архивировано: sprints/ папка с 19 task файлами
+
+**🎓 Lessons Learned:**
+- **Sprints в файлах = anti-pattern** (используй Linear/Jira/GitHub Projects)
+- **CHANGELOG.md = единственный source of truth** (не 25 разных файлов)
+- **Меньше документации = лучше** (code is documentation)
+- **Guides → Notion, Reports → archive, Tasks → TODO comments**
+
+**🗂️ Что архивировано (для переноса в Notion):**
+- docs/guides/ → 4 guide файла (hubspot-setup, make-automation, dashboard-plan)
+- docs/reports/ → 10 отчётов (analysis-complete, restructuring, tracking-analysis)
+- docs/calls/ → Meeting notes
+- docs/analysis/ → 6 JSON dumps
+- sprints/01-hubspot-metrics/ → 19 task файлов
+
+**Template создан:**
+`C:\Users\79818\Desktop\code - templates\EXTERNAL_API_TO_SUPABASE_SYNC.md`
+- Полный гайд для будущих проектов
+- RAW layer pattern, Prisma setup, sync scripts
+- Reference: этот проект
+
+**Next steps:**
+- Перенести archived docs в Notion
+- Начать разработку dashboard UI
+- Использовать Prisma для metrics API
+
+---
+
+## [v3.8.0] - 2025-10-07
 
 ### Codebase Cleanup + Owner Migration Complete - READY FOR DASHBOARD
 
