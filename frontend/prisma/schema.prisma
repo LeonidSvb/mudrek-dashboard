@@ -8,6 +8,21 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model call_associations {
+  id               BigInt    @id @default(autoincrement())
+  call_id          BigInt
+  object_type      String    @db.VarChar(50)
+  object_id        BigInt
+  association_type String?   @db.VarChar(100)
+  synced_at        DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@unique([call_id, object_type, object_id])
+  @@index([call_id], map: "idx_call_associations_call_id")
+  @@index([object_type, object_id], map: "idx_call_associations_object")
+  @@index([synced_at], map: "idx_call_associations_synced")
+}
+
 model hubspot_calls_raw {
   hubspot_id       String    @id
   call_duration    Int?
