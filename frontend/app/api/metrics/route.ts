@@ -17,7 +17,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getAllMetrics } from '@/lib/db/metrics';
+import { getAllMetrics } from '@/lib/db/metrics-fast';
 import { getLogger } from '@/lib/app-logger';
 
 const logger = getLogger('metrics-api');
@@ -35,14 +35,16 @@ export async function GET(request: NextRequest) {
       dateTo: dateTo || null,
     };
 
-    logger.info('Fetching all metrics', { filters });
+    logger.info('Fetching all metrics via SQL function', { filters });
 
-    // Fetch all metrics using new getAllMetrics function
+    // Fetch all metrics using FAST SQL function
     const metrics = await getAllMetrics(filters);
 
     logger.info('Metrics fetched successfully', {
       hasData: !!metrics,
       metricsCount: Object.keys(metrics).length,
+      totalSales: metrics.totalSales,
+      totalDeals: metrics.totalDeals,
     });
 
     return NextResponse.json(metrics);
