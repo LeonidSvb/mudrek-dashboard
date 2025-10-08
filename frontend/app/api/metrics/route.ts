@@ -1,12 +1,23 @@
+/**
+ * METRICS API ENDPOINT
+ *
+ * GET /api/metrics
+ *
+ * Returns all 21 dashboard metrics (22nd pending disposition mapping)
+ *
+ * Query Parameters:
+ * - owner_id: Filter by sales manager (optional)
+ * - date_from: Start date filter (optional, ISO format)
+ * - date_to: End date filter (optional, ISO format)
+ *
+ * Example:
+ * GET /api/metrics?owner_id=682432124&date_from=2025-10-01&date_to=2025-10-08
+ *
+ * Response: JSON object with all metrics
+ */
+
 import { NextRequest, NextResponse } from 'next/server';
-import {
-  getBasicMetrics,
-  getCallMetrics,
-  getConversionMetrics,
-  getInstallmentMetrics,
-  getTimeToSale,
-  getFollowupMetrics,
-} from '@/lib/db/metrics';
+import { getAllMetrics } from '@/lib/db/metrics';
 import { getLogger } from '@/lib/app-logger';
 
 const logger = getLogger('metrics-api');
@@ -24,39 +35,27 @@ export async function GET(request: NextRequest) {
       dateTo: dateTo || null,
     };
 
-    logger.info('Fetching metrics', { filters, DATABASE_URL_present: !!process.env.DATABASE_URL });
+    logger.info('Fetching all metrics', { filters });
 
-    // Fetch all metrics in parallel
-    const [basicMetrics, callMetrics, conversionMetrics, installmentMetrics, timeToSaleMetrics, followupMetrics] = await Promise.all([
-      getBasicMetrics(filters),
-      getCallMetrics(filters),
-      getConversionMetrics(filters),
-      getInstallmentMetrics(filters),
-      getTimeToSale(filters),
-      getFollowupMetrics(filters),
-    ]);
+    // Fetch all metrics using new getAllMetrics function
+    const metrics = await getAllMetrics(filters);
 
     logger.info('Metrics fetched successfully', {
-      totalDeals: basicMetrics.totalDeals,
-      totalCalls: callMetrics.totalCalls,
-      timeToSale: timeToSaleMetrics.timeToSale,
-      followupRate: followupMetrics.followupRate
+      hasData: !!metrics,
+      metricsCount: Object.keys(metrics).length,
     });
 
-    return NextResponse.json({
-      ...basicMetrics,
-      ...callMetrics,
-      ...conversionMetrics,
-      ...installmentMetrics,
-      ...timeToSaleMetrics,
-      ...followupMetrics,
-    });
+    return NextResponse.json(metrics);
   } catch (error) {
-    logger.error('Metrics API error', error, {
-      DATABASE_URL: process.env.DATABASE_URL?.substring(0, 50) + '...'
-    });
+    logger.error('Metrics API error', error);
+
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
     return NextResponse.json(
-      { error: 'Failed to fetch metrics', details: error instanceof Error ? error.message : 'Unknown error' },
+      {
+        error: 'Failed to fetch metrics',
+        details: errorMessage,
+      },
       { status: 500 }
     );
   }
