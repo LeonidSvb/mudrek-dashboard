@@ -12,10 +12,9 @@ import {
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface Owner {
-  hubspot_id: string;
-  email: string;
-  first_name: string;
-  last_name: string;
+  owner_id: string;
+  owner_name: string;
+  owner_email: string;
 }
 
 export function FilterPanel() {
@@ -55,6 +54,7 @@ export function FilterPanel() {
     }
 
     router.push(`?${params.toString()}`);
+    router.refresh();
   };
 
   const handleOwnerChange = (value: string) => {
@@ -83,8 +83,8 @@ export function FilterPanel() {
             <SelectContent>
               <SelectItem value="all">All Managers</SelectItem>
               {owners.map((owner) => (
-                <SelectItem key={owner.hubspot_id} value={owner.hubspot_id}>
-                  {owner.first_name} {owner.last_name}
+                <SelectItem key={owner.owner_id} value={owner.owner_id}>
+                  {owner.owner_name}
                 </SelectItem>
               ))}
             </SelectContent>

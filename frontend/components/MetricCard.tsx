@@ -36,7 +36,7 @@ export function MetricCard({
       <div className="flex items-start justify-between">
         <div className="flex-1">
           <p className="text-sm font-medium text-gray-600">{title}</p>
-          <p className="mt-2 text-3xl font-bold text-gray-900">{formattedValue}</p>
+          <p className="mt-2 text-2xl font-bold text-gray-900">{formattedValue}</p>
           {subtitle && (
             <p className="mt-1 text-sm text-gray-500">{subtitle}</p>
           )}
@@ -69,7 +69,7 @@ export function MetricCard({
 function formatValue(value: string | number, format: string): string {
   const numValue = typeof value === 'string' ? parseFloat(value) : value;
 
-  if (isNaN(numValue)) return String(value);
+  if (isNaN(numValue) || numValue === null || numValue === undefined) return '0';
 
   switch (format) {
     case 'currency':

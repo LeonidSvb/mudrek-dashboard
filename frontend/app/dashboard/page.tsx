@@ -1,44 +1,42 @@
 import { Suspense } from 'react';
 import { MetricCard } from '@/components/MetricCard';
 import { FilterPanel } from '@/components/dashboard/FilterPanel';
+import { getAllMetrics } from '@/lib/db/metrics-fast';
 
 interface DashboardPageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
 async function getMetrics(params: { owner_id?: string; range?: string }) {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const filters: {
+    ownerId?: string | null;
+    dateFrom?: string | null;
+    dateTo?: string | null;
+  } = {
+    ownerId: null,
+    dateFrom: null,
+    dateTo: null,
+  };
 
-  const queryParams = new URLSearchParams();
   if (params.owner_id && params.owner_id !== 'all') {
-    queryParams.set('owner_id', params.owner_id);
+    filters.ownerId = params.owner_id;
   }
+
   if (params.range) {
     const now = new Date();
     const days = params.range === '7d' ? 7 : params.range === '30d' ? 30 : 90;
     const dateFrom = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
-    queryParams.set('date_from', dateFrom.toISOString().split('T')[0]);
-    queryParams.set('date_to', now.toISOString().split('T')[0]);
+    filters.dateFrom = dateFrom.toISOString().split('T')[0];
+    filters.dateTo = now.toISOString().split('T')[0];
   }
 
-  const url = `${baseUrl}/api/metrics${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
-
-  const res = await fetch(url, {
-    cache: 'no-store'
-  });
-
-  if (!res.ok) {
-    const error = await res.text();
-    console.error('Failed to fetch metrics:', error);
-    throw new Error('Failed to fetch metrics');
-  }
-
-  return res.json();
+  return await getAllMetrics(filters);
 }
 
 export default async function DashboardPage({ searchParams }: DashboardPageProps) {
   const params = await searchParams;
   const owner_id = typeof params.owner_id === 'string' ? params.owner_id : undefined;
+  // Default to 30 days if not specified - aligned with SQL function filters
   const range = typeof params.range === 'string' ? params.range : '30d';
 
   const metrics = await getMetrics({ owner_id, range });
@@ -251,7 +249,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                           {stat.conversions} / {stat.totalContacts} contacts
                         </p>
                       </div>
-                      <p className="text-xl font-bold text-gray-900">{stat.conversionRate.toFixed(1)}%</p>
+                      <p className="text-lg font-bold text-gray-900">{stat.conversionRate.toFixed(1)}%</p>
                     </div>
                   ))}
                 </div>
@@ -274,7 +272,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                           {stat.conversions} / {stat.totalContacts} contacts
                         </p>
                       </div>
-                      <p className="text-xl font-bold text-gray-900">{stat.conversionRate.toFixed(1)}%</p>
+                      <p className="text-lg font-bold text-gray-900">{stat.conversionRate.toFixed(1)}%</p>
                     </div>
                   ))}
                 </div>

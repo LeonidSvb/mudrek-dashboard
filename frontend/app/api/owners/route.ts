@@ -21,8 +21,8 @@ export async function GET() {
   try {
     const { data, error } = await supabase
       .from('hubspot_owners')
-      .select('hubspot_id, email, first_name, last_name')
-      .order('first_name');
+      .select('owner_id, owner_name, owner_email')
+      .order('owner_name');
 
     if (error) {
       throw new Error(`Failed to fetch owners: ${error.message}`);
