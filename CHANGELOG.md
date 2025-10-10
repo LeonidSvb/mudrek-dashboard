@@ -2,7 +2,92 @@
 
 Все значимые изменения в этом проекте будут задокументированы в этом файле.
 
-## [v3.12.0] - 2025-10-10 (CURRENT)
+## [v3.13.0] - 2025-10-10 (CURRENT)
+
+### Test Sample Workflow + Field Analysis - Ready for Dashboard Testing
+
+#### Session Summary
+
+**Что сделали:**
+1. Полный анализ HubSpot данных (50 записей каждого типа)
+2. Определили 167 полезных полей (из 734 total) - экономия 68.9%
+3. Создали test sample workflow для быстрого тестирования
+4. Миграция БД для подготовки к тестовым данным
+5. Cleanup проекта - архивировали discovery scripts
+
+**Data Analysis Results:**
+- Контакты: 63 полезных поля / 422 total (85.1% мусора)
+- Сделки: 81 полезное поле / 215 total (62.3% мусора)
+- Звонки: 23 полезных поля / 97 total (76.3% мусора)
+- **ИТОГО: 167 useful fields вместо 734** (77.2% мусорных полей!)
+
+**Associations Check:**
+- ✅ Deals → Contacts: РАБОТАЮТ (82% deals имеют associations)
+- ❌ Contacts → Deals: НЕ РАБОТАЮТ (только 2%)
+- ❌ Calls → Anything: НЕ РАБОТАЮТ (0%)
+- → Phone matching для звонков остается необходимым
+
+**Size Estimation (Full Dataset):**
+- Все поля: 889 MB (31,643 contacts + 1,202 deals + 118,931 calls)
+- Только useful: 276 MB (экономия 612 MB = 68.9%)
+
+**Test Sample Strategy:**
+- Период: последний 1 месяц
+- Пропорции: 50 deals : 500 contacts : 1000 calls
+- Workflow: JSON файлы → проверка → загрузка в Supabase
+- Тестирование dashboard на малых данных перед full sync
+
+**Созданные файлы:**
+
+*Analysis Tools:*
+- `scripts/discovery/analyze-full-data.js` - полный анализ качества данных
+- `scripts/discovery/analyze-csv.js` - сравнение CSV vs API
+- `data/hubspot-full/useful-fields.json` - 167 полезных полей
+
+*Fetch Scripts:*
+- `src/hubspot/fetch-test-sample.js` - скачать тестовую выборку (by date)
+- `src/hubspot/fetch-useful-fields.js` - скачать только useful fields
+- `src/hubspot/fetch-to-json.js` - скачать все 734 поля (для сравнения)
+
+*Upload Script:*
+- `src/hubspot/upload-test-sample.js` - загрузить из JSON в Supabase
+- Batch processing (500 records/batch)
+- Transform: HubSpot → Database schema
+- Logging в sync_logs
+
+*Migration:*
+- `migrations/007_clean_for_test_data.sql` - очистка + добавление hubspot_owner_id
+
+**Documentation Cleanup:**
+- Удалены: METRICS_GAP_ANALYSIS.md, NEXT_SESSION_PLAN.md, RESYNC_PLAN.md, SQL_QUERIES_SOURCE_OF_TRUTH.md
+- Архивированы: все discovery scripts в scripts/discovery/
+- Обновлен: .gitignore (добавлен data/)
+
+**CSV vs API Comparison:**
+- CSV contacts: ТОЛЬКО 14 полей (урезанный экспорт)
+- API contacts: 422 поля (полные данные)
+- → **API предпочтительнее для sync**
+
+**Текущее состояние:**
+- ✅ Analysis tools готовы
+- ✅ Test sample workflow готов (fetch + upload)
+- ✅ Migration SQL готова
+- ✅ Проект очищен от временных файлов
+- ⏸️ Ожидает: запуск migration → fetch → upload
+
+**Next Steps:**
+1. Запустить migration: `migrations/007_clean_for_test_data.sql` в Supabase
+2. Fetch test sample: `node src/hubspot/fetch-test-sample.js` (1-2 минуты)
+3. Проверить JSON файлы в `data/test-sample/`
+4. Upload: `node src/hubspot/upload-test-sample.js` (30 секунд)
+5. Проверить данные в Supabase (500 contacts, 50 deals, 1000 calls)
+6. Создать views + materialized views
+7. Протестировать dashboard на тестовых данных
+8. Full sync когда dashboard работает правильно
+
+---
+
+## [v3.12.0] - 2025-10-10
 
 ### Final Cleanup + MCP Setup - PRODUCTION READY
 
