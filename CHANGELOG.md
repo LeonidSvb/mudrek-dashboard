@@ -58,6 +58,33 @@
 
 ---
 
+#### Next Session Plan
+
+**1. Vercel Deploy Check (5 мин)**
+- Проверить что последний commit задеплоился
+- Открыть production dashboard
+- Убедиться что все метрики работают
+
+**2. Client Report (15 мин)**
+- Создать финальный отчёт для клиента
+- Что готово (13 работающих метрик)
+- Что нужно заполнить в HubSpot (9 метрик)
+- Инструкции по использованию Dashboard
+
+**3. MCP Supabase Testing (10 мин)**
+- Протестировать MCP tools после перезапуска
+- Проверить прямой доступ к БД
+- Создать тестовые данные напрямую в Supabase (если нужно)
+
+**4. Optional: Performance Optimization**
+- Оптимизировать `contact_call_stats` VIEW (если timeout)
+- Добавить индексы для phone matching
+- Проверить query performance
+
+**Total: ~30-40 минут**
+
+---
+
 ## [v3.11.0] - 2025-10-08
 
 ### SQL Оптимизация + Dashboard с фильтрами - PRODUCTION READY
