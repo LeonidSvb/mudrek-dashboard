@@ -1,0 +1,100 @@
+{
+  "results": [
+    {
+      "id": "81280578",
+      "email": "aboodsharqawi999@gmail.com",
+      "type": "PERSON",
+      "firstName": "Abd alslam",
+      "lastName": "Sharqawi",
+      "userId": 81280578,
+      "userIdIncludingInactive": 81280578,
+      "createdAt": "2025-06-30T11:59:00.651Z",
+      "updatedAt": "2025-09-23T09:02:02.149Z",
+      "archived": false
+    },
+    {
+      "id": "82827834",
+      "email": "leo@systemhustle.com",
+      "type": "PERSON",
+      "firstName": "Leonid",
+      "lastName": "Shvorob",
+      "userId": 82827834,
+      "userIdIncludingInactive": 82827834,
+      "createdAt": "2025-08-28T17:20:49.089Z",
+      "updatedAt": "2025-10-10T03:29:07.892Z",
+      "archived": false
+    },
+    {
+      "id": "83618074",
+      "email": "bisanjaffari483@gmail.com",
+      "type": "PERSON",
+      "firstName": "Bisan",
+      "lastName": "Jaffari",
+      "userId": 83618074,
+      "userIdIncludingInactive": 83618074,
+      "createdAt": "2025-09-26T07:59:58.534Z",
+      "updatedAt": "2025-10-02T10:02:12.261Z",
+      "archived": false
+    },
+    {
+      "id": "154887582",
+      "email": "fadysafwat99@gmail.com",
+      "type": "PERSON",
+      "firstName": "Fady",
+      "lastName": "Safwat",
+      "userId": 68012076,
+      "userIdIncludingInactive": 68012076,
+      "createdAt": "2024-06-17T07:37:04.485Z",
+      "updatedAt": "2025-03-29T10:21:55.002Z",
+      "archived": false
+    },
+    {
+      "id": "682432124",
+      "email": "shadi@mudrek.com",
+      "type": "PERSON",
+      "firstName": "Shadi",
+      "lastName": "Halloun",
+      "userId": 28462225,
+      "userIdIncludingInactive": 28462225,
+      "createdAt": "2024-01-10T14:05:11.052Z",
+      "updatedAt": "2025-10-08T21:04:03.001Z",
+      "archived": false
+    },
+    {
+      "id": "687247262",
+      "email": "wala2ok@gmail.com",
+      "type": "PERSON",
+      "firstName": "Wala' M",
+      "lastName": "Hassan",
+      "userId": 63090898,
+      "userIdIncludingInactive": 63090898,
+      "createdAt": "2024-01-14T08:41:01.649Z",
+      "updatedAt": "2025-10-09T20:22:44.693Z",
+      "archived": false
+    },
+    {
+      "id": "726197388",
+      "email": "motana199268@gmail.com",
+      "type": "PERSON",
+      "firstName": "Mothanna",
+      "lastName": "Alawneh",
+      "userId": 63925507,
+      "userIdIncludingInactive": 63925507,
+      "createdAt": "2024-02-10T13:44:42.633Z",
+      "updatedAt": "2025-10-05T08:04:45.086Z",
+      "archived": false
+    },
+    {
+      "id": "1315760486",
+      "email": "areejharb@gmail.com",
+      "type": "PERSON",
+      "firstName": "areej",
+      "lastName": "Harb",
+      "userId": 71677775,
+      "userIdIncludingInactive": 71677775,
+      "createdAt": "2024-10-03T13:22:09.842Z",
+      "updatedAt": "2025-07-14T10:58:06.763Z",
+      "archived": false
+    }
+  ]
+}

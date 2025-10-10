@@ -1,5 +1,69 @@
  Claude Coding Guidelines
 
+# Root Directory Rules - STRICT
+
+## What MUST be in Project Root
+
+**ONLY these files and folders are allowed in root:**
+
+```
+project/
+├── .git/                  # Git repository
+├── .gitignore             # Git ignore file
+├── .env                   # Environment variables (gitignored)
+├── .claude/               # Claude Code config
+├── .mcp.json              # MCP config (optional)
+├── README.md              # How to run the project
+├── CHANGELOG.md           # Source of truth for project state
+├── CLAUDE.md              # This file - coding guidelines
+├── package.json           # Node.js dependencies
+├── package-lock.json      # Lock file
+├── node_modules/          # Dependencies (gitignored)
+├── src/                   # Backend source code
+├── frontend/              # Frontend Next.js app
+├── scripts/               # Scripts folder
+│   ├── discovery/         # One-time discovery scripts
+│   └── utils/             # Reusable utility scripts
+├── migrations/            # Database migrations
+├── tests/                 # Test files
+├── docs/                  # Documentation (max 3-5 files!)
+│   ├── ADR.md             # Architecture decisions
+│   └── SQL_QUERIES_SOURCE_OF_TRUTH.md  # Working queries
+└── archive/               # Old code/docs (for reference)
+```
+
+## What is FORBIDDEN in Root
+
+**❌ NEVER create these in root:**
+- ❌ Discovery scripts (`check-*.js`, `verify-*.js`, `test-*.js`)
+  → Put in `scripts/discovery/`
+- ❌ Temporary files (`nul`, `temp.txt`, `debug.log`)
+  → Delete immediately
+- ❌ Analysis reports (`ANALYSIS.md`, `REPORT.md`)
+  → Put results in CHANGELOG.md
+- ❌ Planning docs (`PLAN.md`, `NEXT_SESSION.md`)
+  → Put in CHANGELOG.md
+- ❌ Duplicate documentation
+  → Keep only ONE source of truth
+
+## Enforcement Rules
+
+**Before creating ANY file in root, ask:**
+1. Is this essential for the project? (README, CHANGELOG, package.json)
+2. Can this go in a subfolder? (scripts/, docs/, src/)
+3. Is this temporary? (delete it instead)
+4. Does it duplicate existing docs? (merge or delete)
+
+**If in doubt → DON'T create it in root!**
+
+**After each session:**
+- Check root with `ls -la`
+- Move discovery scripts to `scripts/discovery/`
+- Delete temporary files
+- Update CHANGELOG.md instead of creating new docs
+
+---
+
 # Core Principles
 
 ## Simplicity First

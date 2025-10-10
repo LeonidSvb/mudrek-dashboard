@@ -13,7 +13,7 @@ const supabase = createClient(
 /**
  * Fetch all records from HubSpot with pagination
  */
-async function fetchAllFromHubSpot(objectType, properties = []) {
+async function fetchAllFromHubSpot(objectType, properties = [], fetchAllProperties = false) {
   let allRecords = [];
   let after = null;
   let hasMore = true;
@@ -26,7 +26,10 @@ async function fetchAllFromHubSpot(objectType, properties = []) {
     let url = `${BASE_URL}/crm/v3/objects/${objectType}?limit=100&archived=false`;
 
     // Добавляем properties
-    if (properties.length > 0) {
+    if (fetchAllProperties) {
+      // Запросить ВСЕ properties (займёт больше времени и трафика)
+      url += `&propertiesWithHistory=all`;
+    } else if (properties.length > 0) {
       const propsParam = properties.map(p => `properties=${p}`).join('&');
       url += `&${propsParam}`;
     }
@@ -109,7 +112,7 @@ async function saveToSupabase(tableName, records, transformFn) {
 /**
  * Sync contacts
  */
-async function syncContacts() {
+async function syncContacts(fetchAll = false) {
   const properties = [
     'email', 'firstname', 'lastname', 'phone', 'company',
     'createdate', 'lastmodifieddate', 'lifecyclestage',
@@ -117,7 +120,9 @@ async function syncContacts() {
     'sales_script_version'
   ];
 
-  const contacts = await fetchAllFromHubSpot('contacts', properties);
+  // fetchAll = true -> запросить ВСЕ 100+ properties в raw_json
+  // fetchAll = false -> только указанные выше (быстрее, меньше трафика)
+  const contacts = await fetchAllFromHubSpot('contacts', properties, fetchAll);
 
   return await saveToSupabase('hubspot_contacts_raw', contacts, (contact) => ({
     hubspot_id: contact.id,
@@ -186,6 +191,27 @@ async function syncCalls() {
 }
 
 /**
+ * Refresh materialized views after sync
+ */
+async function refreshMaterializedViews() {
+  console.log('\n🔄 Refreshing materialized views...');
+
+  try {
+    const { error } = await supabase.rpc('refresh_contact_call_stats');
+
+    if (error) {
+      console.error('✗ Failed to refresh materialized view:', error.message);
+      throw error;
+    }
+
+    console.log('✓ Materialized views refreshed successfully');
+  } catch (error) {
+    console.error('✗ Materialized view refresh error:', error.message);
+    // Non-critical error, continue
+  }
+}
+
+/**
  * Main sync function - runs all in parallel
  */
 async function syncAll() {
@@ -236,6 +262,9 @@ async function syncAll() {
 
     console.log(`\n⏱️  Total duration: ${duration}s`);
     console.log('\n✅ Sync completed!');
+
+    // Refresh materialized views after successful sync
+    await refreshMaterializedViews();
 
   } catch (error) {
     console.error('\n❌ Sync failed:', error.message);

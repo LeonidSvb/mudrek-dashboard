@@ -1,0 +1,28 @@
+{
+  "fetchedAt": "2025-10-10T07:43:05.954Z",
+  "counts": {
+    "contacts": 50,
+    "deals": 50,
+    "calls": 50,
+    "companies": 0,
+    "line_items": 4,
+    "owners": 8
+  },
+  "propertySchemas": {
+    "contacts": 422,
+    "deals": 215,
+    "calls": 97,
+    "companies": 234
+  },
+  "associations": {
+    "callToContacts": {
+      "results": []
+    },
+    "callToDeals": {
+      "results": []
+    },
+    "contactToDeals": {
+      "results": []
+    }
+  }
+}

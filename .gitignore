@@ -9,6 +9,9 @@
 export/
 *.csv
 
+# Data directory (contains downloaded HubSpot data)
+data/
+
 # Ignore legacy files
 dashboard.html
 
