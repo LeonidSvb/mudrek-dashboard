@@ -34,7 +34,7 @@ const CONFIG = {
   // Target Quantities - UNLIMITED (fetch ALL from period)
   MIN_DEALS: null,        // Fetch ALL deals from period
   TARGET_CONTACTS: null,  // Fetch ALL contacts from period
-  TARGET_CALLS: null      // Not fetching (skip)
+  TARGET_CALLS: null,     // Not fetching (skip)
 
   // Batch Settings
   BATCH_SIZE: 100,
@@ -153,9 +153,9 @@ async function searchByDate(objectType, daysBack, properties, associations = [])
 }
 
 /**
- * Fetch specific records by IDs
+ * Fetch specific records by IDs (with associations)
  */
-async function fetchByIds(objectType, ids, properties) {
+async function fetchByIds(objectType, ids, properties, associations = []) {
   if (ids.length === 0) return [];
 
   console.log(`📡 Fetching ${ids.length} ${objectType} by IDs...`);
@@ -166,6 +166,19 @@ async function fetchByIds(objectType, ids, properties) {
   for (let i = 0; i < ids.length; i += batchSize) {
     const batchIds = ids.slice(i, i + batchSize);
 
+    const requestBody = {
+      properties: properties,
+      propertiesWithHistory: [],
+      inputs: batchIds.map(id => ({ id }))
+    };
+
+    // Add associations if specified
+    if (associations.length > 0) {
+      requestBody.associations = associations;
+    }
+
+    console.log(`  → Request includes associations: ${JSON.stringify(associations)}`);
+
     try {
       const response = await fetch(`${CONFIG.BASE_URL}/crm/v3/objects/${objectType}/batch/read`, {
         method: 'POST',
@@ -173,10 +186,7 @@ async function fetchByIds(objectType, ids, properties) {
           'Authorization': `Bearer ${CONFIG.HUBSPOT_API_KEY}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          properties: properties,
-          inputs: batchIds.map(id => ({ id }))
-        })
+        body: JSON.stringify(requestBody)
       });
 
       if (!response.ok) {
@@ -188,6 +198,11 @@ async function fetchByIds(objectType, ids, properties) {
       allRecords.push(...data.results);
 
       console.log(`  → Batch ${Math.floor(i / batchSize) + 1}: ${data.results.length} records`);
+
+      // Debug: check if associations came through
+      if (data.results[0]) {
+        console.log(`  → First record has associations: ${!!data.results[0].associations}`);
+      }
     } catch (error) {
       console.error(`✗ Failed to fetch ${objectType} batch:`, error.message);
       throw error;
@@ -260,6 +275,57 @@ async function fetchLastN(objectType, count, properties, associations = []) {
 }
 
 /**
+ * Fetch associations for specific object
+ */
+async function fetchAssociations(objectType, objectId, toObjectType) {
+  try {
+    const response = await fetch(
+      `${CONFIG.BASE_URL}/crm/v4/objects/${objectType}/${objectId}/associations/${toObjectType}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${CONFIG.HUBSPOT_API_KEY}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    if (!response.ok) {
+      return { results: [] };
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error(`✗ Failed to fetch associations for ${objectType} ${objectId}:`, error.message);
+    return { results: [] };
+  }
+}
+
+/**
+ * Enrich records with associations
+ */
+async function enrichWithAssociations(records, fromObjectType, toObjectTypes) {
+  console.log(`\n🔗 Fetching associations for ${records.length} ${fromObjectType}...`);
+
+  for (let i = 0; i < records.length; i++) {
+    const record = records[i];
+    record.associations = {};
+
+    for (const toObjectType of toObjectTypes) {
+      const assocData = await fetchAssociations(fromObjectType, record.id, toObjectType);
+      record.associations[toObjectType] = assocData;
+    }
+
+    if ((i + 1) % 10 === 0) {
+      console.log(`  → Processed ${i + 1}/${records.length} ${fromObjectType}`);
+    }
+  }
+
+  console.log(`✓ Enriched ${records.length} ${fromObjectType} with associations\n`);
+  return records;
+}
+
+/**
  * Save data to JSON file
  */
 function saveToJSON(filename, data) {
@@ -295,8 +361,17 @@ async function fetchTestSample() {
     // ========================================
     console.log('═══ 1/3: DEALS ═══\n');
 
-    // Fetch ALL deals from last 30 days
-    const deals = await searchByDate('deals', CONFIG.DAYS_BACK, USEFUL_FIELDS.deals, CONFIG.ASSOCIATIONS.deals);
+    // Step 1: Search for deals modified in last 30 days
+    const dealsFromSearch = await searchByDate('deals', CONFIG.DAYS_BACK, USEFUL_FIELDS.deals);
+
+    console.log(`🔄 Re-fetching ${dealsFromSearch.length} deals with full data...\n`);
+
+    // Step 2: Fetch full deal data using Batch Read API
+    const dealIds = dealsFromSearch.map(d => d.id);
+    let deals = await fetchByIds('deals', dealIds, USEFUL_FIELDS.deals);
+
+    // Step 3: Enrich deals with associations (v4 API)
+    deals = await enrichWithAssociations(deals, 'deals', ['contacts', 'companies']);
 
     results.deals = deals;
     saveToJSON('deals.json', deals);
@@ -311,11 +386,11 @@ async function fetchTestSample() {
     deals.forEach(deal => {
       const contactAssociations = deal.associations?.contacts?.results || [];
       contactAssociations.forEach(assoc => {
-        associatedContactIds.add(assoc.id);
+        associatedContactIds.add(assoc.toObjectId.toString());
       });
     });
 
-    console.log(`📊 Found ${associatedContactIds.size} contacts associated with deals`);
+    console.log(`📊 Found ${associatedContactIds.size} unique contacts associated with deals`);
 
     // Fetch associated contacts
     let contacts = [];
