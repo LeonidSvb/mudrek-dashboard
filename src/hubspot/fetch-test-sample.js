@@ -302,27 +302,30 @@ async function fetchAssociations(objectType, objectId, toObjectType) {
 }
 
 /**
- * Enrich records with associations
+ * Enrich records with associations (PARALLEL for speed)
  */
 async function enrichWithAssociations(records, fromObjectType, toObjectTypes) {
   console.log(`\n🔗 Fetching associations for ${records.length} ${fromObjectType}...`);
 
-  for (let i = 0; i < records.length; i++) {
-    const record = records[i];
-    record.associations = {};
+  const enrichedRecords = await Promise.all(
+    records.map(async (record, index) => {
+      record.associations = {};
 
-    for (const toObjectType of toObjectTypes) {
-      const assocData = await fetchAssociations(fromObjectType, record.id, toObjectType);
-      record.associations[toObjectType] = assocData;
-    }
+      for (const toObjectType of toObjectTypes) {
+        const assocData = await fetchAssociations(fromObjectType, record.id, toObjectType);
+        record.associations[toObjectType] = assocData;
+      }
 
-    if ((i + 1) % 10 === 0) {
-      console.log(`  → Processed ${i + 1}/${records.length} ${fromObjectType}`);
-    }
-  }
+      if ((index + 1) % 10 === 0) {
+        console.log(`  → Processed ${index + 1}/${records.length} ${fromObjectType}`);
+      }
 
-  console.log(`✓ Enriched ${records.length} ${fromObjectType} with associations\n`);
-  return records;
+      return record;
+    })
+  );
+
+  console.log(`✓ Enriched ${enrichedRecords.length} ${fromObjectType} with associations\n`);
+  return enrichedRecords;
 }
 
 /**
