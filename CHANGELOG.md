@@ -14,6 +14,7 @@
 3. Создали test sample workflow для быстрого тестирования
 4. Миграция БД для подготовки к тестовым данным
 5. Cleanup проекта - архивировали discovery scripts
+6. **КОРРЕКТИРОВКА:** Скрипты обновлены для пропуска звонков (используем существующие 118k)
 
 **Data Analysis Results:**
 - Контакты: 63 полезных поля / 422 total (85.1% мусора)
@@ -33,8 +34,9 @@
 
 **Test Sample Strategy:**
 - Период: последний 1 месяц
-- Пропорции: 50 deals : 500 contacts : 1000 calls
+- Пропорции: 50 deals : 500 contacts : 0 calls (используем существующие 118,931 calls)
 - Workflow: JSON файлы → проверка → загрузка в Supabase
+- Phone matching соединит новые contacts с существующими calls
 - Тестирование dashboard на малых данных перед full sync
 
 **Созданные файлы:**
@@ -77,11 +79,11 @@
 
 **Next Steps:**
 1. Запустить migration: `migrations/007_clean_for_test_data.sql` в Supabase
-2. Fetch test sample: `node src/hubspot/fetch-test-sample.js` (1-2 минуты)
-3. Проверить JSON файлы в `data/test-sample/`
-4. Upload: `node src/hubspot/upload-test-sample.js` (30 секунд)
-5. Проверить данные в Supabase (500 contacts, 50 deals, 1000 calls)
-6. Создать views + materialized views
+2. Fetch test sample: `node src/hubspot/fetch-test-sample.js` (1 минута - только contacts/deals)
+3. Проверить JSON файлы в `data/test-sample/` (contacts.json, deals.json)
+4. Upload: `node src/hubspot/upload-test-sample.js` (20 секунд - только contacts/deals)
+5. Проверить данные в Supabase (500 contacts, 50 deals, 118,931 calls уже есть)
+6. Создать views + materialized views для phone matching
 7. Протестировать dashboard на тестовых данных
 8. Full sync когда dashboard работает правильно
 

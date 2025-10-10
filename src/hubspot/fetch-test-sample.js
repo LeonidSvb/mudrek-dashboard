@@ -5,7 +5,7 @@
  * 1. Fetch deals from last N days (or minimum M deals)
  * 2. Fetch contacts associated with these deals
  * 3. Fetch additional contacts to reach target count
- * 4. Fetch calls from same period
+ * 4. SKIP calls - already have 118k calls in DB
  * 5. Save to JSON files for inspection before upload
  *
  * Usage:
@@ -347,19 +347,13 @@ async function fetchTestSample() {
     saveToJSON('contacts.json', results.contacts);
 
     // ========================================
-    // 3. FETCH CALLS
+    // 3. SKIP CALLS (already have 118k in DB)
     // ========================================
-    console.log('═══ 3/3: CALLS ═══\n');
+    console.log('═══ 3/3: CALLS (SKIPPED) ═══\n');
+    console.log('⏩ Skipping calls fetch - already have 118,931 calls in database');
+    console.log('   Phone matching will work with existing calls\n');
 
-    let calls = await searchByDate('calls', CONFIG.DAYS_BACK, USEFUL_FIELDS.calls);
-
-    // Truncate to target if too many
-    if (calls.length > CONFIG.TARGET_CALLS) {
-      calls = calls.slice(0, CONFIG.TARGET_CALLS);
-    }
-
-    results.calls = calls;
-    saveToJSON('calls.json', calls);
+    results.calls = []; // Empty - not fetching calls
 
     // ========================================
     // SUMMARY
@@ -378,8 +372,8 @@ async function fetchTestSample() {
     console.log(`  - ${USEFUL_FIELDS.contacts.length} useful fields per record`);
     console.log(`  - Associated with deals: ${associatedContactIds.size}\n`);
 
-    console.log(`✓ Calls: ${results.calls.length} records`);
-    console.log(`  - ${USEFUL_FIELDS.calls.length} useful fields per record\n`);
+    console.log(`⏩ Calls: SKIPPED (using existing 118k calls in DB)`);
+    console.log(`  - Phone matching will connect calls to new contacts\n`);
 
     console.log(`⏱️  Total duration: ${duration}s`);
     console.log(`💾 Data saved to: ${CONFIG.OUTPUT_DIR}`);

@@ -76,7 +76,7 @@ BEGIN
 END $$;
 
 -- ============================================================================
--- 2. CLEAN ALL TABLES
+-- 2. CLEAN TABLES (EXCEPT CALLS - already have 118k records)
 -- ============================================================================
 
 -- Clean contacts
@@ -87,9 +87,8 @@ RAISE NOTICE '✓ Cleaned hubspot_contacts_raw';
 TRUNCATE TABLE hubspot_deals_raw CASCADE;
 RAISE NOTICE '✓ Cleaned hubspot_deals_raw';
 
--- Clean calls
-TRUNCATE TABLE hubspot_calls_raw CASCADE;
-RAISE NOTICE '✓ Cleaned hubspot_calls_raw';
+-- SKIP calls - keep existing 118,931 records
+RAISE NOTICE '✓ SKIPPED hubspot_calls_raw (keeping existing 118k calls)';
 
 -- Clean sync logs
 TRUNCATE TABLE sync_logs CASCADE;

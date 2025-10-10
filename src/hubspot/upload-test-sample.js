@@ -4,8 +4,9 @@
  * Strategy:
  * 1. Read JSON files from data/test-sample/
  * 2. Transform HubSpot data to database schema
- * 3. Insert into Supabase tables (contacts, deals, calls)
- * 4. Log sync statistics
+ * 3. Insert into Supabase tables (contacts, deals ONLY)
+ * 4. SKIP calls - already have 118k calls in DB
+ * 5. Log sync statistics
  *
  * Usage:
  *   node src/hubspot/upload-test-sample.js
@@ -222,19 +223,19 @@ async function uploadTestSample() {
 
     const contactsPath = join(CONFIG.INPUT_DIR, 'contacts.json');
     const dealsPath = join(CONFIG.INPUT_DIR, 'deals.json');
-    const callsPath = join(CONFIG.INPUT_DIR, 'calls.json');
+    // SKIP calls - already have 118k in DB
 
     const contacts = JSON.parse(readFileSync(contactsPath, 'utf8'));
     const deals = JSON.parse(readFileSync(dealsPath, 'utf8'));
-    const calls = JSON.parse(readFileSync(callsPath, 'utf8'));
+    // No calls.json to load
 
     console.log(`✓ Loaded ${contacts.length} contacts`);
     console.log(`✓ Loaded ${deals.length} deals`);
-    console.log(`✓ Loaded ${calls.length} calls`);
+    console.log(`⏩ SKIPPED calls (using existing 118k in DB)`);
 
     stats.contacts.total = contacts.length;
     stats.deals.total = deals.length;
-    stats.calls.total = calls.length;
+    stats.calls.total = 0; // Not uploading
 
     // ========================================
     // 2. UPLOAD CONTACTS
@@ -259,15 +260,15 @@ async function uploadTestSample() {
     await logSync('deals', stats.deals, (Date.now() - startTime) / 1000);
 
     // ========================================
-    // 4. UPLOAD CALLS
+    // 4. SKIP CALLS (already have 118k in DB)
     // ========================================
-    console.log('\n═══ 3/3: UPLOADING CALLS ═══');
+    console.log('\n═══ 3/3: CALLS (SKIPPED) ═══');
+    console.log('⏩ SKIPPED calls upload (using existing 118,931 calls in database)');
+    console.log('   Phone matching will connect new contacts to existing calls\n');
 
-    const callsResult = await uploadBatch('hubspot_calls_raw', calls, transformCall);
-    stats.calls.successCount = callsResult.successCount;
-    stats.calls.errorCount = callsResult.errorCount;
-
-    await logSync('calls', stats.calls, (Date.now() - startTime) / 1000);
+    // No upload or logging for calls
+    stats.calls.successCount = 0;
+    stats.calls.errorCount = 0;
 
     // ========================================
     // SUMMARY
@@ -280,7 +281,7 @@ async function uploadTestSample() {
 
     console.log(`✓ CONTACTS: ${stats.contacts.successCount}/${stats.contacts.total} uploaded`);
     console.log(`✓ DEALS: ${stats.deals.successCount}/${stats.deals.total} uploaded`);
-    console.log(`✓ CALLS: ${stats.calls.successCount}/${stats.calls.total} uploaded`);
+    console.log(`⏩ CALLS: SKIPPED (using existing 118,931 calls in DB)`);
 
     const totalSuccess = stats.contacts.successCount + stats.deals.successCount + stats.calls.successCount;
     const totalErrors = stats.contacts.errorCount + stats.deals.errorCount + stats.calls.errorCount;
