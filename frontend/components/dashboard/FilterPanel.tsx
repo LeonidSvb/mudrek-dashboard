@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Select,
   SelectContent,
@@ -17,14 +16,21 @@ interface Owner {
   owner_email: string;
 }
 
-export function FilterPanel() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
+interface FilterPanelProps {
+  selectedOwner: string;
+  selectedRange: string;
+  onOwnerChange: (value: string) => void;
+  onRangeChange: (value: string) => void;
+}
+
+export function FilterPanel({
+  selectedOwner,
+  selectedRange,
+  onOwnerChange,
+  onRangeChange,
+}: FilterPanelProps) {
   const [owners, setOwners] = useState<Owner[]>([]);
   const [loading, setLoading] = useState(true);
-
-  const selectedOwner = searchParams.get('owner_id') || 'all';
-  const selectedRange = searchParams.get('range') || '30d';
 
   useEffect(() => {
     async function fetchOwners() {
@@ -44,27 +50,6 @@ export function FilterPanel() {
     fetchOwners();
   }, []);
 
-  const updateFilter = (key: string, value: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-
-    if (value === 'all' && key === 'owner_id') {
-      params.delete('owner_id');
-    } else {
-      params.set(key, value);
-    }
-
-    router.push(`?${params.toString()}`);
-    router.refresh();
-  };
-
-  const handleOwnerChange = (value: string) => {
-    updateFilter('owner_id', value);
-  };
-
-  const handleRangeChange = (value: string) => {
-    updateFilter('range', value);
-  };
-
   return (
     <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
       <div className="flex flex-col gap-4 md:flex-row md:items-center">
@@ -74,7 +59,7 @@ export function FilterPanel() {
           </label>
           <Select
             value={selectedOwner}
-            onValueChange={handleOwnerChange}
+            onValueChange={onOwnerChange}
             disabled={loading}
           >
             <SelectTrigger className="w-[200px]">
@@ -95,7 +80,7 @@ export function FilterPanel() {
           <label className="text-sm font-medium text-gray-700">
             Time Range
           </label>
-          <Tabs value={selectedRange} onValueChange={handleRangeChange}>
+          <Tabs value={selectedRange} onValueChange={onRangeChange}>
             <TabsList>
               <TabsTrigger value="7d">7 days</TabsTrigger>
               <TabsTrigger value="30d">30 days</TabsTrigger>

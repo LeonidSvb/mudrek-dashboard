@@ -1,45 +1,79 @@
-import { Suspense } from 'react';
+'use client';
+
+import { useState, useEffect } from 'react';
 import { MetricCard } from '@/components/MetricCard';
 import { FilterPanel } from '@/components/dashboard/FilterPanel';
-import { getAllMetrics } from '@/lib/db/metrics-fast';
+import type { AllMetrics } from '@/lib/db/metrics-fast';
 
-interface DashboardPageProps {
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
-}
+export default function DashboardPage() {
+  const [metrics, setMetrics] = useState<AllMetrics | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [ownerId, setOwnerId] = useState<string>('all');
+  const [range, setRange] = useState<string>('30d');
 
-async function getMetrics(params: { owner_id?: string; range?: string }) {
-  const filters: {
-    ownerId?: string | null;
-    dateFrom?: string | null;
-    dateTo?: string | null;
-  } = {
-    ownerId: null,
-    dateFrom: null,
-    dateTo: null,
-  };
+  useEffect(() => {
+    async function fetchMetrics() {
+      setLoading(true);
+      setError(null);
 
-  if (params.owner_id && params.owner_id !== 'all') {
-    filters.ownerId = params.owner_id;
+      try {
+        const params = new URLSearchParams();
+
+        if (ownerId && ownerId !== 'all') {
+          params.set('owner_id', ownerId);
+        }
+
+        if (range) {
+          const now = new Date();
+          const days = range === '7d' ? 7 : range === '30d' ? 30 : 90;
+          const dateFrom = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+          params.set('date_from', dateFrom.toISOString().split('T')[0]);
+          params.set('date_to', now.toISOString().split('T')[0]);
+        }
+
+        const url = `/api/metrics${params.toString() ? '?' + params.toString() : ''}`;
+        const res = await fetch(url);
+
+        if (!res.ok) {
+          throw new Error(`Failed to fetch metrics: ${res.status}`);
+        }
+
+        const data = await res.json();
+        setMetrics(data);
+      } catch (err) {
+        console.error('Failed to fetch metrics:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load metrics');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchMetrics();
+  }, [ownerId, range]);
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-8">
+        <div className="mx-auto max-w-7xl">
+          <div className="rounded-lg border border-red-200 bg-red-50 p-6">
+            <h3 className="text-lg font-semibold text-red-900">Error loading metrics</h3>
+            <p className="mt-2 text-sm text-red-700">{error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-4 rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
-  if (params.range) {
-    const now = new Date();
-    const days = params.range === '7d' ? 7 : params.range === '30d' ? 30 : 90;
-    const dateFrom = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
-    filters.dateFrom = dateFrom.toISOString().split('T')[0];
-    filters.dateTo = now.toISOString().split('T')[0];
+  if (loading || !metrics) {
+    return <LoadingSkeleton />;
   }
-
-  return await getAllMetrics(filters);
-}
-
-export default async function DashboardPage({ searchParams }: DashboardPageProps) {
-  const params = await searchParams;
-  const owner_id = typeof params.owner_id === 'string' ? params.owner_id : undefined;
-  // Default to 30 days if not specified - aligned with SQL function filters
-  const range = typeof params.range === 'string' ? params.range : '30d';
-
-  const metrics = await getMetrics({ owner_id, range });
 
   return (
     <div className="min-h-screen bg-gray-50 p-8">
@@ -49,7 +83,12 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
           <p className="mt-2 text-gray-600">Track your sales performance and metrics</p>
         </header>
 
-        <FilterPanel />
+        <FilterPanel
+          selectedOwner={ownerId}
+          selectedRange={range}
+          onOwnerChange={setOwnerId}
+          onRangeChange={setRange}
+        />
 
         {/* Top 4 KPIs */}
         <div className="mb-8">
@@ -292,12 +331,43 @@ function LoadingSkeleton() {
   return (
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="mx-auto max-w-7xl">
-        <div className="mb-8 h-12 w-64 animate-pulse rounded-lg bg-gray-200" />
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-32 animate-pulse rounded-lg bg-white shadow-sm" />
-          ))}
+        {/* Header skeleton */}
+        <div className="mb-8">
+          <div className="mb-2 h-10 w-64 animate-pulse rounded-lg bg-gray-200" />
+          <div className="h-6 w-96 animate-pulse rounded-lg bg-gray-200" />
         </div>
+
+        {/* Filter skeleton */}
+        <div className="mb-6 flex gap-4">
+          <div className="h-10 w-48 animate-pulse rounded-lg bg-gray-200" />
+          <div className="h-10 w-64 animate-pulse rounded-lg bg-gray-200" />
+        </div>
+
+        {/* Top 4 KPIs skeleton */}
+        <div className="mb-8">
+          <div className="mb-4 h-8 w-72 animate-pulse rounded-lg bg-gray-200" />
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-32 animate-pulse rounded-lg bg-white p-6 shadow-sm">
+                <div className="mb-2 h-4 w-24 rounded bg-gray-200" />
+                <div className="mb-2 h-8 w-32 rounded bg-gray-200" />
+                <div className="h-3 w-28 rounded bg-gray-200" />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Additional sections skeleton */}
+        {[1, 2, 3, 4, 5].map((section) => (
+          <div key={section} className="mb-8">
+            <div className="mb-4 h-8 w-64 animate-pulse rounded-lg bg-gray-200" />
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="h-32 animate-pulse rounded-lg bg-white shadow-sm" />
+              ))}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

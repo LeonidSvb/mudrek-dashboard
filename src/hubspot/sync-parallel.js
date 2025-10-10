@@ -151,6 +151,7 @@ async function syncDeals() {
     dealstage: deal.properties.dealstage,
     createdate: deal.properties.createdate,
     closedate: deal.properties.closedate,
+    hubspot_owner_id: deal.properties.hubspot_owner_id || null,
     qualified_status: deal.properties.qualified_status,
     trial_status: deal.properties.trial_status,
     raw_json: deal.properties,

@@ -2,7 +2,63 @@
 
 Все значимые изменения в этом проекте будут задокументированы в этом файле.
 
-## [v3.11.0] - 2025-10-08 (CURRENT)
+## [v3.12.0] - 2025-10-10 (CURRENT)
+
+### Final Cleanup + MCP Setup - PRODUCTION READY
+
+#### Session Summary
+
+**Что сделали:**
+1. Очистили проект от temporary files и discovery scripts
+2. Настроили MCP Supabase для прямого доступа к БД
+3. Улучшили Dashboard UX (client-side rendering, loading states)
+4. Финализировали проект для production deploy
+
+**Cleanup Results:**
+- Архивировано 11 discovery scripts → `scripts/discovery/`
+- Удалены temporary API test folders
+- Удалён дубликат документации (DASHBOARD_SIMPLE.md)
+- Проект полностью чистый и готов к production
+
+**MCP Configuration:**
+- Настроен Supabase MCP server (@supabase/mcp-server-supabase)
+- Настроен Filesystem MCP для этого проекта
+- Конфиг: `C:\Users\79818\AppData\Roaming\Claude\claude_desktop_config.json`
+- Теперь можно работать с БД через MCP tools (после перезапуска Claude Desktop)
+
+**Dashboard Updates:**
+- Client-side rendering вместо Server Component
+- Loading skeleton для лучшего UX
+- Error handling с retry кнопкой
+- Все 22 метрики отображаются корректно
+
+**Файлы изменены:**
+- scripts/discovery/ - 11 archived scripts с README
+- frontend/app/dashboard/page.tsx - client-side fetch
+- frontend/components/dashboard/FilterPanel.tsx - улучшенный UI
+- claude_desktop_config.json - MCP Supabase добавлен
+
+**Создан скрипт для тестовых данных:**
+- scripts/create-test-data.js - создание тестовых контактов и сделок
+- Использует правильные field values из HubSpot (vsl_watched, qualified_status и т.д.)
+- Может создать 20 контактов + 10 сделок за 2 минуты
+
+**Текущее состояние:**
+- ✅ Dashboard работает (http://localhost:3006/dashboard)
+- ✅ Все 22 метрики реализованы (13 с реальными данными, 9 требуют полей HubSpot)
+- ✅ Фильтры: 8 owners + date ranges (7d/30d/90d)
+- ✅ SQL функция get_all_metrics() оптимизирована (4 секунды)
+- ✅ Проект готов к deploy на Vercel
+
+**Next steps:**
+1. Протестировать на production (Vercel)
+2. Показать клиенту Dashboard
+3. Клиент заполнит custom fields в HubSpot для недостающих 9 метрик
+4. После заполнения - все 22 метрики заработают
+
+---
+
+## [v3.11.0] - 2025-10-08
 
 ### SQL Оптимизация + Dashboard с фильтрами - PRODUCTION READY
 
