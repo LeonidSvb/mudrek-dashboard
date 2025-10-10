@@ -45,7 +45,7 @@
  *   Simply run this file again - CREATE OR REPLACE will update the function
  *   without losing any data.
  *
- * VERSION: 1.1 (Added date filters)
+ * VERSION: 1.2 (Replaced followup metrics mock data with real VIEWs)
  * =====================================================================
  */
 
@@ -214,11 +214,33 @@ BEGIN
 
     -- ================================================================
     -- FOLLOWUP METRICS (3)
-    -- TODO: Replace mock data with real contact_call_stats VIEW
+    -- Filtered by: owner_id only (no date filter on aggregated VIEW)
     -- ================================================================
-    'followupRate', 82.49,
-    'avgFollowups', 4.8,
-    'timeToFirstContact', 5.1,
+    'followupRate', (
+      SELECT COALESCE(
+        ROUND(
+          SUM(has_followups)::numeric / NULLIF(COUNT(*), 0) * 100,
+          2
+        ),
+        0
+      )
+      FROM contact_call_stats
+      WHERE (p_owner_id IS NULL OR hubspot_owner_id = p_owner_id)
+    ),
+
+    'avgFollowups', (
+      SELECT COALESCE(ROUND(AVG(followup_count), 1), 0)
+      FROM contact_call_stats
+      WHERE total_calls > 0
+        AND (p_owner_id IS NULL OR hubspot_owner_id = p_owner_id)
+    ),
+
+    'timeToFirstContact', (
+      SELECT COALESCE(ROUND(AVG(days_to_first_call), 1), 0)
+      FROM contact_call_stats
+      WHERE days_to_first_call IS NOT NULL
+        AND (p_owner_id IS NULL OR hubspot_owner_id = p_owner_id)
+    ),
 
     -- ================================================================
     -- OFFER METRICS (2)
