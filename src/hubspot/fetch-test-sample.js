@@ -31,10 +31,10 @@ const CONFIG = {
   // Time Period
   DAYS_BACK: 30,  // Last 30 days (1 month)
 
-  // Target Quantities
-  MIN_DEALS: 50,        // Minimum deals to fetch
-  TARGET_CONTACTS: 500, // Total contacts to fetch
-  TARGET_CALLS: 1000,   // Total calls to fetch
+  // Target Quantities - UNLIMITED (fetch ALL from period)
+  MIN_DEALS: null,        // Fetch ALL deals from period
+  TARGET_CONTACTS: null,  // Fetch ALL contacts from period
+  TARGET_CALLS: null      // Not fetching (skip)
 
   // Batch Settings
   BATCH_SIZE: 100,
@@ -282,8 +282,8 @@ async function fetchTestSample() {
 
   console.log('📋 Configuration:');
   console.log(`   Period: Last ${CONFIG.DAYS_BACK} days`);
-  console.log(`   Target: ${CONFIG.MIN_DEALS} deals, ${CONFIG.TARGET_CONTACTS} contacts, ${CONFIG.TARGET_CALLS} calls`);
-  console.log(`   Fields: ${USEFUL_FIELDS.contacts.length} + ${USEFUL_FIELDS.deals.length} + ${USEFUL_FIELDS.calls.length} = 167 useful fields`);
+  console.log(`   Target: ALL deals + ALL contacts from period (no limits)`);
+  console.log(`   Fields: ${USEFUL_FIELDS.contacts.length} + ${USEFUL_FIELDS.deals.length} = 167 useful fields`);
   console.log(`   Output: ${CONFIG.OUTPUT_DIR}\n`);
 
   const startTime = Date.now();
@@ -295,14 +295,8 @@ async function fetchTestSample() {
     // ========================================
     console.log('═══ 1/3: DEALS ═══\n');
 
-    let deals = await searchByDate('deals', CONFIG.DAYS_BACK, USEFUL_FIELDS.deals, CONFIG.ASSOCIATIONS.deals);
-
-    // Fallback: if not enough deals in period, fetch last N
-    if (deals.length < CONFIG.MIN_DEALS) {
-      console.log(`⚠️  Only ${deals.length} deals in last ${CONFIG.DAYS_BACK} days`);
-      console.log(`   Fetching last ${CONFIG.MIN_DEALS} deals instead...\n`);
-      deals = await fetchLastN('deals', CONFIG.MIN_DEALS, USEFUL_FIELDS.deals, CONFIG.ASSOCIATIONS.deals);
-    }
+    // Fetch ALL deals from last 30 days
+    const deals = await searchByDate('deals', CONFIG.DAYS_BACK, USEFUL_FIELDS.deals, CONFIG.ASSOCIATIONS.deals);
 
     results.deals = deals;
     saveToJSON('deals.json', deals);
@@ -329,21 +323,16 @@ async function fetchTestSample() {
       contacts = await fetchByIds('contacts', Array.from(associatedContactIds), USEFUL_FIELDS.contacts);
     }
 
-    // Fetch additional contacts if needed
-    if (contacts.length < CONFIG.TARGET_CONTACTS) {
-      const needed = CONFIG.TARGET_CONTACTS - contacts.length;
-      console.log(`📊 Fetching ${needed} more contacts to reach target...\n`);
+    // Fetch ALL contacts from period
+    console.log(`📊 Fetching ALL contacts from last ${CONFIG.DAYS_BACK} days...\n`);
+    const allContacts = await searchByDate('contacts', CONFIG.DAYS_BACK, USEFUL_FIELDS.contacts);
 
-      const additionalContacts = await searchByDate('contacts', CONFIG.DAYS_BACK, USEFUL_FIELDS.contacts);
+    // Merge: associated + all from period (remove duplicates)
+    const existingIds = new Set(contacts.map(c => c.id));
+    const uniqueAdditional = allContacts.filter(c => !existingIds.has(c.id));
+    contacts = contacts.concat(uniqueAdditional);
 
-      // Remove duplicates (already have associated contacts)
-      const existingIds = new Set(contacts.map(c => c.id));
-      const uniqueAdditional = additionalContacts.filter(c => !existingIds.has(c.id));
-
-      contacts = contacts.concat(uniqueAdditional.slice(0, needed));
-    }
-
-    results.contacts = contacts.slice(0, CONFIG.TARGET_CONTACTS);
+    results.contacts = contacts;
     saveToJSON('contacts.json', results.contacts);
 
     // ========================================
