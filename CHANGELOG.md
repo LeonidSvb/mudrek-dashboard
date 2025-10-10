@@ -2,7 +2,86 @@
 
 Все значимые изменения в этом проекте будут задокументированы в этом файле.
 
-## [v3.13.0] - 2025-10-10 (CURRENT)
+## [v3.14.0] - 2025-10-10 (CURRENT)
+
+### Phone Matching VIEWs + Timeline Analysis + Parallel Fetch Optimization
+
+#### Session Summary
+
+**Что сделали:**
+1. Создали SQL migration 009 с 2 VIEWs для phone matching
+2. Оптимизировали fetch script на parallel requests (6x быстрее)
+3. Добавили timeline analysis для calls before/after deal creation
+4. Протестировали VIEWs на реальных данных (45/59 contacts matched = 76%)
+5. Документировали negative values в days_to_first_call (cold calls)
+
+**VIEWs Created:**
+
+**VIEW 1: `call_contact_matches`** (Base Layer)
+- Matches calls → contacts via normalized phone
+- 517 matched records (45 Israeli contacts × avg 11.5 calls)
+- Timeline support: call_timestamp for before/after deal filtering
+- Performance: ~500ms on 118k calls
+
+**VIEW 2: `contact_call_stats`** (Aggregated Metrics)
+- Pre-aggregated statistics per contact
+- Covers ALL 5 phone-based metrics (followup, time to first call, 5min rate)
+- Performance: ~50ms (fast queries)
+- Ready for dashboard
+
+**Timeline Support:**
+```sql
+-- Calls BEFORE deal creation (cold calls)
+WHERE call_timestamp < deal.createdate
+
+-- Calls AFTER deal creation (followups)
+WHERE call_timestamp >= deal.createdate
+```
+
+**Negative days_to_first_call:**
+- Negative = звонок ДО создания контакта (cold call)
+- Positive = звонок ПОСЛЕ создания контакта (inbound/followup)
+- Это НОРМАЛЬНО и ценно для анализа
+
+**Performance Optimization:**
+- Parallel associations fetch: 30s → 5s (6x faster)
+- Promise.all() вместо sequential loop
+- 60 deals теперь обрабатываются за 5 секунд
+
+**Phone Matching Results:**
+- 45/59 contacts matched (76% rate)
+- 14 foreign numbers без calls (Kuwait, Oman, Qatar, etc.)
+- 76% = 100% для Israeli contacts ✅
+- Kavkom only tracks +972 numbers
+
+**Discovery Scripts:**
+- analyze-call-timeline.js: Calls split 42% before / 58% after deal
+- debug-missing-calls.js: Found 14 foreign numbers
+- match-calls-to-deals.js: Verified phone matching (517 calls)
+
+**Файлы:**
+- migrations/009_create_phone_matching_views.sql
+- src/hubspot/fetch-test-sample.js (optimized)
+- scripts/discovery/analyze-call-timeline.js
+- scripts/discovery/debug-missing-calls.js
+- scripts/discovery/match-calls-to-deals.js
+
+**Текущее состояние:**
+- ✅ 2 VIEWs созданы и протестированы
+- ✅ Phone matching работает корректно (45 contacts)
+- ✅ Timeline analysis ready
+- ✅ Parallel fetch оптимизирован (6x faster)
+- ⏸️ Готовы считать все 22 метрики
+
+**Next Steps:**
+1. Calculate all 22 metrics using VIEWs
+2. Add date filters (7d, 30d, 90d, custom range)
+3. Consider materialized views if slow
+4. Dashboard implementation with filters
+
+---
+
+## [v3.13.0] - 2025-10-10
 
 ### Test Sample Workflow + Field Analysis - Ready for Dashboard Testing
 
