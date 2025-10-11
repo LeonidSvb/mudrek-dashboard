@@ -5,6 +5,7 @@ import { subDays } from 'date-fns';
 import { MetricCard } from '@/components/MetricCard';
 import { FilterPanel } from '@/components/dashboard/FilterPanel';
 import { DealsBreakdown } from '@/components/dashboard/DealsBreakdown';
+import { TimelineCharts } from '@/components/dashboard/TimelineCharts';
 import type { AllMetrics } from '@/lib/db/metrics-fast';
 
 interface DateRange {
@@ -98,6 +99,13 @@ export default function DashboardPage() {
 
         {/* Deals Breakdown by Stage */}
         <DealsBreakdown
+          ownerId={ownerId === 'all' ? null : ownerId}
+          dateFrom={dateRange.from.toISOString().split('T')[0]}
+          dateTo={dateRange.to.toISOString().split('T')[0]}
+        />
+
+        {/* Timeline Charts */}
+        <TimelineCharts
           ownerId={ownerId === 'all' ? null : ownerId}
           dateFrom={dateRange.from.toISOString().split('T')[0]}
           dateTo={dateRange.to.toISOString().split('T')[0]}
