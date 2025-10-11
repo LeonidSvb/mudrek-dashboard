@@ -34,7 +34,7 @@ const CONFIG = {
   SUPABASE_SERVICE_KEY: process.env.SUPABASE_SERVICE_KEY,
 
   // Input directory
-  INPUT_DIR: join(__dirname, '../../data/test-sample'),
+  INPUT_DIR: join(__dirname, '../../data/hubspot-useful'),
 
   // Batch Settings
   BATCH_SIZE: 500  // Supabase recommended batch size
