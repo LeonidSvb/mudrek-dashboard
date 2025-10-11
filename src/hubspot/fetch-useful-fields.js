@@ -29,7 +29,7 @@ const CONFIG = {
   BASE_URL: 'https://api.hubapi.com',
 
   // Test mode: fetch only 50 records per type
-  TEST_MODE: true,
+  TEST_MODE: false,  // PRODUCTION MODE: Fetch ALL records
   TEST_LIMIT: 50,
 
   // Production mode: fetch ALL records
@@ -44,7 +44,7 @@ const CONFIG = {
   // Objects to fetch
   FETCH_CONTACTS: true,
   FETCH_DEALS: true,
-  FETCH_CALLS: true,
+  FETCH_CALLS: false,  // Skip calls - already have 118,931 in DB
 
   // Associations to include
   ASSOCIATIONS: {
