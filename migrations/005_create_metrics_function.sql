@@ -348,6 +348,8 @@ BEGIN
       SELECT COUNT(*)
       FROM hubspot_contacts_raw
       WHERE (p_owner_id IS NULL OR hubspot_owner_id = p_owner_id)
+        AND (p_date_from IS NULL OR createdate >= p_date_from)
+        AND (p_date_to IS NULL OR createdate <= p_date_to)
     )
   ) INTO result;
 
