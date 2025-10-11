@@ -1,16 +1,26 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { subDays } from 'date-fns';
 import { MetricCard } from '@/components/MetricCard';
 import { FilterPanel } from '@/components/dashboard/FilterPanel';
+import { DealsBreakdown } from '@/components/dashboard/DealsBreakdown';
 import type { AllMetrics } from '@/lib/db/metrics-fast';
+
+interface DateRange {
+  from: Date;
+  to: Date;
+}
 
 export default function DashboardPage() {
   const [metrics, setMetrics] = useState<AllMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [ownerId, setOwnerId] = useState<string>('all');
-  const [range, setRange] = useState<string>('30d');
+  const [dateRange, setDateRange] = useState<DateRange>({
+    from: subDays(new Date(), 30),
+    to: new Date(),
+  });
 
   useEffect(() => {
     async function fetchMetrics() {
@@ -24,13 +34,9 @@ export default function DashboardPage() {
           params.set('owner_id', ownerId);
         }
 
-        if (range) {
-          const now = new Date();
-          const days = range === '7d' ? 7 : range === '30d' ? 30 : 90;
-          const dateFrom = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
-          params.set('date_from', dateFrom.toISOString().split('T')[0]);
-          params.set('date_to', now.toISOString().split('T')[0]);
-        }
+        // Format dates as YYYY-MM-DD
+        params.set('date_from', dateRange.from.toISOString().split('T')[0]);
+        params.set('date_to', dateRange.to.toISOString().split('T')[0]);
 
         const url = `/api/metrics${params.toString() ? '?' + params.toString() : ''}`;
         const res = await fetch(url);
@@ -50,7 +56,7 @@ export default function DashboardPage() {
     }
 
     fetchMetrics();
-  }, [ownerId, range]);
+  }, [ownerId, dateRange]);
 
   if (error) {
     return (
@@ -85,15 +91,22 @@ export default function DashboardPage() {
 
         <FilterPanel
           selectedOwner={ownerId}
-          selectedRange={range}
+          dateRange={dateRange}
           onOwnerChange={setOwnerId}
-          onRangeChange={setRange}
+          onDateRangeChange={setDateRange}
+        />
+
+        {/* Deals Breakdown by Stage */}
+        <DealsBreakdown
+          ownerId={ownerId === 'all' ? null : ownerId}
+          dateFrom={dateRange.from.toISOString().split('T')[0]}
+          dateTo={dateRange.to.toISOString().split('T')[0]}
         />
 
         {/* Top 4 KPIs */}
-        <div className="mb-8">
-          <h2 className="mb-4 text-xl font-semibold text-gray-700">Key Performance Indicators</h2>
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <div className="mb-4">
+          <h2 className="mb-2 text-sm font-semibold text-gray-700 uppercase tracking-wide">Key Metrics</h2>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
             <MetricCard
               title="Total Sales"
               value={metrics.totalSales}
@@ -125,9 +138,9 @@ export default function DashboardPage() {
         </div>
 
         {/* Call Metrics */}
-        <div className="mb-8">
-          <h2 className="mb-4 text-xl font-semibold text-gray-700">Call Performance</h2>
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <div className="mb-4">
+          <h2 className="mb-2 text-sm font-semibold text-gray-700 uppercase tracking-wide">Call Performance</h2>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
             <MetricCard
               title="Total Calls"
               value={metrics.totalCalls}
@@ -159,9 +172,9 @@ export default function DashboardPage() {
         </div>
 
         {/* Conversion Metrics */}
-        <div className="mb-8">
-          <h2 className="mb-4 text-xl font-semibold text-gray-700">Conversion & Quality</h2>
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <div className="mb-4">
+          <h2 className="mb-2 text-sm font-semibold text-gray-700 uppercase tracking-wide">Conversion</h2>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
             <MetricCard
               title="Qualified Rate"
               value={metrics.qualifiedRate}
@@ -186,9 +199,9 @@ export default function DashboardPage() {
         </div>
 
         {/* Payment Metrics */}
-        <div className="mb-8">
-          <h2 className="mb-4 text-xl font-semibold text-gray-700">Payment & Installments</h2>
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <div className="mb-4">
+          <h2 className="mb-2 text-sm font-semibold text-gray-700 uppercase tracking-wide">Payments</h2>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
             <MetricCard
               title="Upfront Cash Collected"
               value={metrics.upfrontCashCollected}
@@ -206,9 +219,9 @@ export default function DashboardPage() {
         </div>
 
         {/* Followup Metrics */}
-        <div className="mb-8">
-          <h2 className="mb-4 text-xl font-semibold text-gray-700">Followup Activity</h2>
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <div className="mb-4">
+          <h2 className="mb-2 text-sm font-semibold text-gray-700 uppercase tracking-wide">Followup</h2>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
             <MetricCard
               title="Followup Rate"
               value={metrics.followupRate}

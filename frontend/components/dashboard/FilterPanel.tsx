@@ -8,7 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { CustomDatePicker } from './CustomDatePicker';
 
 interface Owner {
   owner_id: string;
@@ -16,18 +16,23 @@ interface Owner {
   owner_email: string;
 }
 
+interface DateRange {
+  from: Date;
+  to: Date;
+}
+
 interface FilterPanelProps {
   selectedOwner: string;
-  selectedRange: string;
+  dateRange: DateRange;
   onOwnerChange: (value: string) => void;
-  onRangeChange: (value: string) => void;
+  onDateRangeChange: (range: DateRange) => void;
 }
 
 export function FilterPanel({
   selectedOwner,
-  selectedRange,
+  dateRange,
   onOwnerChange,
-  onRangeChange,
+  onDateRangeChange,
 }: FilterPanelProps) {
   const [owners, setOwners] = useState<Owner[]>([]);
   const [loading, setLoading] = useState(true);
@@ -80,13 +85,10 @@ export function FilterPanel({
           <label className="text-sm font-medium text-gray-700">
             Time Range
           </label>
-          <Tabs value={selectedRange} onValueChange={onRangeChange}>
-            <TabsList>
-              <TabsTrigger value="7d">7 days</TabsTrigger>
-              <TabsTrigger value="30d">30 days</TabsTrigger>
-              <TabsTrigger value="90d">90 days</TabsTrigger>
-            </TabsList>
-          </Tabs>
+          <CustomDatePicker
+            dateRange={dateRange}
+            onDateRangeChange={onDateRangeChange}
+          />
         </div>
       </div>
     </div>

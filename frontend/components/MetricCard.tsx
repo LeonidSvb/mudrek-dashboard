@@ -29,16 +29,16 @@ export function MetricCard({
   return (
     <div
       className={cn(
-        'rounded-lg border border-gray-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md',
+        'rounded-lg border border-gray-200 bg-white p-3 shadow-sm transition-shadow hover:shadow-md',
         className
       )}
     >
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <p className="text-sm font-medium text-gray-600">{title}</p>
-          <p className="mt-2 text-2xl font-bold text-gray-900">{formattedValue}</p>
+          <p className="text-xs font-medium text-gray-600">{title}</p>
+          <p className="mt-1 text-lg font-bold text-gray-900">{formattedValue}</p>
           {subtitle && (
-            <p className="mt-1 text-sm text-gray-500">{subtitle}</p>
+            <p className="mt-0.5 text-xs text-gray-500">{subtitle}</p>
           )}
         </div>
 
