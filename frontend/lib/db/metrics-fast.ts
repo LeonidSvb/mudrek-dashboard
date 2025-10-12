@@ -10,7 +10,27 @@ import { getLogger } from '@/lib/app-logger';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_KEY!
+  process.env.SUPABASE_SERVICE_KEY!,
+  {
+    db: {
+      schema: 'public',
+    },
+    global: {
+      headers: {
+        'x-client-info': 'supabase-js-node',
+      },
+      fetch: (url, options = {}) => {
+        // Увеличиваем timeout до 120 секунд
+        return fetch(url, {
+          ...options,
+          signal: AbortSignal.timeout(120000),
+        });
+      },
+    },
+    auth: {
+      persistSession: false,
+    },
+  }
 );
 
 const logger = getLogger('metrics-fast');

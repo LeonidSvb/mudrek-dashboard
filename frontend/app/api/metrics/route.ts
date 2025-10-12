@@ -18,6 +18,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAllMetrics } from '@/lib/db/metrics-fast';
+import { getAllMetricsPg } from '@/lib/db/metrics-pg';
 import { getLogger } from '@/lib/app-logger';
 
 const logger = getLogger('metrics-api');
@@ -37,7 +38,7 @@ export async function GET(request: NextRequest) {
 
     logger.info('Fetching all metrics via SQL function', { filters });
 
-    // Fetch all metrics using FAST SQL function
+    // Используем Supabase REST API (быстрее чем PG если MV работает)
     const metrics = await getAllMetrics(filters);
 
     logger.info('Metrics fetched successfully', {

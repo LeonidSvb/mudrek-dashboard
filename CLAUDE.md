@@ -1,5 +1,21 @@
  Claude Coding Guidelines
 
+# Communication Rules
+
+## No Markdown Files for Explanations
+- **NEVER create .md files** for explanations, plans, or analysis unless explicitly requested
+- All explanations should be given in conversation directly
+- User prefers to understand concepts through dialogue, not reading docs
+- Only create docs when user explicitly asks: "create a document about X"
+
+**Examples:**
+```
+❌ Creating ANALYSIS.md, PLAN.md, EXPLANATION.md without request
+✅ Explaining concepts in chat with examples and analogies
+✅ Creating migrations/*.sql (executable code, not docs)
+✅ Creating README.md, CHANGELOG.md (project essentials)
+```
+
 # Root Directory Rules - STRICT
 
 ## What MUST be in Project Root

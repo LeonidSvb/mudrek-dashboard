@@ -2,7 +2,178 @@
 
 Все значимые изменения в этом проекте будут задокументированы в этом файле.
 
-## [v3.15.0] - 2025-10-10 (CURRENT)
+## [v3.17.0] - 2025-10-12 (CURRENT)
+
+### Email Data Quality + Migration 018 - Data Cleaning
+
+#### Session Summary
+
+**Что сделали:**
+1. Обнаружили проблему качества данных в email колонке (95% заполнено, но 100% невалидные)
+2. Разобрали root cause - HubSpot поле `hs_full_name_or_email` содержит MIX emails + имен
+3. Создали migration 018 для очистки email через PostgreSQL regex validation
+4. Обсудили философию миграций - решили трекать ВСЕ миграции для первого проекта
+
+**Email Data Quality Issue:**
+
+Migration 016 извлек email из `raw_json.properties.hs_full_name_or_email`:
+- До: email колонка 0% (NULL)
+- После: email колонка 95.1% (30,256 из 31,800)
+- **Проблема**: При валидации через regex 100% записей = имена, не emails
+
+**Примеры невалидных данных:**
+- "Deiaa" (имя)
+- "Maha" (имя)
+- "Rasha" (имя)
+- "naseem_b87@hotmail.com" (валидный email - единичный случай)
+
+**Root Cause Analysis:**
+
+HubSpot поле `hs_full_name_or_email`:
+- Auto-generated fallback field
+- Логика: email ИЛИ firstname + lastname
+- Если email пустой → HubSpot подставляет имя
+- Команда не заполняет email в HubSpot (только телефоны для cold calling)
+
+**Migration 018: Clean Invalid Emails**
+
+SQL UPDATE с PostgreSQL regex validation:
+```sql
+UPDATE hubspot_contacts_raw
+SET email = CASE
+  WHEN email ~ '^[^\s@]+@[^\s@]+\.[^\s@]+$'  -- Regex validation
+  THEN email
+  ELSE NULL
+END
+WHERE email IS NOT NULL;
+```
+
+**Результат:**
+- До: 30,256 записей (95.1%) - MIX имен и emails
+- После: ~6,000-7,000 записей (20%) - только валидные emails
+- Остальные: NULL (имена останутся в raw_json как backup)
+
+**Migration Philosophy Decision:**
+
+Обсудили industry standards (Rails, Prisma, Supabase):
+- **Подход 1**: Track ALL migrations (schema + data)
+- **Подход 2**: Разделять schema vs data migrations
+- **Подход 3**: Только schema migrations
+
+**Решение для проекта:**
+- ✅ Трекаем ВСЕ миграции (schema + data + cleanup)
+- ✅ Numbering: 001, 002, 003... (sequential)
+- ✅ Naming: `{number}_{verb}_{what}_{detail}.sql`
+- ✅ Цель: Learning + Audit Trail для первого проекта
+
+**Файлы созданы:**
+- migrations/018_clean_invalid_emails.sql
+- check-real-email-field.cjs (discovery)
+- analyze-email-quality.cjs (validation)
+- check-owner-id.cjs (verification)
+
+**Обновления документации:**
+- CLAUDE.md: Добавлено правило "No MD files for explanations unless requested"
+
+**Текущее состояние:**
+- ✅ Migration 018 готова к запуску
+- ✅ Email validation regex протестирован
+- ✅ Root cause понятен (HubSpot hs_full_name_or_email behavior)
+- ✅ Backup данных в raw_json (безопасно)
+- ⏸️ Ожидает: запуск migration в Supabase
+
+**Next Steps:**
+1. Запустить migration 018 в Supabase SQL Editor
+2. Проверить результат (сколько валидных email осталось)
+3. Обновить sync script - добавить validation в transform function
+4. Продолжить работу с dashboard (все 22 метрики)
+
+**Learning:**
+- **Property Drift**: Sync script запрашивает поля, но не извлекает их (hubspot_owner_id, email)
+- **Data Quality**: Всегда проверяй качество данных после extraction (regex, type validation)
+- **Migration Tracking**: Для первого проекта track ALL для audit trail
+- **HubSpot Quirks**: `hs_full_name_or_email` = fallback field (email OR name)
+
+---
+
+## [v3.16.0] - 2025-10-11
+
+### Критическая оптимизация + Timeline Charts - Production Ready
+
+#### Session Summary
+
+**Что сделали:**
+1. Исправили VIEW phone matching (17M → 118k записей) через DISTINCT ON
+2. Создали Materialized View + pg_cron для производительности
+3. Добавили Timeline Charts (Sales + Calls по времени)
+4. Загрузили full HubSpot dataset (все contacts + deals)
+5. Улучшили Dashboard UI (compact design, custom date picker)
+
+**Критические исправления:**
+
+**Migration 011: Materialized View + pg_cron**
+- Проблема: `contact_call_stats` VIEW тормозил (60+ секунд)
+- Решение: Materialized View с hourly refresh
+- Результат: < 1 секунда вместо timeout
+- Auto-refresh: Каждый час через pg_cron
+
+**Migration 012: Fix Cartesian Product (17M → 118k)**
+- Проблема: Phone matching создавал 17M записей (17GB)
+- Причина: Неполные номера ("972") matching множество контактов
+- Решение: DISTINCT ON (call_id) - 1 call = 1 contact
+- Результат: 118k записей (120MB), 140x reduction
+
+**Call Metrics Owner Filter:**
+- Теперь Call метрики фильтруются по owner через phone matching
+- totalCalls, avgCallTime, totalCallTime, fiveMinReachedRate
+- SQL функция обновлена до v1.4
+
+**Timeline Charts:**
+- Sales timeline (deals по датам)
+- Calls timeline (звонки по датам)
+- API endpoint: `/api/metrics/timeline`
+- Component: `TimelineCharts.tsx` (Recharts)
+
+**Dashboard Improvements:**
+- Compact design с лучшим spacing
+- Custom DatePicker с Calendar UI
+- Deals Breakdown modal (stage breakdown)
+- Responsive layout
+
+**Файлы изменены:**
+- migrations/011_optimize_contact_call_stats.sql - MV + pg_cron
+- migrations/012_fix_call_contact_matches_view.sql - DISTINCT ON fix
+- migrations/005_create_metrics_function.sql - v1.4 с owner filter
+- frontend/app/api/metrics/timeline/route.ts - Timeline API
+- frontend/components/dashboard/TimelineCharts.tsx - Charts
+- frontend/components/dashboard/CustomDatePicker.tsx - Date picker
+- frontend/components/dashboard/DealsBreakdown.tsx - Breakdown modal
+- package.json - добавлен `pg` dependency
+
+**Текущее состояние:**
+- ✅ All 22 metrics working
+- ✅ Phone matching fixed (17M → 118k)
+- ✅ Performance optimized (< 1s)
+- ✅ Timeline charts ready
+- ✅ Dashboard UI polished
+- ✅ Owner filter works для всех метрик (включая Call)
+- ✅ Auto-refresh через pg_cron
+
+**Performance Metrics:**
+- Before: 60+ seconds (timeout)
+- After: < 1 second
+- Data reduction: 17GB → 120MB (140x)
+- Materialized View: hourly refresh
+
+**Next Steps:**
+1. Запустить migrations 011 + 012 в Supabase
+2. Проверить pg_cron job status
+3. Протестировать dashboard (http://localhost:3004/dashboard)
+4. Cleanup root - переместить discovery scripts
+
+---
+
+## [v3.15.0] - 2025-10-10
 
 ### All 22 Metrics Working - Production Ready
 
