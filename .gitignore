@@ -44,4 +44,5 @@ Thumbs.db
 *contacts*.json
 *deals*.json
 *sample*.json
-*all-*-properties.json
+*all-*-properties.jsonlogs/
+.claude/settings.json

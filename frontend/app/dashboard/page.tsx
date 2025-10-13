@@ -19,7 +19,7 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [ownerId, setOwnerId] = useState<string>('all');
   const [dateRange, setDateRange] = useState<DateRange>({
-    from: subDays(new Date(), 30),
+    from: subDays(new Date(), 90), // Changed from 30 to 90 days to include all data
     to: new Date(),
   });
 
