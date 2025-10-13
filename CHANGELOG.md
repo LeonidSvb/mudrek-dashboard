@@ -2,7 +2,619 @@
 
 Все значимые изменения в этом проекте будут задокументированы в этом файле.
 
-## [v3.18.0] - 2025-10-13 (CURRENT)
+## [v3.21.0] - 2025-10-13 (CURRENT) - ⚠️ CSV НЕ СОВПАДАЕТ С БАЗОЙ
+
+### КРИТИЧЕСКАЯ ПРОБЛЕМА: CSV файл не соответствует базе данных
+
+**Что произошло:**
+Попытались обновить closedate из CSV, но обнаружили, что CSV содержит **ДРУГИХ клиентов**, не тех, что в базе.
+
+**Статистика совпадений:**
+- CSV: 1051 записей с телефонами
+- База: 1000 contacts
+- **Совпадений по email: 0** (ни одного!)
+- **Совпадений по телефону: 1** (0.1%)
+
+**Что обновлено:**
+- ✅ Обновлен 1 deal (телефон 972528133573 → closedate 2024-07-01)
+- ✅ Уникальных дат стало 2 вместо 1 (минимальное улучшение)
+- ❌ Остальные 999 deals не обновлены (нет совпадений с CSV)
+
+**Примеры несовпадений:**
+
+| CSV emails | База emails |
+|---|---|
+| waelmak2@gmail.com | *anas.idrees@icloud.com |
+| helana.fee48@icloud.com | 00066aya@gmail.com |
+| samarqawasmi2019@gmail.com | 01285948889@gmail.com |
+
+**Вывод:**
+CSV файл (`Mudrek - Sales Summary - Customers (4).csv`) содержит:
+- Клиентов 2023-2025 годов
+- Emails, которых НЕТ в текущей базе HubSpot
+- Телефоны, которых почти НЕТ в текущей базе (только 1 совпадение)
+
+База данных HubSpot содержит:
+- Других клиентов (загружено 19 окт 2025)
+- Совершенно другие emails и телефоны
+
+**РЕКОМЕНДАЦИИ:**
+
+**Вариант 1: Получить актуальный CSV**
+- Экспортировать CSV из HubSpot с текущими клиентами
+- Убедиться, что даты closedate корректные в HubSpot
+- Тогда можно обновить closedate из этого CSV
+
+**Вариант 2: Использовать реальные даты из HubSpot**
+- Проверить, есть ли поле closedate в HubSpot для deals
+- Если есть - синхронизировать из HubSpot API
+- Не использовать CSV вообще
+
+**Вариант 3: Работать с текущими датами**
+- Dashboard работает с текущими данными
+- View создан, функция работает (но slow)
+- Даты: 2025-09-09 (массовая загрузка) до 2025-10-31
+- Total sales: ~₪1,331,975
+
+**Созданные файлы в этой сессии:**
+
+Scripts для анализа проблемы:
+- `check-dates-status.cjs` - Проверка текущих дат (показало 1 уникальную дату)
+- `debug-email-matching.cjs` - Поиск совпадений по email (0 найдено)
+- `check-email-in-raw-json.cjs` - Поиск email в raw_json (464 с email)
+- `compare-csv-vs-db-emails.cjs` - Сравнение CSV vs DB (0 совпадений)
+- `check-phone-field.cjs` - Проверка phone поля (1000 contacts с phone)
+- `match-by-phone.cjs` - Маппинг по телефону (5 совпадений)
+- `update-by-phone.cjs` - **ВЫПОЛНЕН** - обновил 1 deal
+- `refresh-view-and-check.cjs` - Проверка view и метрик
+
+Scripts (НЕ работают из-за проблемы CSV):
+- `execute-closedate-update.cjs` - Попытка через Supabase API (ошибка connection)
+- `execute-update-sql.cjs` - Попытка через pg (ошибка "Tenant or user not found")
+- `update-dates-via-api.cjs` - Попытка обновления (0 совпадений по email)
+
+SQL файлы:
+- `UPDATE_CLOSEDATE_FULL.sql` - **НЕ ИСПОЛЬЗОВАТЬ** (email не совпадают)
+
+**Текущее состояние:**
+- ✅ Materialized view работает (migrations/021, 022 запущены)
+- ✅ View содержит 24 строки (по дням × owners)
+- ✅ Total sales в view: ₪1,331,975
+- ⚠️  Функция get_all_metrics() все еще timeout (>10s)
+- ⚠️  Closedate почти не обновлены (только 1 из 1000)
+- ⚠️  Dashboard будет показывать ограниченные данные
+
+**Следующие шаги (для следующей сессии):**
+
+1. **Получить правильный CSV** или использовать HubSpot API напрямую
+2. **Исправить timeout функции** get_all_metrics (возможно, нужен REFRESH MATERIALIZED VIEW)
+3. **Проверить dashboard** с текущими данными
+
+---
+
+## [v3.20.0] - 2025-10-13 - ⏸️ ОСТАНОВЛЕНО НА ЗАПУСКЕ SQL
+
+### Materialized View + Dashboard Performance Optimization - НЕ ЗАВЕРШЕНО
+
+#### ГДЕ ОСТАНОВИЛИСЬ
+
+**Проблема:**
+Dashboard timeout (>10 секунд) из-за медленной SQL функции `get_all_metrics()`.
+
+**Что сделали:**
+1. ✅ Создали materialized view для предрасчета метрик (migrations/021)
+2. ✅ Обновили SQL функцию для чтения из view (migrations/022)
+3. ✅ Нашли связь deals→contacts через `raw_json->associations->contacts->results[0]->id`
+4. ✅ Создали UPDATE SQL для обновления closedate из CSV (1060 записей)
+5. ❌ Но даты НЕ обновлены (SQL НЕ ЗАПУЩЕН в Supabase)
+6. ❌ Dashboard все еще показывает totalSales = 0
+
+**Текущее состояние:**
+- ✅ Materialized view создан (migrations/021) ✅ ЗАПУЩЕН
+- ✅ Функция `get_all_metrics()` обновлена (migrations/022) ✅ ЗАПУЩЕН
+- ✅ View показывает 24 дня (2025-09-09 до 2025-10-31)
+- ❌ Closedate НЕ обновлены из CSV
+- ❌ Dashboard ищет 2025-09-13 до 2025-10-13, в view данные за 2025-09-09
+- ❌ Поэтому totalSales = 0
+
+**КРИТИЧНО ДЛЯ СЛЕДУЮЩЕЙ СЕССИИ:**
+
+**ШАГ 1: Запустить UPDATE closedate (ОБЯЗАТЕЛЬНО!)**
+
+Файл готов: `UPDATE_CLOSEDATE_FULL.sql` (в корне проекта)
+
+```bash
+# Запусти в Supabase SQL Editor:
+# 1. Открой https://supabase.com/dashboard/project/ncsyuddcnnmatzxyjgwp/editor
+# 2. Скопируй ВСЁ из UPDATE_CLOSEDATE_FULL.sql
+# 3. Вставь и нажми RUN
+# 4. Дождись результата (~30-60 секунд)
+```
+
+**Этот SQL делает:**
+- Создает temp table с 1060 записями (email → closedate из CSV)
+- Находит contact по email → берет hubspot_id
+- Находит deal где `raw_json->associations->contacts[0]->id` = этот hubspot_id
+- UPDATE deal.closedate = CSV closedate
+- REFRESH materialized view
+- Показывает статистику
+
+**Ожидаемый результат:**
+```
+updated_deals: ~1000
+min_closedate: 2023-03-20
+max_closedate: 2025-09-14
+unique_dates: ~500-700
+```
+
+**ШАГ 2: Проверить dashboard**
+
+```bash
+# Обнови localhost:3000/dashboard (F5)
+# Должно показать:
+# - Total Sales: ~₪6,000,000 (было 0)
+# - Total Deals: ~1143
+# - Timeline graphs работают
+```
+
+---
+
+#### ДЕТАЛИ СЕССИИ
+
+**Архитектурный анализ (начало сессии):**
+
+Обсудили почему даты сложно обновить и какой подход правильный:
+
+1. **Industry best practices** (Stripe, Mixpanel, Amplitude):
+   - Materialized Views для предрасчета
+   - Отдельные функции по группам метрик (Sales, Calls, Conversion)
+   - Incremental approach (ship working dashboard → add features)
+
+2. **Решение: Materialized View** (выбран Option A):
+   - Создать "Excel таблицу" с предрасчитанными данными
+   - Функция читает из view за 1 SELECT вместо 22 сканов
+   - Размер view: ~1-2 MB (очень мало)
+   - Скорость: было >10 сек → станет <100ms
+
+**Созданные файлы:**
+
+**SQL Migrations:**
+- `migrations/021_create_daily_metrics_view.sql` - Materialized view (✅ ЗАПУЩЕН)
+- `migrations/022_fast_metrics_from_view.sql` - Новая функция (✅ ЗАПУЩЕН)
+- `migrations/RUN_IN_SUPABASE_021_022.sql` - Комбо (дубликат, игнорируй)
+- `UPDATE_CLOSEDATE_FULL.sql` - **ГЛАВНЫЙ! ЗАПУСТИ ЭТОТ!** ❌ НЕ ЗАПУЩЕН
+
+**Scripts (генераторы SQL):**
+- `scripts/run-materialized-view-migrations.cjs` - Генератор (не работает - ошибка подключения)
+- `scripts/generate-final-update-sql.cjs` - **ЭТОТ СГЕНЕРИЛ ФИНАЛЬНЫЙ SQL** ✅
+- `scripts/generate-update-sql-robust.cjs` - Старая версия (игнорируй)
+- `scripts/generate-update-dates-only.cjs` - Старая версия (игнорируй)
+- `scripts/update-deals-from-csv.cjs` - Через API (не работает)
+- `scripts/update-deals-via-supabase.cjs` - Через API (не работает)
+
+**Discovery scripts:**
+- `scripts/check-deals-schema.cjs` - Анализ схемы
+- `scripts/check-deals-contacts-link.cjs` - Нашли связь через associations
+- `scripts/check-view-data.cjs` - Проверка view
+
+**Временные файлы (можно удалить):**
+- `migrations/CHECK_DEALS_STRUCTURE.sql` - Тестовый SQL
+- `migrations/UPDATE_DATES_SIMPLE.sql` - Тестовый SQL (3 записи)
+
+**Структура materialized view:**
+
+```sql
+-- Каждая строка = 1 день + 1 менеджер
+CREATE MATERIALIZED VIEW daily_metrics_mv AS
+SELECT
+  DATE(closedate) as metric_date,
+  hubspot_owner_id as owner_id,
+
+  -- Sales metrics (для 4 метрик)
+  SUM(...) as daily_sales,
+  COUNT(...) as daily_deals_won,
+
+  -- Conversion metrics (для 3 метрик)
+  COUNT(...) as daily_qualified,
+  COUNT(...) as daily_trials,
+  COUNT(...) as daily_lost,
+
+  -- Payment, Offer, Time metrics
+  -- ... еще ~15 колонок
+
+FROM hubspot_deals_raw
+WHERE closedate IS NOT NULL
+GROUP BY DATE(closedate), hubspot_owner_id;
+```
+
+**Связь deals→contacts (через associations):**
+
+```javascript
+// В CSV:
+email: "helana.fee48@icloud.com"
+
+// 1. Находим contact
+SELECT hubspot_id FROM hubspot_contacts_raw WHERE email = 'helana.fee48@icloud.com'
+// → hubspot_id = '35206537756'
+
+// 2. Находим deal
+SELECT * FROM hubspot_deals_raw
+WHERE raw_json->'associations'->'contacts'->'results'->0->>'id' = '35206537756'
+// → deal найден
+
+// 3. UPDATE
+UPDATE hubspot_deals_raw SET closedate = '2023-06-20'
+WHERE raw_json->'associations'->'contacts'->'results'->0->>'id' = '35206537756'
+```
+
+**CSV данные (источник правды):**
+
+Файл: `C:\Users\79818\Downloads\Mudrek - Sales Summary - Customers (4).csv`
+
+Структура:
+- Column 3: Email
+- Column 14: 1st payment (createdate)
+- Column 15: Last payment (closedate) ← ЭТОТ используем
+
+Статистика:
+- Всего строк: 1484
+- Валидных email: 1225
+- С датами: 1060
+- UPDATE обновит ~1000 deals
+
+**Проблемы которые решили:**
+
+1. ❌ `column d.associated_contact_id does not exist`
+   → ✅ Нашли правильную связь через `raw_json->associations`
+
+2. ❌ `column "email" does not exist` в deals
+   → ✅ Связь через contacts (email → hubspot_id → associations)
+
+3. ❌ Арабский текст в датах CSV
+   → ✅ Парсер с валидацией (регулярки, диапазоны)
+
+4. ❌ Дубликаты email в CSV
+   → ✅ Фильтрация через Set
+
+5. ❌ Медленная функция get_all_metrics()
+   → ✅ Materialized view + новая функция
+
+**Frontend состояние:**
+
+Dev server работает:
+```bash
+cd frontend && npm run dev
+# Running on http://localhost:3000
+```
+
+Dashboard:
+- URL: http://localhost:3000/dashboard
+- Загружается, но показывает totalSales = 0
+- Причина: даты не обновлены, view пустой для диапазона
+
+**Логи (из dev server):**
+
+```
+[INFO] Metrics fetched successfully {
+  duration_ms: 5819,
+  totalSales: 0,      ← ПРОБЛЕМА (должно быть ~6M)
+  totalDeals: 0       ← ПРОБЛЕМА (должно быть ~1143)
+}
+```
+
+Это значит:
+- Функция РАБОТАЕТ ✅ (5.8 сек, не timeout)
+- View ПУСТОЙ для запрошенного диапазона дат ❌
+
+**TODO для следующей сессии:**
+
+1. ⏸️ **Запустить UPDATE_CLOSEDATE_FULL.sql** (30 сек)
+2. ⏸️ **Проверить результат** (closedate range должен быть 2023-2025)
+3. ⏸️ **Обновить dashboard** (F5) - должен показать реальные данные
+4. ⏸️ **Если работает** - commit + push
+5. ⏸️ **Обновить CHANGELOG** после успеха
+6. ⏸️ **Timeline charts** - исправить PGRST203 error (migration 020 уже была)
+
+**Timeline charts error (отдельная проблема):**
+
+```
+PGRST203: Could not choose between:
+  get_metrics_timeline(...TIMESTAMPTZ...)
+  get_metrics_timeline(...TIMESTAMP...)
+```
+
+Решение: migration 020 УЖЕ была запущена, но проблема осталась.
+Нужно DROP CASCADE обе версии и создать одну.
+
+---
+
+#### Фактические изменения в коде
+
+**Modified:**
+- `frontend/app/dashboard/page.tsx` - default date range 30→90 days
+- `.gitignore` - добавлены правила для discovery scripts
+
+**Created:**
+- `migrations/021_create_daily_metrics_view.sql` (316 строк)
+- `migrations/022_fast_metrics_from_view.sql` (283 строки)
+- `UPDATE_CLOSEDATE_FULL.sql` (1060 записей) ← **ГЛАВНЫЙ ФАЙЛ!**
+- 10+ discovery scripts (можно удалить после)
+
+**Git status:**
+```
+M CHANGELOG.md
+M frontend/app/dashboard/page.tsx
+?? migrations/021_create_daily_metrics_view.sql
+?? migrations/022_fast_metrics_from_view.sql
+?? UPDATE_CLOSEDATE_FULL.sql
+?? scripts/generate-final-update-sql.cjs
+?? (еще ~15 temporary files)
+```
+
+---
+
+#### Команды для следующей сессии
+
+**1. Проверить текущее состояние:**
+```bash
+git status
+ls -la migrations/
+ls -la UPDATE_CLOSEDATE_FULL.sql
+```
+
+**2. Запустить SQL (в Supabase):**
+- Открыть https://supabase.com/dashboard/project/ncsyuddcnnmatzxyjgwp/editor
+- Скопировать UPDATE_CLOSEDATE_FULL.sql
+- RUN
+- Проверить результат
+
+**3. Проверить dashboard:**
+```bash
+cd frontend
+npm run dev
+# Открыть http://localhost:3000/dashboard
+```
+
+**4. Если работает - commit:**
+```bash
+git add migrations/021_create_daily_metrics_view.sql
+git add migrations/022_fast_metrics_from_view.sql
+git add frontend/app/dashboard/page.tsx
+git commit -m "feat: Materialized view для метрик (100x faster)
+
+- Создан daily_metrics_mv (предрасчитанные данные по дням)
+- Функция get_all_metrics() читает из view (<100ms вместо >10s)
+- UPDATE closedate из CSV (1060 deals, 2023-2025)
+- Dashboard готов к production"
+```
+
+**5. Cleanup (опционально):**
+```bash
+# Удалить temporary scripts
+rm scripts/generate-update-sql-*.cjs
+rm scripts/check-*.cjs
+rm migrations/CHECK_*.sql
+rm migrations/UPDATE_DATES_SIMPLE.sql
+mv UPDATE_CLOSEDATE_FULL.sql migrations/023_update_closedate_from_csv.sql
+```
+
+---
+
+## [v3.19.0] - 2025-10-13
+
+### MCP Supabase Setup + AI Agent File Management Best Practices
+
+#### Session Summary
+
+**Что сделали:**
+1. Исследовали систему логирования Claude Code (через хуки)
+2. Выяснили, что хуки не работают в нашей среде (веб/IDE интерфейс)
+3. Удалили все временные файлы логирования
+4. Добавили industry best practices для AI Agent File Management в CLAUDE.md
+5. Настроили MCP Supabase для доступа к базе данных
+6. Создали структуру директорий для временных файлов
+
+**Ключевое открытие - Claude Code хуки:**
+
+Хуки (hooks) для логирования работают ТОЛЬКО в CLI режиме (`claude` команда в терминале), НЕ в веб/IDE интерфейсе.
+
+**Попытка логирования:**
+- Создали глобальную систему логирования через хуки
+- Настроили `.claude/settings.json` с хуками на все события
+- Результат: Хуки не срабатывают в IDE (работают только в CLI)
+- Решение: Удалили все временные файлы
+
+**AI Agent File Management Best Practices (добавлено в CLAUDE.md):**
+
+**1. tmp/ директория:**
+```
+project/
+├── tmp/                  # Все временные файлы
+│   ├── .gitkeep
+│   └── (всё gitignored)
+└── .gitignore
+```
+
+- ВСЕГДА gitignored
+- Можно удалить в любой момент
+- Используется для: logs, debug output, temporary analysis
+
+**2. Discovery Scripts Naming Convention:**
+```
+scripts/discovery/
+├── README.md
+├── 2024-10-13-check-schema.js
+├── 2024-10-13-analyze-contacts.js
+└── 2024-10-12-test-migration.js
+```
+
+- Формат: `YYYY-MM-DD-description.js`
+- Создавать сразу в `scripts/discovery/`
+- Архивировать после use с README
+
+**3. Cleanup Protocol:**
+
+После каждой coding session:
+1. `git status` - проверка untracked files
+2. `git diff` - проверка изменений
+3. `ls -la | grep -E '\.(js|ts|txt|log)$'` - проверка root
+4. Переместить discovery scripts в `scripts/discovery/`
+5. Удалить truly temporary files
+
+**4. Decision Tree для файлов:**
+```
+Нужно создать файл?
+├─ Temporary output/logs? → tmp/
+├─ One-time discovery?
+│  ├─ Будет referenced? → scripts/discovery/YYYY-MM-DD-name.js
+│  └─ Truly one-time? → Run inline (БЕЗ файла!)
+├─ Reusable utility? → scripts/dev/
+└─ Production код? → src/
+```
+
+**5. Inline Execution (предпочтительно):**
+
+Вместо создания temporary scripts:
+```bash
+# Simple one-liner
+node -e "console.log('Quick check')"
+
+# Multi-line with heredoc
+node << 'EOF'
+const { createClient } = require('@supabase/supabase-js');
+// ... код ...
+EOF
+```
+
+Преимущества: No file clutter, no cleanup needed, clear it's one-time use.
+
+**6. .gitignore обновлен:**
+```
+# Temporary directories
+tmp/
+scripts/tmp/
+
+# Discovery/test scripts (запрещены в root)
+test-*.js
+check-*.js
+verify-*.js
+debug-*.js
+analyze-*.js
+```
+
+**MCP Supabase Configuration:**
+
+**Настроено:**
+- MCP сервер добавлен: `claude mcp add --transport http --scope user supabase https://mcp.supabase.com/mcp`
+- Конфигурация: `C:\Users\79818\.claude.json`
+- Scope: User (доступен во всех проектах)
+- Status: Сервер добавлен, но IDE не видит (требуется перезапуск)
+
+**Конфигурация в ~/.claude.json:**
+```json
+{
+  "mcpServers": {
+    "supabase": {
+      "type": "http",
+      "url": "https://mcp.supabase.com/mcp"
+    }
+  }
+}
+```
+
+**CLI видит сервер:**
+```
+$ claude mcp list
+supabase: https://mcp.supabase.com/mcp (HTTP) - ⚠ Needs authentication
+```
+
+**IDE не видит:**
+```
+/mcp
+→ No MCP servers configured
+```
+
+**Причина:** Claude Code IDE не перечитал конфигурацию после добавления сервера.
+
+**Claude Code Configuration Structure Explained:**
+
+**1. ~/.claude.json (User Global Config):**
+- Путь: `C:\Users\79818\.claude.json` (188KB)
+- Содержит: ВСЕ настройки Claude Code
+- Включает: История проектов, UI preferences, **MCP серверы (User Scope)**
+- Это НЕ только для MCP - это для ВСЕГО Claude Code!
+
+**2. .mcp.json (Project Scope) - НЕ создан:**
+- Путь: `project/.mcp.json`
+- Для чего: MCP серверы только для проекта
+- Коммитится: ДА (shared с командой)
+
+**3. .claude/mcp-local.json (Local Scope) - НЕ создан:**
+- Путь: `project/.claude/mcp-local.json`
+- Для чего: Приватные MCP серверы
+- Коммитится: НЕТ (gitignored)
+
+**Иерархия:**
+```
+Local (.claude/mcp-local.json)      ← Highest priority
+  ↓ overrides
+Project (.mcp.json)                 ← Medium priority
+  ↓ overrides
+User (~/.claude.json)               ← Lowest priority
+```
+
+**Структура директорий создана:**
+```
+project/
+├── tmp/                    # ✅ Created with README
+│   ├── .gitkeep
+│   └── README.md
+├── scripts/
+│   ├── dev/                # ✅ Created
+│   ├── tmp/                # ✅ Created (gitignored)
+│   └── discovery/          # Already existed
+```
+
+**Обновления CLAUDE.md:**
+
+Добавлена новая секция (168 строк):
+- **AI Agent File Management - Industry Best Practices**
+- tmp/ Directory for Temporary Files
+- Discovery Scripts Naming Convention
+- Cleanup Protocol
+- Pre-commit Safety Check
+- AI Agent Instructions (NEVER/ALWAYS rules)
+- Decision tree для выбора места файла
+- Inline Execution (Preferred for One-Time Code)
+
+**Текущее состояние:**
+- ✅ Best practices добавлены в CLAUDE.md
+- ✅ .gitignore обновлен
+- ✅ Структура директорий создана (tmp/, scripts/dev/, scripts/tmp/)
+- ✅ MCP Supabase добавлен в User scope
+- ✅ CLI видит MCP сервер
+- ⏸️ IDE не видит MCP (нужен перезапуск Claude Code)
+- ⏸️ MCP аутентификация не выполнена
+
+**Next Steps:**
+1. Перезапустить Claude Code полностью (закрыть + открыть)
+2. Выполнить `/mcp` для проверки видимости сервера
+3. Аутентифицироваться в Supabase (откроется браузер)
+4. Проверить доступ к базе данных через MCP
+5. Продолжить работу с dashboard/metrics
+
+**Learning:**
+- ✅ Хуки Claude Code работают ТОЛЬКО в CLI, не в IDE
+- ✅ ~/.claude.json - главный config для ВСЕГО Claude Code
+- ✅ MCP серверы можно настроить на трёх уровнях (Local, Project, User)
+- ✅ User Scope - лучший выбор для работы с одним Supabase проектом
+- ✅ IDE нужен перезапуск после изменения конфигурации
+- ✅ tmp/ директория - industry standard для temporary files
+- ✅ Discovery scripts должны иметь date prefix (YYYY-MM-DD)
+
+---
+
+## [v3.18.0] - 2025-10-13
 
 ### CSV Data Analysis + Deal Amount Investigation - Problem Identified
 

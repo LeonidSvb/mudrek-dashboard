@@ -32,9 +32,37 @@ Thumbs.db
 # Logs
 *.log
 
-# Temporary files
+# Temporary files and directories
 *.tmp
 *.temp
+tmp/
+scripts/tmp/
+
+# ⛔ Discovery/test scripts - SHOULD NOT BE CREATED IN ROOT!
+# These files are gitignored as a safety net, but they should NEVER be created here.
+# Use: node -e "..." or create in scripts/discovery/ with date prefix
+test-*.js
+test-*.cjs
+check-*.js
+check-*.cjs
+verify-*.js
+verify-*.cjs
+debug-*.js
+debug-*.cjs
+analyze-*.js
+analyze-*.cjs
+compare-*.js
+compare-*.cjs
+count-*.js
+count-*.cjs
+execute-*.js
+execute-*.cjs
+match-*.js
+match-*.cjs
+update-*.js
+update-*.cjs
+refresh-*.js
+refresh-*.cjs
 
 # Backup files
 *.bak

@@ -1,6 +1,0 @@
-[2025-10-13 13:46:23] {"event":"test","action":"manual_test","tool":"Bash","description":"Testing logging system"}
-[2025-10-13 13:46:44] {"event":"test_action_1","action":"list_directory","description":"Testing directory listing"}
-[2025-10-13 13:46:49] {"event":"test_action_2","action":"read_package_json","description":"Testing file read operation"}
-[2025-10-13 13:47:01] {"event":"test_action_3","action":"search_files","description":"Testing glob search"}
-[2025-10-13 13:47:17] {"event":"test_action_4","action":"write_test_file","description":"Testing file write"}
-[2025-10-13 13:47:21] {"event":"test_action_5","action":"grep_search","description":"Testing grep search"}
