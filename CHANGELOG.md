@@ -2,7 +2,146 @@
 
 Все значимые изменения в этом проекте будут задокументированы в этом файле.
 
-## [v3.17.0] - 2025-10-12 (CURRENT)
+## [v3.18.0] - 2025-10-13 (CURRENT)
+
+### CSV Data Analysis + Deal Amount Investigation - Problem Identified
+
+#### Session Summary
+
+**Что сделали:**
+1. Глубокий анализ оригинального CSV файла (1,225 deals) vs Database
+2. Сопоставление deals по телефону между CSV и DB (957 matches, 78%)
+3. Обнаружена критическая проблема с amount field для finished deals
+4. Проверка managers mapping (все = owner_id 682432124)
+5. Анализ структуры HubSpot fields в raw_json
+
+**Ключевое открытие - amount field:**
+
+Для **FINISHED deals** (заплатили 100%):
+- amount = $1,325 (размер ОДНОГО платежа) ❌ НЕПРАВИЛЬНО
+- Должно быть: amount = $5,300 (полная сумма = deal_whole_amount)
+
+Для **STOPPED/PAUSED deals** (частичная оплата):
+- amount = $1,325 ✅ ПРАВИЛЬНО (заплатили только 1 из 4 платежей)
+
+**Примеры из анализа:**
+```
+wael makhoul (Status: finished):
+  CSV: deal=$5,300, payment=$1,325 × 4, Status=finished
+  DB: amount=$1,325, deal_whole_amount=$5,300
+  → Клиент заплатил 100%, но DB amount показывает только 1 платеж
+
+Nasser Shehadeh (Status: stopped):
+  CSV: deal=$5,300, payment=$1,325 × 4, Status=stopped
+  DB: amount=$1,325, deal_whole_amount=$5,300
+  → Клиент STOPPED платить, заплатил 1 из 4 - amount правильный!
+```
+
+**Статистика проблемы:**
+
+Из 200 проверенных deals:
+- 78% deals: amount ≠ deal_whole_amount (НУЖНО ИСПРАВИТЬ для finished)
+- 22% deals: amount = deal_whole_amount (правильно)
+- 708 finished deals в CSV (должны иметь amount = deal_whole_amount)
+- 119 stopped + 144 paused deals (amount правильный, НЕ трогать!)
+
+**Revenue calculation:**
+- Используя amount field: $1,149,798 ✅ (реально собранные деньги)
+- Используя deal_whole_amount: $3,687,364 (contract value, не cash!)
+- Dashboard показывает $1.15M - правильно для текущих данных
+
+**Manager Mapping Issue:**
+- ВСЕ deals в DB имеют owner_id = 682432124 (Shadi)
+- В CSV разные managers: Wala (370), Mothanna (312), Sabreen (205)
+- При импорте owner_id не был проставлен правильно
+
+**Phone Matching Quality:**
+- По телефону: 957/1,225 (78% match rate)
+- С email: 1,000/1,225 (82% match rate)
+- В DB только 1,000 deals, в CSV 1,225 → 225 deals не импортированы
+
+**Существующие HubSpot fields (анализ raw_json):**
+
+Используются корректно:
+- deal_whole_amount: 100% заполнено (полная сумма договора)
+- installments: 99.5% заполнено (количество платежей)
+- n1st_payment: 100% заполнено (дата первого платежа)
+- last_payment: 100% заполнено (дата последнего платежа)
+- phone_number: 100% заполнено
+- email: 100% заполнено
+
+Пустые (требуют заполнения):
+- payment_status: 0% (УЖЕ СУЩЕСТВУЕТ, но пусто!)
+- payment_method: 0%
+- payment_type: 0%
+- number_of_installments__months: 0%
+
+**Созданные analysis scripts:**
+- compare-by-phone.cjs: Сопоставление CSV vs DB по телефону
+- compare-csv-db-deals.cjs: Сравнение конкретных deals
+- analyze-actual-payments.cjs: Анализ статусов (finished/stopped/paused)
+- analyze-csv-correct.cjs: Правильный парсинг CSV с csv-parse
+- check-raw-json-structure.cjs: Анализ структуры raw_json
+- check-all-deal-properties.cjs: Все 81 property в deals
+- check-managers-mapping.cjs: Manager → owner_id mapping
+- check-what-needs-update.cjs: Revenue comparison
+- get-problem-deals-with-links.cjs: Прямые ссылки на problem deals
+- check-csv-status-for-deals.cjs: Finished vs stopped analysis
+- analyze-hubspot-field-usage.cjs: Статистика использования полей
+
+**Файлы документации:**
+- DEAL_MAPPING_PLAN.md: Детальный план обновления
+- CSV_ANALYSIS_REPORT.md: Полный отчет анализа (архивирован)
+
+**SQL Migrations созданы:**
+- migrations/019_fix_deal_amounts.sql: Исправление через SQL
+- migrations/019_fix_deal_amounts_simple.sql: Упрощенная версия
+
+**Dependencies:**
+- Добавлен csv-parse для правильного парсинга multiline CSV cells
+
+**План исправления (готов к реализации):**
+
+1. **Обновить только FINISHED deals** где amount ≠ deal_whole_amount:
+   - ~708 finished deals из CSV
+   - amount = deal_whole_amount для них
+   - НЕ трогать stopped/paused (уже правильно!)
+
+2. **Заполнить payment_status** для всех:
+   - finished/stopped/paused из CSV Status
+   - Поле УЖЕ существует в HubSpot, просто пустое
+
+3. **Метод обновления:** HubSpot Batch Update API
+   - 10 test deals → проверка вручную
+   - После OK → все 1000 deals
+   - Incremental sync для подтягивания изменений
+
+**Текущее состояние:**
+- ✅ Проблема identified: finished deals имеют неправильный amount
+- ✅ Решение понятно: обновить amount = deal_whole_amount для finished
+- ✅ Mapping готов: CSV Status → HubSpot payment_status
+- ✅ Portal ID получен: 44890341 (для HubSpot ссылок)
+- ✅ Dashboard работает: http://localhost:3000 (Next.js dev server)
+- ⏸️ Готово к написанию update script
+
+**Next Steps:**
+1. Написать скрипт для batch update HubSpot API
+2. Протестировать на 10 deals (с ссылками для проверки)
+3. После user approval → обновить все finished deals
+4. Incremental sync для проверки
+5. (Optional) Исправить owner_id mapping
+
+**Learning:**
+- ✅ amount = upfront cash collected (правильно!)
+- ✅ deal_whole_amount = contract value (не cash!)
+- ✅ Для finished deals: amount ДОЛЖЕН = deal_whole_amount
+- ✅ Для stopped/paused: amount правильный (частичная оплата)
+- ✅ payment_status field УЖЕ существует (кто-то создал раньше)
+- ✅ Phone matching работает (78%), но 225 deals не импортированы
+
+---
+
+## [v3.17.0] - 2025-10-12
 
 ### Email Data Quality + Migration 018 - Data Cleaning
 

@@ -18,7 +18,6 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAllMetrics } from '@/lib/db/metrics-fast';
-import { getAllMetricsPg } from '@/lib/db/metrics-pg';
 import { getLogger } from '@/lib/app-logger';
 
 const logger = getLogger('metrics-api');
