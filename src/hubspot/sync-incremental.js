@@ -9,6 +9,46 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_KEY
 );
 
+// ============================================================================
+// PROTECTED FIELDS CONFIGURATION
+// ============================================================================
+// These fields contain data from CSV files and should NEVER be overwritten
+// by HubSpot sync (dates and amounts are more accurate in CSV)
+//
+// PROTECTED (never update from HubSpot):
+//   - closedate: accurate date from CSV
+//   - createdate: accurate date from CSV
+//   - amount: accurate amount from CSV
+//   - upfront_payment: from CSV
+//   - number_of_installments__months: from CSV
+//
+// SAFE (can update from HubSpot):
+//   - dealstage: status changes in HubSpot
+//   - qualified_status: status changes
+//   - trial_status: status changes
+//   - payment_status: status changes
+// ============================================================================
+
+const DEAL_PROTECTED_FIELDS = [
+  'closedate',
+  'createdate',
+  'amount',
+  'upfront_payment',
+  'number_of_installments__months'
+];
+
+const DEAL_SAFE_FIELDS = [
+  'dealstage',
+  'qualified_status',
+  'trial_status',
+  'payment_status',
+  'hubspot_owner_id',  // owner can change in HubSpot
+  'offer_given',
+  'offer_accepted',
+  'raw_json',
+  'synced_at'
+];
+
 /**
  * Get last successful sync time from sync_logs
  */
@@ -138,9 +178,9 @@ async function fetchAllFromHubSpot(objectType, properties = []) {
 }
 
 /**
- * Save to Supabase with UPSERT
+ * Save to Supabase with selective update for deals
  */
-async function saveToSupabase(tableName, records, transformFn) {
+async function saveToSupabase(tableName, records, transformFn, isDeals = false) {
   if (records.length === 0) {
     console.log(`   → No new/modified records for ${tableName}\n`);
     return { success: 0, errors: 0 };
@@ -154,20 +194,69 @@ async function saveToSupabase(tableName, records, transformFn) {
 
   for (let i = 0; i < records.length; i += BATCH_SIZE) {
     const batch = records.slice(i, i + BATCH_SIZE);
-    const transformedBatch = batch.map(transformFn);
 
-    const { data, error } = await supabase
-      .from(tableName)
-      .upsert(transformedBatch, {
-        onConflict: 'hubspot_id',
-        ignoreDuplicates: false
-      });
+    if (isDeals) {
+      // DEALS: Selective update - protect dates and amounts
+      for (const record of batch) {
+        const transformed = transformFn(record);
 
-    if (error) {
-      console.error(`  ✗ Batch ${i}-${i + BATCH_SIZE} failed:`, error.message);
-      errorCount += batch.length;
+        // Check if record exists
+        const { data: existing } = await supabase
+          .from(tableName)
+          .select('hubspot_id')
+          .eq('hubspot_id', transformed.hubspot_id)
+          .single();
+
+        if (existing) {
+          // UPDATE: Only safe fields (status, not dates/amounts)
+          const safeUpdate = {};
+          DEAL_SAFE_FIELDS.forEach(field => {
+            safeUpdate[field] = transformed[field];
+          });
+          // ❌ NOT updating: closedate, createdate, amount, upfront_payment, installments
+
+          const { error } = await supabase
+            .from(tableName)
+            .update(safeUpdate)
+            .eq('hubspot_id', transformed.hubspot_id);
+
+          if (error) {
+            console.error(`  ✗ Failed to update deal ${transformed.hubspot_id}:`, error.message);
+            errorCount++;
+          } else {
+            successCount++;
+          }
+        } else {
+          // INSERT: New record, all fields
+          const { error } = await supabase
+            .from(tableName)
+            .insert(transformed);
+
+          if (error) {
+            console.error(`  ✗ Failed to insert deal ${transformed.hubspot_id}:`, error.message);
+            errorCount++;
+          } else {
+            successCount++;
+          }
+        }
+      }
     } else {
-      successCount += batch.length;
+      // CONTACTS & CALLS: Full upsert (safe to update all fields)
+      const transformedBatch = batch.map(transformFn);
+
+      const { data, error } = await supabase
+        .from(tableName)
+        .upsert(transformedBatch, {
+          onConflict: 'hubspot_id',
+          ignoreDuplicates: false
+        });
+
+      if (error) {
+        console.error(`  ✗ Batch ${i}-${i + BATCH_SIZE} failed:`, error.message);
+        errorCount += batch.length;
+      } else {
+        successCount += batch.length;
+      }
     }
   }
 
@@ -232,37 +321,58 @@ async function syncContactsIncremental() {
 
 /**
  * Incremental sync for Deals
+ * PROTECTED FIELDS (never updated from HubSpot):
+ *   - closedate (from CSV)
+ *   - createdate (from CSV)
+ *   - amount (from CSV)
+ *   - upfront_payment (from CSV)
+ *   - number_of_installments__months (from CSV)
+ *
+ * SAFE FIELDS (updated from HubSpot):
+ *   - dealstage
+ *   - qualified_status
+ *   - trial_status
+ *   - payment_status
  */
 async function syncDealsIncremental() {
   const startTime = Date.now();
   console.log('💼 INCREMENTAL SYNC: Deals\n');
+  console.log('   ⚠️  Protected fields (NOT updated): closedate, createdate, amount, upfront_payment, installments\n');
 
   const properties = [
     'amount', 'dealstage', 'dealname', 'pipeline', 'createdate',
     'closedate', 'hs_lastmodifieddate', 'qualified_status',
     'trial_status', 'number_of_installments__months',
     'payment_method', 'payment_type', 'payment_status',
-    'deal_whole_amount', 'the_left_amount', 'hubspot_owner_id'
+    'deal_whole_amount', 'the_left_amount', 'hubspot_owner_id',
+    'upfront_payment', 'offer_given', 'offer_accepted'
   ];
 
   const lastSync = await getLastSyncTime('deals');
   const deals = await fetchModifiedFromHubSpot('deals', properties, lastSync);
 
+  // Pass isDeals=true for selective update
   const result = await saveToSupabase('hubspot_deals_raw', deals, (deal) => ({
     hubspot_id: deal.id,
+    // PROTECTED fields (only for INSERT, not UPDATE):
     amount: deal.properties.amount ? parseFloat(deal.properties.amount) : null,
-    dealstage: deal.properties.dealstage,
     createdate: deal.properties.createdate,
     closedate: deal.properties.closedate,
-    qualified_status: deal.properties.qualified_status,
-    trial_status: deal.properties.trial_status,
-    payment_status: deal.properties.payment_status,
+    upfront_payment: deal.properties.upfront_payment ? parseFloat(deal.properties.upfront_payment) : null,
     number_of_installments__months: deal.properties.number_of_installments__months
       ? parseInt(deal.properties.number_of_installments__months)
       : null,
+    // SAFE fields (will be updated):
+    dealstage: deal.properties.dealstage,
+    qualified_status: deal.properties.qualified_status,
+    trial_status: deal.properties.trial_status,
+    payment_status: deal.properties.payment_status,
+    hubspot_owner_id: deal.properties.hubspot_owner_id || null,
+    offer_given: deal.properties.offer_given === 'yes',
+    offer_accepted: deal.properties.offer_accepted === 'yes',
     raw_json: deal.properties,
     synced_at: new Date().toISOString()
-  }));
+  }), true); // ← isDeals=true
 
   const duration = Date.now() - startTime;
   await logSync('deals', deals.length, result.success, result.errors, duration);
