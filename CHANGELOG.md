@@ -3,7 +3,65 @@
 Все значимые изменения в этом проекте будут задокументированы в этом файле.
 
 
-## [v3.23.0] - 2025-10-13 (CURRENT) - ✅ FIX CLOSEDATE - MIGRATION 023 APPLIED
+## [v3.24.0] - 2025-10-14 (CURRENT) - ✅ PAYMENT FIELDS FROM CSV - MIGRATIONS 024-026
+
+### ПРОБЛЕМА ИСПРАВЛЕНА: closedate + payment поля заполнены из CSV
+
+**Проблема в v3.23.0:**
+- Migration 023 использовала НЕПРАВИЛЬНОЕ поле: `Last payment` (дата окончания рассрочки)
+- Результат: даты в будущем 2026-2077 (планируемое окончание рассрочек)
+- closedate должен быть = дата первого платежа (когда кеш пришел)
+
+**Что сделали:**
+
+**Migration 024: Rollback неправильной миграции 023**
+- Восстановили closedate из backup: `backup_deals_closedate_20251013`
+- Откатили ошибку с Last payment
+
+**Migration 025: Правильные closedate = 1st payment**
+- closedate = CSV [14] "1st payment" (дата первого платежа)
+- 930 deals обновлено
+- Диапазон: 2023-03-20 to 2025-09-09 (НЕТ дат в будущем!)
+
+**Migration 026: Payment поля из CSV**
+- `number_of_installments__months` = CSV [11] installments (815 deals)
+- `payment_status` = CSV [16] Status (549 deals: finished/stopped/paused)
+
+**Результаты после миграций:**
+```
+closedate:
+  - Unique dates: 550 (было 463)
+  - Date range: 2023-03-20 to 2025-09-09
+  - Future dates: 0 (было 29 с датами 2026-2077)
+  - By year: 2023 (42), 2024 (291), 2025 (810)
+
+payment_status:
+  - finished: 415 deals (36.3%)
+  - paused: 65 deals (5.7%)
+  - stopped: 69 deals (6.0%)
+  - NULL: 594 deals (52.0%)
+
+number_of_installments__months:
+  - Filled: 815/1143 (71.3%)
+  - Average: 5.6 платежей
+  - Range: 1-43 месяца
+```
+
+**Бизнес-логика:**
+- closedate = когда получили первый платеж (CASH FLOW!)
+- number_of_installments__months = сколько платежей всего
+- payment_status = текущий статус (finished/stopped/paused)
+
+**Файлы:**
+- `migrations/024_rollback_023_restore_closedate.sql` (0.8 KB)
+- `migrations/025_update_closedate_1st_payment.sql` (55.7 KB, 930 deals)
+- `migrations/026_fill_payment_fields_from_csv.sql` (39.9 KB, 1216 deals)
+
+**Backup существует:** `backup_deals_closedate_20251013` (можно откатиться в любой момент)
+
+---
+
+## [v3.23.0] - 2025-10-13 - ⚠️ MIGRATION 023 (НЕПРАВИЛЬНАЯ - ОТКАЧЕНА В v3.24.0)
 
 ### ПРОБЛЕМА РЕШЕНА: closedate обновлены из CSV
 
