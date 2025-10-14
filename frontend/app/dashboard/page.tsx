@@ -6,6 +6,7 @@ import { MetricCard } from '@/components/MetricCard';
 import { FilterPanel } from '@/components/dashboard/FilterPanel';
 import { DealsBreakdown } from '@/components/dashboard/DealsBreakdown';
 import { TimelineCharts } from '@/components/dashboard/TimelineCharts';
+import { SyncControls } from '@/components/SyncControls';
 import type { AllMetrics } from '@/lib/db/metrics-fast';
 
 interface DateRange {
@@ -96,6 +97,11 @@ export default function DashboardPage() {
           onOwnerChange={setOwnerId}
           onDateRangeChange={setDateRange}
         />
+
+        {/* Sync Controls */}
+        <div className="mb-6">
+          <SyncControls />
+        </div>
 
         {/* Deals Breakdown by Stage */}
         <DealsBreakdown
