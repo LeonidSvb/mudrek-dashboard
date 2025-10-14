@@ -26,11 +26,24 @@ export function CustomDatePicker({ dateRange, onDateRangeChange }: CustomDatePic
     { label: '7d', days: 7 },
     { label: '30d', days: 30 },
     { label: '90d', days: 90 },
+    { label: 'All Time', days: -1 }, // Special value for all time
   ];
 
   const handlePresetClick = (days: number) => {
     const to = new Date();
-    const from = days === 0 ? new Date() : subDays(to, days);
+    let from: Date;
+
+    if (days === -1) {
+      // All time: set from to a very old date (e.g., 2020-01-01)
+      from = new Date('2020-01-01');
+    } else if (days === 0) {
+      // Today
+      from = new Date();
+    } else {
+      // Last N days
+      from = subDays(to, days);
+    }
+
     onDateRangeChange({ from, to });
   };
 

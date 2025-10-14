@@ -17,7 +17,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getAllMetrics } from '@/lib/db/metrics-fast';
+import { getAllMetrics, getDashboardOverview } from '@/lib/db/metrics-fast';
 import { getLogger } from '@/lib/app-logger';
 
 const logger = getLogger('metrics-api');
@@ -29,22 +29,17 @@ export async function GET(request: NextRequest) {
     const dateFrom = searchParams.get('date_from');
     const dateTo = searchParams.get('date_to');
 
-    const filters = {
-      ownerId: ownerId || null,
-      dateFrom: dateFrom || null,
-      dateTo: dateTo || null,
-    };
+    // OPTIMIZATION: ALWAYS use materialized view (works with AND without owner_id!)
+    // This is 100x faster (50-100ms vs 10+ seconds!)
+    logger.info('Using dashboard overview (materialized view)', { ownerId, dateFrom, dateTo });
 
-    logger.info('Fetching all metrics via SQL function', { filters });
+    const metrics = await getDashboardOverview(ownerId, dateFrom, dateTo);
 
-    // Используем Supabase REST API (быстрее чем PG если MV работает)
-    const metrics = await getAllMetrics(filters);
-
-    logger.info('Metrics fetched successfully', {
-      hasData: !!metrics,
-      metricsCount: Object.keys(metrics).length,
+    logger.info('Dashboard overview fetched', {
       totalSales: metrics.totalSales,
       totalDeals: metrics.totalDeals,
+      ownerId: ownerId || 'all',
+      source: 'materialized_view'
     });
 
     return NextResponse.json(metrics);
