@@ -22,7 +22,6 @@ import type {
   ContactRaw,
   DealRaw,
   CallRaw,
-  ObjectType,
   SyncResult,
 } from '@/types/hubspot';
 
@@ -102,7 +101,7 @@ async function syncContacts(): Promise<SyncResult> {
     const transformed = contacts.map(transformContact);
 
     const BATCH_SIZE = 500;
-    let inserted = 0;
+    const inserted = 0;
     let updated = 0;
     let failed = 0;
 
@@ -157,7 +156,7 @@ async function syncDeals(): Promise<SyncResult> {
     const transformed = deals.map(transformDeal);
 
     const BATCH_SIZE = 500;
-    let inserted = 0;
+    const inserted = 0;
     let updated = 0;
     let failed = 0;
 
@@ -211,7 +210,7 @@ async function syncCalls(): Promise<SyncResult> {
     const transformed = calls.map(transformCall);
 
     const BATCH_SIZE = 500;
-    let inserted = 0;
+    const inserted = 0;
     let updated = 0;
     let failed = 0;
 

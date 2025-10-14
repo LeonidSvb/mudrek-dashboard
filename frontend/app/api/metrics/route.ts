@@ -17,7 +17,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getAllMetrics, getDashboardOverview } from '@/lib/db/metrics-fast';
+import { getDashboardOverview } from '@/lib/db/metrics-fast';
 import { getLogger } from '@/lib/app-logger';
 
 const logger = getLogger('metrics-api');

@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
 
     logger.info('Deals breakdown fetched successfully', {
       stagesCount: breakdown.length,
-      totalDeals: breakdown.reduce((sum: number, item: any) => sum + Number(item.count), 0),
+      totalDeals: breakdown.reduce((sum: number, item: { stage: string; count: number; amount: number }) => sum + Number(item.count), 0),
     });
 
     return NextResponse.json(breakdown);
