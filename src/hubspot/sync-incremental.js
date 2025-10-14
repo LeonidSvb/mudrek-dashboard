@@ -78,17 +78,28 @@ async function fetchModifiedFromHubSpot(objectType, properties = [], lastSyncTim
 
   if (lastSyncTime) {
     const since = new Date(lastSyncTime).getTime();
-    console.log(`   → Only records modified after: ${new Date(lastSyncTime).toLocaleString()}`);
+    console.log(`   → Only records modified/created after: ${new Date(lastSyncTime).toLocaleString()}`);
 
-    // Use HubSpot Search API with filter
+    // Use HubSpot Search API with OR filter (modified OR created since lastSync)
     const searchBody = {
-      filterGroups: [{
-        filters: [{
-          propertyName: 'hs_lastmodifieddate',
-          operator: 'GTE',
-          value: since
-        }]
-      }],
+      filterGroups: [
+        {
+          // Modified since lastSync
+          filters: [{
+            propertyName: 'hs_lastmodifieddate',
+            operator: 'GTE',
+            value: since
+          }]
+        },
+        {
+          // OR created since lastSync (catches new records)
+          filters: [{
+            propertyName: 'createdate',
+            operator: 'GTE',
+            value: since
+          }]
+        }
+      ],
       properties: properties,
       limit: 100
     };
