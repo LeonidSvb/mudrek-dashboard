@@ -47,7 +47,7 @@ export class SyncLogger {
     this.logId = data.id;
     console.log(`\n🚀 Sync started: ${objectType} (log_id: ${this.logId})`);
 
-    return this.logId;
+    return this.logId!; // Safe to assert - we throw above if error
   }
 
   async complete(data: Omit<SyncLogData, 'object_type'>): Promise<void> {
