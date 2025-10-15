@@ -127,30 +127,45 @@ export async function getDashboardOverview(
 
     // Map from snake_case to camelCase
     return {
+      // Sales metrics
       totalSales: data.total_sales || 0,
       totalDeals: data.deals_won || 0,
       avgDealSize: data.average_deal_size || 0,
+      conversionRate: data.conversion_rate || 0,
+
+      // Call metrics
+      totalCalls: data.total_calls || 0,
+      avgCallTime: data.avg_call_time || 0,
+      totalCallTime: data.total_call_time || 0,
+      fiveMinReachedRate: data.five_min_reached_rate || 0,
+
+      // Conversion metrics
       qualifiedRate: data.qualified_leads || 0,
       trialRate: data.trials_given || 0,
       cancellationRate: data.deals_lost || 0,
+
+      // Payment metrics
       upfrontCashCollected: data.upfront_cash_collected || 0,
       avgInstallments: data.average_installments || 0,
+
+      // Followup metrics
+      followupRate: data.followup_rate || 0,
+      avgFollowups: data.avg_followups || 0,
+      timeToFirstContact: data.time_to_first_contact || 0,
+
+      // Offer metrics
       offersGivenRate: data.offers_given || 0,
       offerCloseRate: data.offer_close_rate || 0,
+
+      // Time metrics
       timeToSale: data.average_time_to_sale || 0,
-      // Add empty arrays for A/B testing (not in materialized view)
+
+      // A/B testing (not in this function)
       salesScriptStats: [],
       vslWatchStats: [],
-      // Placeholder for other metrics (will show 0 until we add them)
-      totalCalls: 0,
-      avgCallTime: 0,
-      totalCallTime: 0,
-      fiveMinReachedRate: 0,
-      conversionRate: 0,
-      followupRate: 0,
-      avgFollowups: 0,
-      timeToFirstContact: 0,
-      totalContacts: 0,
+
+      // Metadata
+      totalContacts: data.total_contacts || 0,
     };
   } catch (error) {
     logger.error('Failed to fetch dashboard overview', { error });
