@@ -12,7 +12,7 @@ import type { AllMetrics, MetricsFilters } from './metrics-fast';
 const logger = getLogger('metrics-pg');
 
 // Supabase Direct Connection (Session Mode - порт 5432)
-// НЕ используем DATABASE_URL (он для Prisma с pgbouncer)
+// Конвертируем DATABASE_URL из Transaction Mode (6543) в Session Mode (5432)
 const connectionString = process.env.DATABASE_URL!
   .replace(':6543', ':5432')  // Session Mode вместо Transaction Mode
   .replace('?pgbouncer=true', '');  // Убираем pgbouncer параметр
