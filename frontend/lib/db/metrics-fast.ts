@@ -42,11 +42,12 @@ export interface MetricsFilters {
 }
 
 export interface AllMetrics {
-  // Sales (4)
+  // Sales (5) - добавлено totalContactsCreated
   totalSales: number;
   avgDealSize: number;
   totalDeals: number;
   conversionRate: number;
+  totalContactsCreated: number; // NEW! Contacts created in period
 
   // Calls (4)
   totalCalls: number;
@@ -89,7 +90,7 @@ export interface AllMetrics {
     conversionRate: number;
   }>;
 
-  // Metadata
+  // Metadata (deprecated - use totalContactsCreated instead)
   totalContacts: number;
 }
 
@@ -186,11 +187,12 @@ export async function getDashboardOverview(
 
     // Combine all results into single object
     return {
-      // Sales metrics (4)
+      // Sales metrics (5)
       totalSales: salesResult.data?.totalSales || 0,
       totalDeals: salesResult.data?.totalDeals || 0,
       avgDealSize: salesResult.data?.avgDealSize || 0,
       conversionRate: salesResult.data?.conversionRate || 0,
+      totalContactsCreated: salesResult.data?.totalContactsCreated || 0,
 
       // Call metrics (4)
       totalCalls: callsResult.data?.totalCalls || 0,
@@ -223,8 +225,8 @@ export async function getDashboardOverview(
       salesScriptStats: abTestingResult.data?.salesScriptStats || [],
       vslWatchStats: abTestingResult.data?.vslWatchStats || [],
 
-      // Metadata (calculated from sales data which includes contact count)
-      totalContacts: 0, // Not available in modular functions (would need separate query)
+      // Metadata (deprecated - same as totalContactsCreated)
+      totalContacts: salesResult.data?.totalContactsCreated || 0,
     };
   } catch (error) {
     logger.error('Failed to fetch dashboard overview', { error });
