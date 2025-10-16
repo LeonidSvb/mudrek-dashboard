@@ -218,3 +218,174 @@ export const CALL_PROPERTIES = [
 export const CONTACT_ASSOCIATIONS = ['deals', 'calls'];
 export const DEAL_ASSOCIATIONS = ['contacts'];
 export const CALL_ASSOCIATIONS = []; // Calls don't have associations in API
+
+/**
+ * Search API: Fetch contacts modified since a specific date (incremental sync)
+ * Uses HubSpot Search API with hs_lastmodifieddate filter
+ */
+export async function searchContactsByDate(
+  since: Date,
+  properties: string[] = CONTACT_PROPERTIES
+): Promise<HubSpotContact[]> {
+  console.log(`📡 Searching contacts modified since ${since.toISOString()}...`);
+
+  const searchPayload = {
+    filterGroups: [
+      {
+        filters: [
+          {
+            propertyName: 'hs_lastmodifieddate',
+            operator: 'GTE',
+            value: since.getTime().toString(), // Unix timestamp in milliseconds
+          },
+        ],
+      },
+    ],
+    properties,
+    limit: 100,
+  };
+
+  let allContacts: HubSpotContact[] = [];
+  let after: string | undefined = undefined;
+  let hasMore = true;
+  let pageCount = 0;
+
+  while (hasMore) {
+    pageCount++;
+    const payload = after ? { ...searchPayload, after } : searchPayload;
+
+    const response = await makeRequest<HubSpotPaginatedResponse<HubSpotContact>>(
+      '/crm/v3/objects/contacts/search',
+      {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }
+    );
+
+    allContacts = allContacts.concat(response.results);
+    console.log(`   Page ${pageCount}: +${response.results.length} (Total: ${allContacts.length})`);
+
+    if (response.paging?.next) {
+      after = response.paging.next.after;
+    } else {
+      hasMore = false;
+    }
+  }
+
+  console.log(`✅ Found ${allContacts.length} contacts modified since ${since.toISOString()}\n`);
+  return allContacts;
+}
+
+/**
+ * Search API: Fetch deals modified since a specific date (incremental sync)
+ * Uses HubSpot Search API with hs_lastmodifieddate filter
+ */
+export async function searchDealsByDate(
+  since: Date,
+  properties: string[] = DEAL_PROPERTIES
+): Promise<HubSpotDeal[]> {
+  console.log(`📡 Searching deals modified since ${since.toISOString()}...`);
+
+  const searchPayload = {
+    filterGroups: [
+      {
+        filters: [
+          {
+            propertyName: 'hs_lastmodifieddate',
+            operator: 'GTE',
+            value: since.getTime().toString(),
+          },
+        ],
+      },
+    ],
+    properties,
+    limit: 100,
+  };
+
+  let allDeals: HubSpotDeal[] = [];
+  let after: string | undefined = undefined;
+  let hasMore = true;
+  let pageCount = 0;
+
+  while (hasMore) {
+    pageCount++;
+    const payload = after ? { ...searchPayload, after } : searchPayload;
+
+    const response = await makeRequest<HubSpotPaginatedResponse<HubSpotDeal>>(
+      '/crm/v3/objects/deals/search',
+      {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }
+    );
+
+    allDeals = allDeals.concat(response.results);
+    console.log(`   Page ${pageCount}: +${response.results.length} (Total: ${allDeals.length})`);
+
+    if (response.paging?.next) {
+      after = response.paging.next.after;
+    } else {
+      hasMore = false;
+    }
+  }
+
+  console.log(`✅ Found ${allDeals.length} deals modified since ${since.toISOString()}\n`);
+  return allDeals;
+}
+
+/**
+ * Search API: Fetch calls created since a specific date (incremental sync)
+ * Note: Calls use hs_timestamp (creation date) instead of hs_lastmodifieddate
+ */
+export async function searchCallsByDate(
+  since: Date,
+  properties: string[] = CALL_PROPERTIES
+): Promise<HubSpotCall[]> {
+  console.log(`📡 Searching calls created since ${since.toISOString()}...`);
+
+  const searchPayload = {
+    filterGroups: [
+      {
+        filters: [
+          {
+            propertyName: 'hs_timestamp',
+            operator: 'GTE',
+            value: since.getTime().toString(),
+          },
+        ],
+      },
+    ],
+    properties,
+    limit: 100,
+  };
+
+  let allCalls: HubSpotCall[] = [];
+  let after: string | undefined = undefined;
+  let hasMore = true;
+  let pageCount = 0;
+
+  while (hasMore) {
+    pageCount++;
+    const payload = after ? { ...searchPayload, after } : searchPayload;
+
+    const response = await makeRequest<HubSpotPaginatedResponse<HubSpotCall>>(
+      '/crm/v3/objects/calls/search',
+      {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }
+    );
+
+    allCalls = allCalls.concat(response.results);
+    console.log(`   Page ${pageCount}: +${response.results.length} (Total: ${allCalls.length})`);
+
+    if (response.paging?.next) {
+      after = response.paging.next.after;
+    } else {
+      hasMore = false;
+    }
+  }
+
+  console.log(`✅ Found ${allCalls.length} calls created since ${since.toISOString()}\n`);
+  return allCalls;
+}

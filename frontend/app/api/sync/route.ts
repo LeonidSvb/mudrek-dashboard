@@ -7,6 +7,9 @@ import {
   fetchAllContacts,
   fetchAllDeals,
   fetchAllCalls,
+  searchContactsByDate,
+  searchDealsByDate,
+  searchCallsByDate,
   CONTACT_PROPERTIES,
   DEAL_PROPERTIES,
   CALL_PROPERTIES,
@@ -49,6 +52,31 @@ async function getExistingIds(
   }
 
   return new Set(data.map((row) => row.hubspot_id));
+}
+
+/**
+ * Helper: Get the last successful sync time for a specific object type
+ * Returns null if this is the first sync (no previous successful sync found)
+ */
+async function getLastSuccessfulSyncTime(
+  objectType: 'contacts' | 'deals' | 'calls'
+): Promise<Date | null> {
+  const { data, error } = await supabase
+    .from('sync_logs')
+    .select('sync_completed_at')
+    .eq('object_type', objectType)
+    .eq('status', 'success')
+    .not('sync_completed_at', 'is', null)
+    .order('sync_completed_at', { ascending: false })
+    .limit(1)
+    .single();
+
+  if (error || !data) {
+    // No previous successful sync found (first time sync)
+    return null;
+  }
+
+  return new Date(data.sync_completed_at);
 }
 
 function transformContact(contact: HubSpotContact): Omit<ContactRaw, 'synced_at' | 'updated_at'> {
@@ -118,7 +146,18 @@ async function syncContacts(sessionBatchId: string): Promise<SyncResult> {
     console.log('📇 SYNCING CONTACTS');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
-    const contacts = await fetchAllContacts(CONTACT_PROPERTIES, CONTACT_ASSOCIATIONS);
+    // Check if this is incremental or full sync
+    const lastSyncTime = await getLastSuccessfulSyncTime('contacts');
+
+    let contacts: HubSpotContact[];
+    if (lastSyncTime) {
+      console.log(`🔄 Incremental sync: fetching contacts modified since ${lastSyncTime.toISOString()}`);
+      contacts = await searchContactsByDate(lastSyncTime, CONTACT_PROPERTIES);
+    } else {
+      console.log('🆕 First sync: fetching ALL contacts (this will take longer)');
+      contacts = await fetchAllContacts(CONTACT_PROPERTIES, CONTACT_ASSOCIATIONS);
+    }
+
     const transformed = contacts.map((c) => ({
       ...transformContact(c),
       sync_batch_id: batchId,
@@ -185,7 +224,18 @@ async function syncDeals(sessionBatchId: string): Promise<SyncResult> {
     console.log('💼 SYNCING DEALS');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
-    const deals = await fetchAllDeals(DEAL_PROPERTIES, DEAL_ASSOCIATIONS);
+    // Check if this is incremental or full sync
+    const lastSyncTime = await getLastSuccessfulSyncTime('deals');
+
+    let deals: HubSpotDeal[];
+    if (lastSyncTime) {
+      console.log(`🔄 Incremental sync: fetching deals modified since ${lastSyncTime.toISOString()}`);
+      deals = await searchDealsByDate(lastSyncTime, DEAL_PROPERTIES);
+    } else {
+      console.log('🆕 First sync: fetching ALL deals (this will take longer)');
+      deals = await fetchAllDeals(DEAL_PROPERTIES, DEAL_ASSOCIATIONS);
+    }
+
     const transformed = deals.map((d) => ({
       ...transformDeal(d),
       sync_batch_id: batchId,
@@ -252,7 +302,18 @@ async function syncCalls(sessionBatchId: string): Promise<SyncResult> {
     console.log('📞 SYNCING CALLS');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
-    const calls = await fetchAllCalls(CALL_PROPERTIES, CALL_ASSOCIATIONS);
+    // Check if this is incremental or full sync
+    const lastSyncTime = await getLastSuccessfulSyncTime('calls');
+
+    let calls: HubSpotCall[];
+    if (lastSyncTime) {
+      console.log(`🔄 Incremental sync: fetching calls created since ${lastSyncTime.toISOString()}`);
+      calls = await searchCallsByDate(lastSyncTime, CALL_PROPERTIES);
+    } else {
+      console.log('🆕 First sync: fetching ALL calls (this will take longer)');
+      calls = await fetchAllCalls(CALL_PROPERTIES, CALL_ASSOCIATIONS);
+    }
+
     const transformed = calls.map((c) => ({
       ...transformCall(c),
       sync_batch_id: batchId,
