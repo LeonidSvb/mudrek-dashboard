@@ -74,3 +74,4 @@ refresh-*.cjs
 *sample*.json
 *all-*-properties.jsonlogs/
 .claude/settings.json
+.playwright-mcp/

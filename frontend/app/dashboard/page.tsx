@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { subDays } from 'date-fns';
+import { Navigation } from '@/components/Navigation';
 import { MetricCard } from '@/components/MetricCard';
 import { FilterPanel } from '@/components/dashboard/FilterPanel';
 import { DealsBreakdown } from '@/components/dashboard/DealsBreakdown';
 import { TimelineCharts } from '@/components/dashboard/TimelineCharts';
-import { SyncControls } from '@/components/SyncControls';
 import type { AllMetrics } from '@/lib/db/metrics-fast';
 
 interface DateRange {
@@ -62,7 +62,9 @@ export default function DashboardPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 p-8">
+      <>
+        <Navigation />
+        <div className="min-h-screen bg-gray-50 p-8">
         <div className="mx-auto max-w-7xl">
           <div className="rounded-lg border border-red-200 bg-red-50 p-6">
             <h3 className="text-lg font-semibold text-red-900">Error loading metrics</h3>
@@ -75,16 +77,24 @@ export default function DashboardPage() {
             </button>
           </div>
         </div>
-      </div>
+        </div>
+      </>
     );
   }
 
   if (loading || !metrics) {
-    return <LoadingSkeleton />;
+    return (
+      <>
+        <Navigation />
+        <LoadingSkeleton />
+      </>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
+    <>
+      <Navigation />
+      <div className="min-h-screen bg-gray-50 p-8">
       <div className="mx-auto max-w-7xl">
         <header className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Sales Dashboard</h1>
@@ -97,11 +107,6 @@ export default function DashboardPage() {
           onOwnerChange={setOwnerId}
           onDateRangeChange={setDateRange}
         />
-
-        {/* Sync Controls */}
-        <div className="mb-6">
-          <SyncControls />
-        </div>
 
         {/* Deals Breakdown by Stage */}
         <DealsBreakdown
@@ -350,7 +355,8 @@ export default function DashboardPage() {
         </div>
 
       </div>
-    </div>
+      </div>
+    </>
   );
 }
 
