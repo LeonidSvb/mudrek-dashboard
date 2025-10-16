@@ -5,7 +5,6 @@ import { subDays } from 'date-fns';
 import { Navigation } from '@/components/Navigation';
 import { MetricCard } from '@/components/MetricCard';
 import { FilterPanel } from '@/components/dashboard/FilterPanel';
-import { PeriodSelector } from '@/components/dashboard/PeriodSelector';
 import { DealsBreakdown } from '@/components/dashboard/DealsBreakdown';
 import { TimelineCharts } from '@/components/dashboard/TimelineCharts';
 import type { AllMetrics } from '@/lib/db/metrics-fast';
@@ -20,20 +19,10 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [ownerId, setOwnerId] = useState<string>('all');
-  const [selectedPeriod, setSelectedPeriod] = useState<number>(7); // 7 days by default
   const [dateRange, setDateRange] = useState<DateRange>({
     from: subDays(new Date(), 7),
     to: new Date(),
   });
-
-  // Update date range when period changes
-  const handlePeriodChange = (days: number) => {
-    setSelectedPeriod(days);
-    setDateRange({
-      from: subDays(new Date(), days),
-      to: new Date(),
-    });
-  };
 
   useEffect(() => {
     async function fetchMetrics() {
@@ -111,14 +100,6 @@ export default function DashboardPage() {
           <h1 className="text-3xl font-bold text-gray-900">Sales Dashboard</h1>
           <p className="mt-2 text-gray-600">Track your sales performance and metrics</p>
         </header>
-
-        {/* Period Selector - Quick filters */}
-        <div className="mb-6">
-          <PeriodSelector
-            selectedDays={selectedPeriod}
-            onPeriodChange={handlePeriodChange}
-          />
-        </div>
 
         <FilterPanel
           selectedOwner={ownerId}

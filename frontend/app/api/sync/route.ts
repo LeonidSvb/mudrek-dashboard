@@ -30,6 +30,27 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_KEY!
 );
 
+/**
+ * Helper: Check which hubspot_ids already exist in the database
+ * Returns a Set of existing IDs for fast lookup
+ */
+async function getExistingIds(
+  tableName: 'hubspot_contacts_raw' | 'hubspot_deals_raw' | 'hubspot_calls_raw',
+  hubspotIds: string[]
+): Promise<Set<string>> {
+  const { data, error } = await supabase
+    .from(tableName)
+    .select('hubspot_id')
+    .in('hubspot_id', hubspotIds);
+
+  if (error) {
+    console.error(`Failed to check existing IDs in ${tableName}:`, error);
+    return new Set();
+  }
+
+  return new Set(data.map((row) => row.hubspot_id));
+}
+
 function transformContact(contact: HubSpotContact): Omit<ContactRaw, 'synced_at' | 'updated_at'> {
   const props = contact.properties;
 
@@ -104,12 +125,21 @@ async function syncContacts(sessionBatchId: string): Promise<SyncResult> {
     }));
 
     const BATCH_SIZE = 500;
-    const inserted = 0;
+    let inserted = 0;
     let updated = 0;
     let failed = 0;
 
+    // Check which IDs already exist (one query for all records)
+    const allIds = transformed.map((c) => c.hubspot_id);
+    const existingIds = await getExistingIds('hubspot_contacts_raw', allIds);
+    console.log(`   📊 Existing: ${existingIds.size}, New: ${allIds.length - existingIds.size}`);
+
     for (let i = 0; i < transformed.length; i += BATCH_SIZE) {
       const batch = transformed.slice(i, i + BATCH_SIZE);
+
+      // Count inserts vs updates in this batch
+      const batchInserts = batch.filter((c) => !existingIds.has(c.hubspot_id)).length;
+      const batchUpdates = batch.length - batchInserts;
 
       const { data, error } = await supabase
         .from('hubspot_contacts_raw')
@@ -120,9 +150,9 @@ async function syncContacts(sessionBatchId: string): Promise<SyncResult> {
         console.error(`   ❌ Batch ${i}-${i + BATCH_SIZE} failed:`, error.message);
         failed += batch.length;
       } else {
-        // Determine inserts vs updates (simplified - count as updated if exists)
-        updated += data.length;
-        console.log(`   ✅ Batch ${i}-${i + BATCH_SIZE}: ${data.length} records`);
+        inserted += batchInserts;
+        updated += batchUpdates;
+        console.log(`   ✅ Batch ${i}-${i + BATCH_SIZE}: ${batchInserts} new, ${batchUpdates} updated`);
       }
     }
 
@@ -162,12 +192,21 @@ async function syncDeals(sessionBatchId: string): Promise<SyncResult> {
     }));
 
     const BATCH_SIZE = 500;
-    const inserted = 0;
+    let inserted = 0;
     let updated = 0;
     let failed = 0;
 
+    // Check which IDs already exist (one query for all records)
+    const allIds = transformed.map((d) => d.hubspot_id);
+    const existingIds = await getExistingIds('hubspot_deals_raw', allIds);
+    console.log(`   📊 Existing: ${existingIds.size}, New: ${allIds.length - existingIds.size}`);
+
     for (let i = 0; i < transformed.length; i += BATCH_SIZE) {
       const batch = transformed.slice(i, i + BATCH_SIZE);
+
+      // Count inserts vs updates in this batch
+      const batchInserts = batch.filter((d) => !existingIds.has(d.hubspot_id)).length;
+      const batchUpdates = batch.length - batchInserts;
 
       const { data, error } = await supabase
         .from('hubspot_deals_raw')
@@ -178,8 +217,9 @@ async function syncDeals(sessionBatchId: string): Promise<SyncResult> {
         console.error(`   ❌ Batch ${i}-${i + BATCH_SIZE} failed:`, error.message);
         failed += batch.length;
       } else {
-        updated += data.length;
-        console.log(`   ✅ Batch ${i}-${i + BATCH_SIZE}: ${data.length} records`);
+        inserted += batchInserts;
+        updated += batchUpdates;
+        console.log(`   ✅ Batch ${i}-${i + BATCH_SIZE}: ${batchInserts} new, ${batchUpdates} updated`);
       }
     }
 
@@ -219,12 +259,21 @@ async function syncCalls(sessionBatchId: string): Promise<SyncResult> {
     }));
 
     const BATCH_SIZE = 500;
-    const inserted = 0;
+    let inserted = 0;
     let updated = 0;
     let failed = 0;
 
+    // Check which IDs already exist (one query for all records)
+    const allIds = transformed.map((c) => c.hubspot_id);
+    const existingIds = await getExistingIds('hubspot_calls_raw', allIds);
+    console.log(`   📊 Existing: ${existingIds.size}, New: ${allIds.length - existingIds.size}`);
+
     for (let i = 0; i < transformed.length; i += BATCH_SIZE) {
       const batch = transformed.slice(i, i + BATCH_SIZE);
+
+      // Count inserts vs updates in this batch
+      const batchInserts = batch.filter((c) => !existingIds.has(c.hubspot_id)).length;
+      const batchUpdates = batch.length - batchInserts;
 
       const { data, error } = await supabase
         .from('hubspot_calls_raw')
@@ -235,8 +284,9 @@ async function syncCalls(sessionBatchId: string): Promise<SyncResult> {
         console.error(`   ❌ Batch ${i}-${i + BATCH_SIZE} failed:`, error.message);
         failed += batch.length;
       } else {
-        updated += data.length;
-        console.log(`   ✅ Batch ${i}-${i + BATCH_SIZE}: ${data.length} records`);
+        inserted += batchInserts;
+        updated += batchUpdates;
+        console.log(`   ✅ Batch ${i}-${i + BATCH_SIZE}: ${batchInserts} new, ${batchUpdates} updated`);
       }
     }
 
@@ -292,13 +342,13 @@ export async function POST(request: NextRequest) {
     console.log(`\n⏱️  Total duration: ${totalDuration}s`);
     console.log(`\n📊 Summary:`);
     if (results.contacts) {
-      console.log(`   Contacts: ${results.contacts.records_fetched} fetched, ${results.contacts.records_updated} synced`);
+      console.log(`   Contacts: ${results.contacts.records_fetched} fetched, ${results.contacts.records_inserted} new, ${results.contacts.records_updated} updated`);
     }
     if (results.deals) {
-      console.log(`   Deals: ${results.deals.records_fetched} fetched, ${results.deals.records_updated} synced`);
+      console.log(`   Deals: ${results.deals.records_fetched} fetched, ${results.deals.records_inserted} new, ${results.deals.records_updated} updated`);
     }
     if (results.calls) {
-      console.log(`   Calls: ${results.calls.records_fetched} fetched, ${results.calls.records_updated} synced`);
+      console.log(`   Calls: ${results.calls.records_fetched} fetched, ${results.calls.records_inserted} new, ${results.calls.records_updated} updated`);
     }
     console.log('\n');
 

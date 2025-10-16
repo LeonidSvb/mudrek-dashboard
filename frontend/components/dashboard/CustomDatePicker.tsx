@@ -67,7 +67,7 @@ export function CustomDatePicker({ dateRange, onDateRangeChange }: CustomDatePic
             variant="outline"
             size="sm"
             onClick={() => handlePresetClick(days)}
-            className="h-8 px-3"
+            className="h-8 px-3 text-gray-600 border-gray-300 hover:bg-gray-100 hover:text-gray-900"
           >
             {label}
           </Button>
