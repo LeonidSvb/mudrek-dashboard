@@ -5,6 +5,7 @@ import { subDays } from 'date-fns';
 import { Navigation } from '@/components/Navigation';
 import { MetricCard } from '@/components/MetricCard';
 import { FilterPanel } from '@/components/dashboard/FilterPanel';
+import { PeriodSelector } from '@/components/dashboard/PeriodSelector';
 import { DealsBreakdown } from '@/components/dashboard/DealsBreakdown';
 import { TimelineCharts } from '@/components/dashboard/TimelineCharts';
 import type { AllMetrics } from '@/lib/db/metrics-fast';
@@ -19,10 +20,20 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [ownerId, setOwnerId] = useState<string>('all');
+  const [selectedPeriod, setSelectedPeriod] = useState<number>(7); // 7 days by default
   const [dateRange, setDateRange] = useState<DateRange>({
-    from: subDays(new Date(), 90), // Changed from 30 to 90 days to include all data
+    from: subDays(new Date(), 7),
     to: new Date(),
   });
+
+  // Update date range when period changes
+  const handlePeriodChange = (days: number) => {
+    setSelectedPeriod(days);
+    setDateRange({
+      from: subDays(new Date(), days),
+      to: new Date(),
+    });
+  };
 
   useEffect(() => {
     async function fetchMetrics() {
@@ -101,6 +112,14 @@ export default function DashboardPage() {
           <p className="mt-2 text-gray-600">Track your sales performance and metrics</p>
         </header>
 
+        {/* Period Selector - Quick filters */}
+        <div className="mb-6">
+          <PeriodSelector
+            selectedDays={selectedPeriod}
+            onPeriodChange={handlePeriodChange}
+          />
+        </div>
+
         <FilterPanel
           selectedOwner={ownerId}
           dateRange={dateRange}
@@ -122,10 +141,10 @@ export default function DashboardPage() {
           dateTo={dateRange.to.toISOString().split('T')[0]}
         />
 
-        {/* Top 4 KPIs */}
+        {/* Top 5 KPIs */}
         <div className="mb-4">
           <h2 className="mb-2 text-sm font-semibold text-gray-700 uppercase tracking-wide">Key Metrics</h2>
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-5">
             <MetricCard
               title="Total Sales"
               value={metrics.totalSales}
@@ -152,6 +171,13 @@ export default function DashboardPage() {
               value={metrics.conversionRate}
               format="percentage"
               subtitle="Contacts to customers"
+            />
+
+            <MetricCard
+              title="Contacts Created"
+              value={metrics.totalContactsCreated || 0}
+              format="number"
+              subtitle="New contacts in period"
             />
           </div>
         </div>
