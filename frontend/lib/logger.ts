@@ -23,9 +23,14 @@ interface SyncLogData {
 
 export class SyncLogger {
   private logId: number | null = null;
+  private batchId: string | null = null;
   private startTime: number = 0;
 
-  async start(objectType: ObjectType, triggeredBy: 'cron' | 'manual' | 'api' = 'manual'): Promise<number> {
+  async start(
+    objectType: ObjectType,
+    triggeredBy: 'cron' | 'manual' | 'api' = 'manual',
+    batchId?: string
+  ): Promise<{ logId: number; batchId: string }> {
     this.startTime = Date.now();
 
     const { data, error } = await supabase
@@ -35,8 +40,9 @@ export class SyncLogger {
         status: 'success',
         triggered_by: triggeredBy,
         sync_started_at: new Date().toISOString(),
+        ...(batchId && { batch_id: batchId }),
       })
-      .select('id')
+      .select('id, batch_id')
       .single();
 
     if (error) {
@@ -45,9 +51,14 @@ export class SyncLogger {
     }
 
     this.logId = data.id;
-    console.log(`\n🚀 Sync started: ${objectType} (log_id: ${this.logId})`);
+    this.batchId = data.batch_id;
+    console.log(`\n🚀 Sync started: ${objectType} (log_id: ${this.logId}, batch: ${this.batchId?.slice(0, 8)}...)`);
 
-    return this.logId!; // Safe to assert - we throw above if error
+    return { logId: this.logId, batchId: this.batchId };
+  }
+
+  getBatchId(): string | null {
+    return this.batchId;
   }
 
   async complete(data: Omit<SyncLogData, 'object_type'>): Promise<void> {

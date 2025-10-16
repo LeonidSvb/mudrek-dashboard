@@ -88,9 +88,9 @@ function transformCall(call: HubSpotCall): Omit<CallRaw, 'synced_at' | 'updated_
   };
 }
 
-async function syncContacts(): Promise<SyncResult> {
+async function syncContacts(sessionBatchId: string): Promise<SyncResult> {
   const logger = new SyncLogger();
-  await logger.start('contacts', 'manual');
+  const { batchId } = await logger.start('contacts', 'manual', sessionBatchId);
 
   try {
     console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
@@ -98,7 +98,10 @@ async function syncContacts(): Promise<SyncResult> {
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
     const contacts = await fetchAllContacts(CONTACT_PROPERTIES, CONTACT_ASSOCIATIONS);
-    const transformed = contacts.map(transformContact);
+    const transformed = contacts.map((c) => ({
+      ...transformContact(c),
+      sync_batch_id: batchId,
+    }));
 
     const BATCH_SIZE = 500;
     const inserted = 0;
@@ -143,9 +146,9 @@ async function syncContacts(): Promise<SyncResult> {
   }
 }
 
-async function syncDeals(): Promise<SyncResult> {
+async function syncDeals(sessionBatchId: string): Promise<SyncResult> {
   const logger = new SyncLogger();
-  await logger.start('deals', 'manual');
+  const { batchId } = await logger.start('deals', 'manual', sessionBatchId);
 
   try {
     console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
@@ -153,7 +156,10 @@ async function syncDeals(): Promise<SyncResult> {
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
     const deals = await fetchAllDeals(DEAL_PROPERTIES, DEAL_ASSOCIATIONS);
-    const transformed = deals.map(transformDeal);
+    const transformed = deals.map((d) => ({
+      ...transformDeal(d),
+      sync_batch_id: batchId,
+    }));
 
     const BATCH_SIZE = 500;
     const inserted = 0;
@@ -197,9 +203,9 @@ async function syncDeals(): Promise<SyncResult> {
   }
 }
 
-async function syncCalls(): Promise<SyncResult> {
+async function syncCalls(sessionBatchId: string): Promise<SyncResult> {
   const logger = new SyncLogger();
-  await logger.start('calls', 'manual');
+  const { batchId } = await logger.start('calls', 'manual', sessionBatchId);
 
   try {
     console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
@@ -207,7 +213,10 @@ async function syncCalls(): Promise<SyncResult> {
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
     const calls = await fetchAllCalls(CALL_PROPERTIES, CALL_ASSOCIATIONS);
-    const transformed = calls.map(transformCall);
+    const transformed = calls.map((c) => ({
+      ...transformCall(c),
+      sync_batch_id: batchId,
+    }));
 
     const BATCH_SIZE = 500;
     const inserted = 0;
@@ -255,14 +264,18 @@ export async function POST(request: NextRequest) {
   const startTime = Date.now();
 
   try {
+    // Generate session-level batch ID (all sync logs in this session share this ID)
+    const sessionBatchId = crypto.randomUUID();
+
     console.log('\n╔═══════════════════════════════════════════╗');
     console.log('║     HUBSPOT → SUPABASE SYNC STARTED      ║');
+    console.log(`║     Session Batch: ${sessionBatchId.slice(0, 8)}...       ║`);
     console.log('╚═══════════════════════════════════════════╝\n');
 
     const [contactsResult, dealsResult, callsResult] = await Promise.allSettled([
-      syncContacts(),
-      syncDeals(),
-      syncCalls(),
+      syncContacts(sessionBatchId),
+      syncDeals(sessionBatchId),
+      syncCalls(sessionBatchId),
     ]);
 
     const results = {
