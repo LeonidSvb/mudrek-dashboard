@@ -100,10 +100,7 @@ export default function DashboardPage() {
       <div className="mx-auto max-w-7xl">
         <header className="mb-8">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Sales Dashboard</h1>
-              <p className="mt-2 text-gray-600">Track your sales performance and metrics</p>
-            </div>
+            <h1 className="text-3xl font-bold text-gray-900">Sales Dashboard</h1>
             <DashboardHelp />
           </div>
         </header>
