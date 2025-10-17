@@ -98,19 +98,15 @@ export default function DashboardPage() {
       <Navigation />
       <div className="min-h-screen bg-gray-50 p-8">
       <div className="mx-auto max-w-7xl">
-        <header className="mb-8">
-          <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold text-gray-900">Sales Dashboard</h1>
-            <DashboardHelp />
-          </div>
-        </header>
-
-        <FilterPanel
-          selectedOwner={ownerId}
-          dateRange={dateRange}
-          onOwnerChange={setOwnerId}
-          onDateRangeChange={setDateRange}
-        />
+        <div className="flex items-center justify-between mb-6">
+          <FilterPanel
+            selectedOwner={ownerId}
+            dateRange={dateRange}
+            onOwnerChange={setOwnerId}
+            onDateRangeChange={setDateRange}
+          />
+          <DashboardHelp />
+        </div>
 
         {/* Sales Funnel */}
         <SalesFunnel
