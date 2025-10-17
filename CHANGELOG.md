@@ -3,7 +3,41 @@
 Все значимые изменения в этом проекте будут задокументированы в этом файле.
 
 
-## [v3.31.1] - 2025-10-17 (CURRENT) - Dashboard UI Cleanup
+## [v3.31.2] - 2025-10-17 (CURRENT) - TypeScript Build Fixes
+
+### Исправления для деплоя на Vercel
+
+**Что исправлено:**
+
+**1. Отсутствующие типы HubSpot**
+- ✅ Создан файл `types/hubspot.ts` со всеми необходимыми типами
+- ✅ Добавлены интерфейсы: `HubSpotContact`, `HubSpotDeal`, `HubSpotCall`, `SyncLog`, `SyncResult` и другие
+- ✅ Исправлены импорты в `lib/hubspot/api.ts` и `app/api/sync/route.ts`
+
+**2. Ошибки TypeScript в dashboard**
+- ✅ Исправлено сравнение `stat.watched` с boolean (тип был string)
+- ✅ Изменено условие с `=== true/false` на `=== 'true'/'false'`
+
+**3. Ошибки в logger**
+- ✅ Исправлен вызов `logger.warn()` на `logger.warning()` в `lib/db/sales-funnel.ts`
+- ✅ AppLogger использует метод `warning()`, а не `warn()`
+
+**4. Чистка корня проекта**
+- ✅ Удалены билд-артефакты: `.next/`, `tsconfig.tsbuildinfo`, `test-results/`
+- ✅ Удалены временные файлы: `nul`, `ARCHITECTURE_PATTERNS.md`
+- ✅ Обновлен `.gitignore` для игнорирования билд-артефактов и старой папки frontend
+
+**Коммиты:**
+- b934a6c - fix: Добавлены типы HubSpot и исправлены ошибки TypeScript
+
+**Статус билда:**
+- ✅ Build успешно собирается локально
+- ✅ TypeScript проверка проходит без ошибок
+- ✅ Готово к деплою на Vercel
+
+---
+
+## [v3.31.1] - 2025-10-17 - Dashboard UI Cleanup
 
 ### UI Improvements - Minimalist Design
 
