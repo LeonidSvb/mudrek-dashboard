@@ -5,6 +5,7 @@ import { subDays } from 'date-fns';
 import { Navigation } from '@/components/Navigation';
 import { MetricCard } from '@/components/MetricCard';
 import { FilterPanel } from '@/components/dashboard/FilterPanel';
+import { SalesFunnel } from '@/components/dashboard/SalesFunnel';
 import { DealsBreakdown } from '@/components/dashboard/DealsBreakdown';
 import { TimelineCharts } from '@/components/dashboard/TimelineCharts';
 import type { AllMetrics } from '@/lib/db/metrics-fast';
@@ -106,6 +107,13 @@ export default function DashboardPage() {
           dateRange={dateRange}
           onOwnerChange={setOwnerId}
           onDateRangeChange={setDateRange}
+        />
+
+        {/* Sales Funnel */}
+        <SalesFunnel
+          ownerId={ownerId === 'all' ? null : ownerId}
+          dateFrom={dateRange.from.toISOString().split('T')[0]}
+          dateTo={dateRange.to.toISOString().split('T')[0]}
         />
 
         {/* Deals Breakdown by Stage */}

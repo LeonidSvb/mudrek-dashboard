@@ -179,6 +179,7 @@ export const CONTACT_PROPERTIES = [
   'lastname',
   'createdate',
   'lifecyclestage',
+  'contact_stage',
   'sales_script_version',
   'vsl_watched',
   'vsl_watch_duration',
@@ -252,9 +253,11 @@ export async function searchContactsByDate(
 
   while (hasMore) {
     pageCount++;
-    const payload = after ? { ...searchPayload, after } : searchPayload;
+    const payload: typeof searchPayload & { after?: string } = after
+      ? { ...searchPayload, after }
+      : searchPayload;
 
-    const response = await makeRequest<HubSpotPaginatedResponse<HubSpotContact>>(
+    const response: HubSpotPaginatedResponse<HubSpotContact> = await makeRequest<HubSpotPaginatedResponse<HubSpotContact>>(
       '/crm/v3/objects/contacts/search',
       {
         method: 'POST',
@@ -309,9 +312,11 @@ export async function searchDealsByDate(
 
   while (hasMore) {
     pageCount++;
-    const payload = after ? { ...searchPayload, after } : searchPayload;
+    const payload: typeof searchPayload & { after?: string } = after
+      ? { ...searchPayload, after }
+      : searchPayload;
 
-    const response = await makeRequest<HubSpotPaginatedResponse<HubSpotDeal>>(
+    const response: HubSpotPaginatedResponse<HubSpotDeal> = await makeRequest<HubSpotPaginatedResponse<HubSpotDeal>>(
       '/crm/v3/objects/deals/search',
       {
         method: 'POST',
@@ -366,9 +371,11 @@ export async function searchCallsByDate(
 
   while (hasMore) {
     pageCount++;
-    const payload = after ? { ...searchPayload, after } : searchPayload;
+    const payload: typeof searchPayload & { after?: string } = after
+      ? { ...searchPayload, after }
+      : searchPayload;
 
-    const response = await makeRequest<HubSpotPaginatedResponse<HubSpotCall>>(
+    const response: HubSpotPaginatedResponse<HubSpotCall> = await makeRequest<HubSpotPaginatedResponse<HubSpotCall>>(
       '/crm/v3/objects/calls/search',
       {
         method: 'POST',
