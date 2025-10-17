@@ -374,7 +374,7 @@ export default function SyncPage() {
         </div>
 
         {/* Stats Summary */}
-        <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-4">
+        <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
           {/* Total Sessions */}
           <div className="bg-white rounded-lg shadow p-6">
             <div className="text-sm font-medium text-gray-500 uppercase tracking-wide">
@@ -411,18 +411,6 @@ export default function SyncPage() {
                     minute: '2-digit'
                   })
                 : 'Never'}
-            </div>
-          </div>
-
-          {/* Total Records */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="text-sm font-medium text-gray-500 uppercase tracking-wide">
-              Total Records
-            </div>
-            <div className="mt-2 text-3xl font-bold text-blue-600">
-              {sessions.length > 0
-                ? sessions.reduce((sum, s) => sum + s.total_fetched, 0).toLocaleString()
-                : 0}
             </div>
           </div>
         </div>
