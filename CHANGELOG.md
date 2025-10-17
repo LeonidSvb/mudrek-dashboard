@@ -3,7 +3,45 @@
 Все значимые изменения в этом проекте будут задокументированы в этом файле.
 
 
-## [v3.31.2] - 2025-10-17 (CURRENT) - TypeScript Build Fixes
+## [v3.31.3] - 2025-10-17 (CURRENT) - Closedate Migration from CSV
+
+### Исправление дат закрытия сделок
+
+**Проблема:**
+- В базе данных все closedate для closedwon deals были одинаковые: 2025-09-09
+- Причина: миграция UPDATE_DEALS_FROM_CSV.sql использовала last_payment_date вместо first_payment_date
+- После отката (migration 024) даты не восстановились
+- Dashboard показывал только 30 уникальных дат вместо реального распределения
+
+**Решение:**
+- ✅ Создан полный CSV файл с 1060 email записями и корректными датами (first_payment_date)
+- ✅ Применена batch миграция через MCP Supabase:
+  - 10 батчей по 100-300 записей
+  - UPDATE hubspot_deals_raw SET closedate = first_payment_date
+  - Matching через email -> hubspot_contacts_raw -> deals associations
+- ✅ Создан backup: backup_closedate_20251017
+
+**Результаты:**
+- До миграции: 23 уникальные даты в deals, 30 на dashboard
+- После миграции: **404 уникальные даты** в deals, **255 на dashboard**
+- Обновлено: 654 из 1143 closedwon deals (62% match rate)
+- Диапазон дат: **2023-03-20 → 2025-09-09**
+- Dashboard теперь показывает корректное историческое распределение
+
+**Файлы:**
+- `scripts/discovery/2025-10-17-full-csv-data.sql` - полный список email с датами
+- `scripts/discovery/2025-10-17-fix-closedate-from-csv.cjs` - pg driver скрипт
+- `scripts/discovery/2025-10-17-fix-closedate-INLINE.cjs` - SQL генератор
+- `scripts/apply-closedate-migration.js` - основной скрипт миграции
+- `APPLY_CLOSEDATE_MIGRATION.md` - документация процесса
+- `tests/metrics.spec.ts` - тесты метрик dashboard
+
+**Коммиты:**
+- 0344a20 - fix: Исправлены closedate для 654 сделок из CSV данных
+
+---
+
+## [v3.31.2] - 2025-10-17 - TypeScript Build Fixes
 
 ### Исправления для деплоя на Vercel
 
