@@ -3,7 +3,105 @@
 Все значимые изменения в этом проекте будут задокументированы в этом файле.
 
 
-## [v3.29.0] - 2025-10-17 (CURRENT) - 🎯 SALES FUNNEL + METRICS IMPROVEMENTS
+## [v3.30.0] - 2025-10-17 (CURRENT) - ✅ PHASE 5A: Sync History UI Complete
+
+### Sync Sessions Display - Industry-Standard UI Implementation
+
+**Phase 5A успешно завершена за ~2 часа (включая debugging)**
+
+**Что реализовано:**
+
+**1. Session Grouping Architecture**
+- ✅ 3 логa в sync_logs (contacts/deals/calls) → 1 визуальная сессия на frontend
+- ✅ Группировка по `batch_id` (UUID генерируется на уровне session в /api/sync)
+- ✅ Сессия агрегирует metrics: total_fetched, total_inserted, total_updated, total_failed
+- ✅ Overall status определяется по худшему статусу: failed > partial > success
+
+**2. Expandable Cards UI (Accordion Pattern)**
+- ✅ Collapsed state: timestamp, status badge, sync mode (Incremental/Full), batch_id, summary stats
+- ✅ Expanded state: breakdown по типам объектов (📇 Contacts, 💼 Deals, 📞 Calls)
+- ✅ Smooth expand/collapse с иконкой стрелки (chevron down/right)
+- ✅ Click на всю карточку открывает детали
+
+**3. Smart Sync Mode Detection**
+- ✅ Heuristic: avgFetchedPerType < 1000 = Incremental, иначе Full
+- ✅ Badges с цветовой кодировкой: Incremental (blue), Full (purple)
+
+**4. Filtering System**
+- ✅ 4 фильтра: All, Contacts, Deals, Calls
+- ✅ Active state визуализация (синяя кнопка)
+- ✅ Фильтр обновляет session count и total records
+
+**5. Summary Statistics Cards**
+- ✅ Total Sessions (live count на основе фильтра)
+- ✅ Success Rate (% успешных сессий)
+- ✅ Last Sync (timestamp последней синхронизации)
+- ✅ Total Records (sum records_fetched с учетом фильтра)
+
+**Технические детали:**
+
+**Frontend Changes:**
+- `frontend/app/sync/page.tsx` - полная переработка UI
+  - Добавлены interfaces: SyncLog, SyncSession
+  - Функция groupLogsBySession() - группировка по batch_id
+  - Функция getSyncMode() - определение Incremental/Full
+  - Функция toggleSession() - expand/collapse management
+  - State: expandedSessions (Set<string>), filter (string)
+
+- `frontend/app/api/sync/status/route.js` - обновлен API endpoint
+  - Добавлены поля: batch_id, records_inserted, triggered_by
+  - Увеличен limit с 10 до 50 логов
+  - ❗ КРИТИЧЕСКИЙ FIX: SUPABASE_URL → NEXT_PUBLIC_SUPABASE_URL
+
+**Backend Changes:**
+- `frontend/lib/logger.ts` - исправлена передача batch_id
+  - ❗ Explicit assignment вместо spread operator для batch_id
+  - Добавлен null check перед return в start()
+
+- `frontend/lib/hubspot/api.ts` - TypeScript type safety
+  - Explicit type annotations для payload и response
+  - Исправлены 3 implicit 'any' errors
+
+**Database Changes:**
+- ❗ КРИТИЧЕСКИЙ FIX: Удален UNIQUE constraint на sync_logs.batch_id
+  - SQL: `ALTER TABLE sync_logs DROP CONSTRAINT IF EXISTS sync_logs_batch_id_key;`
+  - Причина: Constraint блокировал создание 3 логов с одним batch_id
+  - Инструмент: MCP Supabase (по запросу пользователя)
+
+**Debugging Session:**
+- Проблема 1: Frontend показывал "No sync records found"
+  - Причина: API route использовал SUPABASE_URL вместо NEXT_PUBLIC_SUPABASE_URL
+  - Решение: Исправлена переменная окружения
+
+- Проблема 2: UNIQUE constraint violation
+  - Ошибка: `duplicate key value violates unique constraint "sync_logs_batch_id_key"`
+  - Решение: Использован MCP Supabase для DROP CONSTRAINT
+  - User feedback: "у тебя есть mcp супабейз проверь пожалуйста"
+
+- Проблема 3: batch_id генерировался отдельно для каждого типа
+  - Причина: Spread operator не применял batch_id правильно
+  - Решение: Explicit assignment в logger.ts
+
+**Testing Results:**
+- ✅ 48 sync sessions отображаются корректно
+- ✅ 96% success rate
+- ✅ Expandable UI показывает детали (3 object types per session)
+- ✅ Фильтр по Contacts: 18 sessions, 96,011 records
+- ✅ Sync mode badges: Incremental/Full корректно определены
+- ✅ Status badges: success (green), partial (yellow), failed (red)
+
+**User Experience:**
+- Industry-standard pattern (Fivetran/Airbyte style)
+- Clean, intuitive UI
+- Fast performance (50 sessions load instantly)
+- Mobile-responsive (desktop-first подход)
+
+**Screenshots:**
+- `frontend/docs/screenshots/phase5a-sync-sessions-expanded.png`
+
+---
+
+## [v3.29.0] - 2025-10-17 - 🎯 SALES FUNNEL + METRICS IMPROVEMENTS
 
 ### Sales Funnel Visualization - Complete Implementation
 
