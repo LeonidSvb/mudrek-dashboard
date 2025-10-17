@@ -3,7 +3,121 @@
 Все значимые изменения в этом проекте будут задокументированы в этом файле.
 
 
-## [v3.28.0] - 2025-10-17 (CURRENT) - ✅ PHASE 5A: Sync History UI Complete
+## [v3.29.0] - 2025-10-17 (CURRENT) - 🎯 SALES FUNNEL + METRICS IMPROVEMENTS
+
+### Sales Funnel Visualization - Complete Implementation
+
+**Реализована полная воронка продаж с визуализацией:**
+
+**1. Contact Stages (custom property in HubSpot)**
+- ✅ New leads (pending to be contacted)
+- ✅ No answer
+- ✅ Wrong number
+- ✅ Disqualified
+- Property создан через HubSpot API
+- Синхронизация через `contact_stage` column
+
+**2. Deal Stages (HubSpot pipeline)**
+- ✅ Qualified to Buy (appointmentscheduled)
+- ✅ High Interest / Offer Sent (qualifiedtobuy)
+- ✅ Closed Won (closedwon)
+- ✅ Closed Lost (closedlost)
+- Маппинг на реальные stage IDs
+
+**3. Conversion Metrics**
+- ✅ Contact → Deal conversion rate
+- ✅ Deal → Won conversion rate
+- ✅ Overall conversion rate (Contact → Won)
+- ✅ Total Pipeline count
+- ✅ Closed Lost tracking
+
+**4. Visual Funnel Component**
+- ✅ 3 stages: Contacts Created → Deals Created → Closed Won
+- ✅ Breakdown по sub-stages (если есть данные)
+- ✅ Цветовые индикаторы: blue (contacts), purple (deals), green (won)
+- ✅ Arrows с conversion rates между этапами
+- ✅ Compact design (не занимает много места)
+- ✅ Overall stats: Overall conversion, Closed Lost, Total Pipeline
+
+**Database Changes:**
+- Migration 038: `ALTER TABLE hubspot_contacts_raw ADD COLUMN contact_stage TEXT`
+- Migration 039: `CREATE FUNCTION get_sales_funnel_metrics()` - основная логика
+- Migration 040: Fix stage IDs для реального HubSpot pipeline
+
+**Backend API:**
+- `/api/sales-funnel` endpoint
+- Type-safe interfaces: `SalesFunnelMetrics`
+- Поддержка фильтров: owner_id, date_from, date_to
+- Логирование через app-logger
+
+**Frontend Components:**
+- `SalesFunnel.tsx` - main component с expandable breakdown
+- Интеграция в dashboard выше "Deals Breakdown"
+- Автообновление при изменении фильтров
+
+**Testing Results:**
+```sql
+SELECT * FROM get_sales_funnel_metrics(NULL, '2025-10-09', '2025-10-16');
+
+Results:
+- Contacts created: 299
+- Deals created: 15
+- Qualified to Buy: 15 (100%)
+- Contact→Deal: 5.02%
+- Deal→Won: 0% (no closedwon in period)
+```
+
+### Metrics Architecture & UI Improvements
+
+**Refactored Metrics System:**
+- ✅ 8 modular SQL functions вместо 1 монолитной
+- ✅ get_sales_metrics() - добавлено totalContactsCreated
+- ✅ Исправлен conversionRate: было 269%, стало корректно (contacts_became_customers / contacts_created)
+- ✅ Удалены legacy functions (get_dashboard_overview, get_all_metrics)
+
+**UI Improvements:**
+- ✅ Удален дублирующий PeriodSelector
+- ✅ Нейтральные серые цвета в Time Range (вместо ярко-синего)
+- ✅ Default период изменен с 90 на 7 дней
+- ✅ Добавлена карточка "Contacts Created" (5я метрика)
+- ✅ Compact layout для Sales Funnel
+
+**Incremental Sync (Phase 4):**
+- ✅ HubSpot Search API integration
+- ✅ `searchContactsByDate()`, `searchDealsByDate()`, `searchCallsByDate()`
+- ✅ Фильтр по `hs_lastmodifieddate` (GTE operator)
+- ✅ 100x faster для delta updates
+
+**Documentation:**
+- ✅ `docs/METRICS_ARCHITECTURE_MAP.md` - complete map всех 8 функций
+- ✅ `docs/SALES_FUNNEL_IMPLEMENTATION_PLAN.md` - detailed plan
+
+**Коммиты в этой версии:**
+```
+ce75b16 style: Make Sales Funnel cards more compact
+e136183 feat: Add Sales Funnel visualization to dashboard
+6af3150 docs: Add Sales Funnel implementation plan
+16f1a98 docs: Add complete metrics architecture map
+72a3ba9 feat: incremental sync with HubSpot Search API (Phase 4)
+cb85b64 refactor: Remove duplicate Period selector, use neutral colors in Time Range
+a859280 feat: Add period selector UI with 7-day default and Contacts Created metric
+62b7581 fix: Cleanup legacy functions + Fix conversion rate logic
+a4cc092 feat: Refactor metrics to 8 modular SQL functions
+```
+
+**HubSpot Integration:**
+- contact_stage property синхронизируется через CONTACT_PROPERTIES
+- Требуется ручное заполнение в HubSpot (пока пусто в базе)
+- Deal stages автоматически синхронизируются
+
+**Performance:**
+- Sales Funnel API: ~1-2s response time
+- No impact на existing metrics
+- Efficient filtering with indexes
+
+---
+
+## [v3.28.0] - 2025-10-17 - ✅ PHASE 5A: Sync History UI Complete
 
 ### Sync Sessions Display - Industry-Standard UI Implementation
 
