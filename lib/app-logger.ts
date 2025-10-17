@@ -1,6 +1,3 @@
-import fs from 'fs';
-import path from 'path';
-
 interface LogEntry {
   timestamp: string;
   module: string;
@@ -11,24 +8,9 @@ interface LogEntry {
 
 class AppLogger {
   private moduleName: string;
-  private logsDir: string;
-  private errorsDir: string;
 
   constructor(moduleName: string) {
     this.moduleName = moduleName;
-    this.logsDir = path.join(process.cwd(), 'logs');
-    this.errorsDir = path.join(this.logsDir, 'errors');
-
-    if (!fs.existsSync(this.logsDir)) {
-      fs.mkdirSync(this.logsDir, { recursive: true });
-    }
-    if (!fs.existsSync(this.errorsDir)) {
-      fs.mkdirSync(this.errorsDir, { recursive: true });
-    }
-  }
-
-  private getCurrentDay(): string {
-    return new Date().toISOString().split('T')[0];
   }
 
   private writeLog(level: string, message: string, extra: Record<string, any> = {}) {
@@ -40,18 +22,15 @@ class AppLogger {
       ...extra,
     };
 
-    const day = this.getCurrentDay();
-    const logLine = JSON.stringify(entry) + '\n';
-
-    const mainLog = path.join(this.logsDir, `${day}.log`);
-    fs.appendFileSync(mainLog, logLine);
+    // На Vercel логи пишутся только в консоль (serverless environment)
+    // Файловая система read-only, поэтому убираем fs операции
+    const logLine = JSON.stringify(entry);
 
     if (level === 'ERROR') {
-      const errorLog = path.join(this.errorsDir, `${day}.log`);
-      fs.appendFileSync(errorLog, logLine);
+      console.error(`[${level}] [${this.moduleName}]`, logLine);
+    } else {
+      console.log(`[${level}] [${this.moduleName}]`, logLine);
     }
-
-    console.log(`[${level}] [${this.moduleName}] ${message}`, extra);
   }
 
   info(message: string, extra?: Record<string, any>) {
