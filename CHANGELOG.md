@@ -3,7 +3,53 @@
 Все значимые изменения в этом проекте будут задокументированы в этом файле.
 
 
-## [v3.31.3] - 2025-10-17 (CURRENT) - Closedate Migration from CSV
+## [v3.31.4] - 2025-10-17 (CURRENT) - Hourly Sync & Vercel Deployment
+
+### Исправление пропущенных записей при синхронизации
+
+**Проблема:**
+- Dashboard показывал только 1 контакт за 17 октября вместо 12
+- HubSpot Search API имеет 2-4 часовую задержку индексации
+- Incremental sync (каждые 2 часа) не успевал ловить новые записи
+- Пропущено: 11 контактов, 1 сделка, 92 звонка
+
+**Анализ:**
+- ✅ Код синхронизации был правильный (dual filter: hs_lastmodifieddate OR createdate)
+- ❌ Проблема: Search API не индексирует записи сразу после создания
+- ✅ Full sync работал корректно, но 1 раз в день было недостаточно
+
+**Решение:**
+- ✅ Увеличена частота sync: с каждых 2 часов → **каждый час**
+- ✅ GitHub Actions: hourly incremental sync (бесплатно)
+- ✅ Vercel Cron: daily full sync (бесплатно на Hobby плане)
+- ✅ Создан универсальный recovery скрипт для ручной синхронизации
+
+**Vercel Deployment Setup:**
+- ✅ Настроены Vercel Cron Jobs для клиентских деплоев
+- ✅ Создан `DEPLOYMENT.md` - полный гайд для клиента
+- ✅ Документированы 3 варианта: FREE (GitHub), FREE (cron-job.org), Pro ($20/mo)
+- ✅ Исправлен `vercel.json` под Hobby план (1 cron/день limit)
+
+**Файлы:**
+- `.github/workflows/incremental-sync.yml` - hourly sync (0 * * * *)
+- `vercel.json` - daily full sync для Vercel Hobby
+- `DEPLOYMENT.md` - deployment guide для клиента
+- `scripts/discovery/2025-10-17-sync-all-missing.cjs` - universal recovery script
+- `scripts/discovery/2025-10-17-sync-missing-contacts.cjs` - contacts recovery script
+
+**Результаты:**
+- ✅ Все 12 контактов синхронизированы
+- ✅ 1 сделка и 92 звонка синхронизированы
+- ✅ Sync теперь каждый час (вместо каждых 2 часов)
+- ✅ Production deployment: https://mudrek-dashboard.vercel.app
+
+**Коммиты:**
+- 43cbefc - feat: Add Vercel Cron Jobs for automatic sync
+- 656d17c - fix: Adjust Vercel Cron for Hobby plan (daily only)
+
+---
+
+## [v3.31.3] - 2025-10-17 - Closedate Migration from CSV
 
 ### Исправление дат закрытия сделок
 
