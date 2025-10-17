@@ -221,23 +221,37 @@ export const DEAL_ASSOCIATIONS = ['contacts'];
 export const CALL_ASSOCIATIONS = []; // Calls don't have associations in API
 
 /**
- * Search API: Fetch contacts modified since a specific date (incremental sync)
- * Uses HubSpot Search API with hs_lastmodifieddate filter
+ * Search API: Fetch contacts modified OR created since a specific date (incremental sync)
+ * Uses HubSpot Search API with hs_lastmodifieddate OR createdate filter
+ * This handles both:
+ * 1. Existing contacts that were updated (hs_lastmodifieddate)
+ * 2. Newly created contacts (createdate, since hs_lastmodifieddate can be null)
  */
 export async function searchContactsByDate(
   since: Date,
   properties: string[] = CONTACT_PROPERTIES
 ): Promise<HubSpotContact[]> {
-  console.log(`📡 Searching contacts modified since ${since.toISOString()}...`);
+  console.log(`📡 Searching contacts modified/created since ${since.toISOString()}...`);
 
   const searchPayload = {
     filterGroups: [
+      // Filter Group 1: Modified since date
       {
         filters: [
           {
             propertyName: 'hs_lastmodifieddate',
             operator: 'GTE',
-            value: since.getTime().toString(), // Unix timestamp in milliseconds
+            value: since.getTime().toString(),
+          },
+        ],
+      },
+      // Filter Group 2: Created since date (OR logic between filter groups)
+      {
+        filters: [
+          {
+            propertyName: 'createdate',
+            operator: 'GTE',
+            value: since.getTime().toString(),
           },
         ],
       },
@@ -280,21 +294,35 @@ export async function searchContactsByDate(
 }
 
 /**
- * Search API: Fetch deals modified since a specific date (incremental sync)
- * Uses HubSpot Search API with hs_lastmodifieddate filter
+ * Search API: Fetch deals modified OR created since a specific date (incremental sync)
+ * Uses HubSpot Search API with hs_lastmodifieddate OR createdate filter
+ * This handles both:
+ * 1. Existing deals that were updated (hs_lastmodifieddate)
+ * 2. Newly created deals (createdate, since hs_lastmodifieddate can be null)
  */
 export async function searchDealsByDate(
   since: Date,
   properties: string[] = DEAL_PROPERTIES
 ): Promise<HubSpotDeal[]> {
-  console.log(`📡 Searching deals modified since ${since.toISOString()}...`);
+  console.log(`📡 Searching deals modified/created since ${since.toISOString()}...`);
 
   const searchPayload = {
     filterGroups: [
+      // Filter Group 1: Modified since date
       {
         filters: [
           {
             propertyName: 'hs_lastmodifieddate',
+            operator: 'GTE',
+            value: since.getTime().toString(),
+          },
+        ],
+      },
+      // Filter Group 2: Created since date (OR logic between filter groups)
+      {
+        filters: [
+          {
+            propertyName: 'createdate',
             operator: 'GTE',
             value: since.getTime().toString(),
           },

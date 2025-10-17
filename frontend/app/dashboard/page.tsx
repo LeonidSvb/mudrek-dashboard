@@ -5,6 +5,7 @@ import { subDays } from 'date-fns';
 import { Navigation } from '@/components/Navigation';
 import { MetricCard } from '@/components/MetricCard';
 import { FilterPanel } from '@/components/dashboard/FilterPanel';
+import { DashboardHelp } from '@/components/dashboard/DashboardHelp';
 import { SalesFunnel } from '@/components/dashboard/SalesFunnel';
 import { DealsBreakdown } from '@/components/dashboard/DealsBreakdown';
 import { TimelineCharts } from '@/components/dashboard/TimelineCharts';
@@ -21,7 +22,7 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [ownerId, setOwnerId] = useState<string>('all');
   const [dateRange, setDateRange] = useState<DateRange>({
-    from: subDays(new Date(), 7),
+    from: subDays(new Date(), 30),
     to: new Date(),
   });
 
@@ -98,8 +99,13 @@ export default function DashboardPage() {
       <div className="min-h-screen bg-gray-50 p-8">
       <div className="mx-auto max-w-7xl">
         <header className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Sales Dashboard</h1>
-          <p className="mt-2 text-gray-600">Track your sales performance and metrics</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Sales Dashboard</h1>
+              <p className="mt-2 text-gray-600">Track your sales performance and metrics</p>
+            </div>
+            <DashboardHelp />
+          </div>
         </header>
 
         <FilterPanel
