@@ -38,20 +38,20 @@ Deployments → Latest → Redeploy
 
 ---
 
-### 3. Automatic Sync (Vercel Cron Jobs)
+### 3. Automatic Sync Options
 
-**Sync Schedule** (configured in `vercel.json`):
-- ⏰ **Every hour** (00:00, 01:00, ..., 23:00): Incremental sync
-- ⏰ **Daily at 02:00 UTC**: Full sync
+**Current Configuration:**
+- ⏰ **Daily at 02:00 UTC**: Full sync (Vercel Cron - FREE on Hobby plan)
+- ⏰ **Hourly sync**: Requires external setup (see below)
 
-**Requirements:**
-- ✅ Vercel Pro plan ($20/month) or higher
-- ✅ Environment variables configured
+**Vercel Cron Limitations:**
+- ✅ **Hobby Plan (FREE)**: Daily cron jobs only (1 per day max)
+- ✅ **Pro Plan ($20/mo)**: Hourly/any frequency cron jobs
 
-**How to verify it works:**
-1. Wait for next hour
+**How to verify Vercel daily sync works:**
+1. Wait until next day 02:00 UTC
 2. Check Vercel Dashboard → Deployments → Functions
-3. You should see `/api/sync` invocations every hour
+3. You should see `/api/sync?mode=full` invocation
 
 ---
 
@@ -73,9 +73,11 @@ curl -X POST https://your-project.vercel.app/api/sync?mode=full
 
 ---
 
-## Alternative: Free Cron Service (No Vercel Pro needed)
+## Hourly Sync Setup (FREE - No Vercel Pro needed)
 
-If you don't want to pay for Vercel Pro, use external cron service:
+**Recommended for production**: Use external cron service for hourly incremental sync.
+
+This works with Vercel Hobby (free) plan:
 
 ### Option 1: cron-job.org (Free)
 
@@ -150,15 +152,19 @@ Dashboard shows last sync time and status.
 
 ## Cost Breakdown
 
-**Vercel:**
-- Hobby (Free): ✅ Hosting + 100 GB bandwidth
-- Pro ($20/mo): ✅ Everything + Cron Jobs
+**FREE Setup (Recommended):**
+- Vercel Hobby (Free): Hosting + daily sync
+- cron-job.org (Free): Hourly incremental sync
+- **Total: $0/month**
 
-**Alternative (Free Total):**
-- Vercel Hobby (Free) + cron-job.org (Free) = $0/month
+**Alternative (Pro Plan):**
+- Vercel Pro ($20/mo): Everything + hourly cron built-in
+- **Total: $20/month**
 
-**Recommended for Production:**
-- Vercel Pro ($20/mo) - Most reliable, no external dependencies
+**Current Project (GitHub repo owner):**
+- GitHub Actions: Hourly sync (FREE, already configured)
+- Vercel Hobby: Daily full sync (FREE)
+- **Total: $0/month**
 
 ---
 
