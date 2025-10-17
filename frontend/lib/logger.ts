@@ -33,15 +33,21 @@ export class SyncLogger {
   ): Promise<{ logId: number; batchId: string }> {
     this.startTime = Date.now();
 
+    const insertData: any = {
+      object_type: objectType,
+      status: 'success',
+      triggered_by: triggeredBy,
+      sync_started_at: new Date().toISOString(),
+    };
+
+    // Explicitly set batch_id if provided (important: must be set explicitly, not via spread)
+    if (batchId) {
+      insertData.batch_id = batchId;
+    }
+
     const { data, error } = await supabase
       .from('sync_logs')
-      .insert({
-        object_type: objectType,
-        status: 'success',
-        triggered_by: triggeredBy,
-        sync_started_at: new Date().toISOString(),
-        ...(batchId && { batch_id: batchId }),
-      })
+      .insert(insertData)
       .select('id, batch_id')
       .single();
 
@@ -53,6 +59,10 @@ export class SyncLogger {
     this.logId = data.id;
     this.batchId = data.batch_id;
     console.log(`\n🚀 Sync started: ${objectType} (log_id: ${this.logId}, batch: ${this.batchId?.slice(0, 8)}...)`);
+
+    if (!this.logId || !this.batchId) {
+      throw new Error('Failed to create sync log: missing id or batch_id');
+    }
 
     return { logId: this.logId, batchId: this.batchId };
   }

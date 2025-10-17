@@ -7,15 +7,15 @@ import { createClient } from '@supabase/supabase-js';
 export async function GET() {
   try {
     const supabase = createClient(
-      process.env.SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
       process.env.SUPABASE_SERVICE_KEY
     );
 
     const { data: logs, error } = await supabase
       .from('sync_logs')
-      .select('*')
+      .select('id, object_type, batch_id, sync_started_at, sync_completed_at, duration_seconds, records_fetched, records_inserted, records_updated, records_failed, status, triggered_by')
       .order('sync_started_at', { ascending: false })
-      .limit(10);
+      .limit(50);
 
     if (error) {
       throw error;

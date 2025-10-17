@@ -6,13 +6,30 @@ import { Navigation } from '@/components/Navigation';
 interface SyncLog {
   id: number;
   object_type: string;
+  batch_id: string | null;
   sync_started_at: string;
   sync_completed_at: string;
   duration_seconds: number;
   records_fetched: number;
+  records_inserted: number;
   records_updated: number;
   records_failed: number;
   status: 'success' | 'partial' | 'failed';
+  triggered_by: 'cron' | 'manual' | 'api';
+}
+
+interface SyncSession {
+  batch_id: string;
+  logs: SyncLog[];
+  sync_started_at: string;
+  sync_completed_at: string;
+  total_fetched: number;
+  total_inserted: number;
+  total_updated: number;
+  total_failed: number;
+  status: 'success' | 'partial' | 'failed';
+  duration_seconds: number;
+  triggered_by: 'cron' | 'manual' | 'api';
 }
 
 export default function SyncPage() {
@@ -20,6 +37,7 @@ export default function SyncPage() {
   const [logs, setLogs] = useState<SyncLog[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<string>('all');
+  const [expandedSessions, setExpandedSessions] = useState<Set<string>>(new Set());
 
   // Fetch sync logs
   const fetchLogs = async () => {
@@ -68,10 +86,67 @@ export default function SyncPage() {
     }
   };
 
-  // Filter logs
+  // Group logs by batch_id into sessions
+  const groupLogsBySession = (logs: SyncLog[]): SyncSession[] => {
+    const sessionMap = new Map<string, SyncLog[]>();
+
+    logs.forEach(log => {
+      const batchId = log.batch_id || `individual-${log.id}`;
+      if (!sessionMap.has(batchId)) {
+        sessionMap.set(batchId, []);
+      }
+      sessionMap.get(batchId)!.push(log);
+    });
+
+    return Array.from(sessionMap.entries()).map(([batch_id, logs]) => {
+      const sortedLogs = logs.sort((a, b) => a.id - b.id);
+      const firstLog = sortedLogs[0];
+      const lastLog = sortedLogs[sortedLogs.length - 1];
+
+      return {
+        batch_id,
+        logs: sortedLogs,
+        sync_started_at: firstLog.sync_started_at,
+        sync_completed_at: lastLog.sync_completed_at || firstLog.sync_started_at,
+        total_fetched: logs.reduce((sum, log) => sum + (log.records_fetched || 0), 0),
+        total_inserted: logs.reduce((sum, log) => sum + (log.records_inserted || 0), 0),
+        total_updated: logs.reduce((sum, log) => sum + (log.records_updated || 0), 0),
+        total_failed: logs.reduce((sum, log) => sum + (log.records_failed || 0), 0),
+        status: logs.some(l => l.status === 'failed') ? 'failed' :
+                logs.some(l => l.status === 'partial') ? 'partial' : 'success',
+        duration_seconds: lastLog.duration_seconds || 0,
+        triggered_by: firstLog.triggered_by || 'manual',
+      };
+    });
+  };
+
+  // Determine sync mode (Incremental vs Full)
+  const getSyncMode = (session: SyncSession): 'Incremental' | 'Full' => {
+    // If fetched < 10% of typical total, it's incremental
+    // This is a heuristic - you could add a field to DB for more accuracy
+    const avgFetchedPerType = session.total_fetched / session.logs.length;
+    return avgFetchedPerType < 1000 ? 'Incremental' : 'Full';
+  };
+
+  // Toggle session expansion
+  const toggleSession = (batchId: string) => {
+    setExpandedSessions(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(batchId)) {
+        newSet.delete(batchId);
+      } else {
+        newSet.add(batchId);
+      }
+      return newSet;
+    });
+  };
+
+  // Filter and group logs
   const filteredLogs = filter === 'all'
     ? logs
     : logs.filter(log => log.object_type === filter);
+
+  const sessions = groupLogsBySession(filteredLogs);
 
   return (
     <>
@@ -154,101 +229,159 @@ export default function SyncPage() {
             </div>
           </div>
 
-          {/* Logs Table */}
-          {filteredLogs.length === 0 ? (
+          {/* Sessions List */}
+          {sessions.length === 0 ? (
             <div className="p-8 text-center text-gray-500">
               No sync records found
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Type
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Timestamp
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Fetched
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Updated
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Failed
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Duration
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredLogs.map((log) => (
-                    <tr key={log.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="font-medium text-gray-900 capitalize">
-                          {log.object_type}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span
-                          className={`
-                            inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                            ${log.status === 'success'
-                              ? 'bg-green-100 text-green-800'
-                              : log.status === 'partial'
-                              ? 'bg-yellow-100 text-yellow-800'
-                              : 'bg-red-100 text-red-800'
-                            }
-                          `}
-                        >
-                          {log.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                        {new Date(log.sync_started_at).toLocaleString('en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {log.records_fetched || 0}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {log.records_updated || 0}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <span className={log.records_failed > 0 ? 'text-red-600 font-medium' : 'text-gray-900'}>
-                          {log.records_failed || 0}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                        {log.duration_seconds ? `${log.duration_seconds}s` : '-'}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="divide-y divide-gray-200">
+              {sessions.map((session) => {
+                const isExpanded = expandedSessions.has(session.batch_id);
+                const syncMode = getSyncMode(session);
+
+                return (
+                  <div key={session.batch_id} className="bg-white">
+                    {/* Session Header (clickable) */}
+                    <div
+                      onClick={() => toggleSession(session.batch_id)}
+                      className="px-6 py-4 hover:bg-gray-50 cursor-pointer transition-colors"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          {/* Expand/Collapse Icon */}
+                          <button className="text-gray-400 hover:text-gray-600">
+                            {isExpanded ? (
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                              </svg>
+                            ) : (
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                              </svg>
+                            )}
+                          </button>
+
+                          {/* Timestamp */}
+                          <div className="text-sm font-medium text-gray-900">
+                            {new Date(session.sync_started_at).toLocaleString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </div>
+
+                          {/* Status Badge */}
+                          <span
+                            className={`
+                              inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                              ${session.status === 'success'
+                                ? 'bg-green-100 text-green-800'
+                                : session.status === 'partial'
+                                ? 'bg-yellow-100 text-yellow-800'
+                                : 'bg-red-100 text-red-800'
+                              }
+                            `}
+                          >
+                            {session.status}
+                          </span>
+
+                          {/* Sync Mode Badge */}
+                          <span
+                            className={`
+                              inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                              ${syncMode === 'Incremental'
+                                ? 'bg-blue-100 text-blue-800'
+                                : 'bg-purple-100 text-purple-800'
+                              }
+                            `}
+                          >
+                            {syncMode}
+                          </span>
+
+                          {/* Batch ID (short) */}
+                          <span className="text-xs text-gray-500 font-mono">
+                            {session.batch_id.slice(0, 8)}...
+                          </span>
+                        </div>
+
+                        {/* Summary Stats */}
+                        <div className="flex items-center gap-6 text-sm text-gray-600">
+                          <div>
+                            <span className="font-medium text-gray-900">{session.total_fetched}</span> fetched
+                          </div>
+                          <div>
+                            <span className="font-medium text-green-600">{session.total_inserted}</span> inserted
+                          </div>
+                          <div>
+                            <span className="font-medium text-blue-600">{session.total_updated}</span> updated
+                          </div>
+                          {session.total_failed > 0 && (
+                            <div>
+                              <span className="font-medium text-red-600">{session.total_failed}</span> failed
+                            </div>
+                          )}
+                          <div className="text-gray-500">
+                            {session.duration_seconds}s
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Expanded Details */}
+                    {isExpanded && session.logs.length > 1 && (
+                      <div className="px-6 pb-4 bg-gray-50 border-t border-gray-200">
+                        <div className="mt-3 space-y-2">
+                          {session.logs.map((log) => (
+                            <div
+                              key={log.id}
+                              className="flex items-center justify-between py-2 px-4 bg-white rounded-md border border-gray-200"
+                            >
+                              <div className="flex items-center gap-3">
+                                <span className="text-sm font-medium text-gray-700 capitalize w-20">
+                                  {log.object_type === 'contacts' ? '📇 Contacts' :
+                                   log.object_type === 'deals' ? '💼 Deals' :
+                                   '📞 Calls'}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-4 text-sm">
+                                <div className="text-gray-600">
+                                  {log.records_fetched} fetched
+                                </div>
+                                <div className="text-green-600">
+                                  {log.records_inserted} inserted
+                                </div>
+                                <div className="text-blue-600">
+                                  {log.records_updated} updated
+                                </div>
+                                {log.records_failed > 0 && (
+                                  <div className="text-red-600">
+                                    {log.records_failed} failed
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
 
         {/* Stats Summary */}
-        <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
-          {/* Total Syncs */}
+        <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-4">
+          {/* Total Sessions */}
           <div className="bg-white rounded-lg shadow p-6">
             <div className="text-sm font-medium text-gray-500 uppercase tracking-wide">
-              Total Syncs
+              Total Sessions
             </div>
             <div className="mt-2 text-3xl font-bold text-gray-900">
-              {logs.length}
+              {sessions.length}
             </div>
           </div>
 
@@ -258,8 +391,8 @@ export default function SyncPage() {
               Success Rate
             </div>
             <div className="mt-2 text-3xl font-bold text-green-600">
-              {logs.length > 0
-                ? Math.round((logs.filter(l => l.status === 'success').length / logs.length) * 100)
+              {sessions.length > 0
+                ? Math.round((sessions.filter(s => s.status === 'success').length / sessions.length) * 100)
                 : 0}%
             </div>
           </div>
@@ -270,14 +403,26 @@ export default function SyncPage() {
               Last Sync
             </div>
             <div className="mt-2 text-lg font-semibold text-gray-900">
-              {logs.length > 0
-                ? new Date(logs[0].sync_started_at).toLocaleString('en-US', {
+              {sessions.length > 0
+                ? new Date(sessions[0].sync_started_at).toLocaleString('en-US', {
                     month: 'short',
                     day: 'numeric',
                     hour: '2-digit',
                     minute: '2-digit'
                   })
                 : 'Never'}
+            </div>
+          </div>
+
+          {/* Total Records */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="text-sm font-medium text-gray-500 uppercase tracking-wide">
+              Total Records
+            </div>
+            <div className="mt-2 text-3xl font-bold text-blue-600">
+              {sessions.length > 0
+                ? sessions.reduce((sum, s) => sum + s.total_fetched, 0).toLocaleString()
+                : 0}
             </div>
           </div>
         </div>

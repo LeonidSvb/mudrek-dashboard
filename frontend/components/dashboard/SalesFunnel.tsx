@@ -129,21 +129,21 @@ export function SalesFunnel({ ownerId, dateFrom, dateTo }: SalesFunnelProps) {
     <div className="mb-8">
       <h2 className="text-lg font-semibold mb-4 text-gray-900">Sales Funnel</h2>
 
-      <Card className="p-8">
-        <div className="flex flex-col items-center space-y-4">
+      <Card className="p-4">
+        <div className="flex flex-col items-center space-y-2">
           {stages.map((stage, index) => (
-            <div key={stage.name} className="flex flex-col items-center w-full max-w-2xl">
+            <div key={stage.name} className="flex flex-col items-center w-full max-w-xl">
               {/* Stage Card */}
               <div
-                className={`w-full border-2 rounded-lg p-6 ${stage.color} ${stage.textColor}`}
+                className={`w-full border rounded-lg p-3 ${stage.color} ${stage.textColor}`}
               >
                 <div className="text-center">
-                  <div className="text-sm font-medium mb-1">{stage.name}</div>
-                  <div className="text-4xl font-bold mb-2">{stage.count.toLocaleString()}</div>
+                  <div className="text-xs font-medium mb-1">{stage.name}</div>
+                  <div className="text-2xl font-bold mb-1">{stage.count.toLocaleString()}</div>
 
                   {/* Breakdown */}
                   {stage.breakdown.length > 0 && (
-                    <div className="flex flex-wrap justify-center gap-3 mt-3 text-xs">
+                    <div className="flex flex-wrap justify-center gap-2 mt-1 text-xs">
                       {stage.breakdown.map((item) => (
                         <div key={item.label} className="flex items-center gap-1">
                           <span className="font-medium">{item.label}:</span>
@@ -157,10 +157,10 @@ export function SalesFunnel({ ownerId, dateFrom, dateTo }: SalesFunnelProps) {
 
               {/* Conversion Arrow */}
               {index < stages.length - 1 && (
-                <div className="flex flex-col items-center py-2">
-                  <ArrowDown className="h-6 w-6 text-gray-400" />
-                  <div className="text-sm font-semibold text-gray-700 mt-1">
-                    {conversionRates[index]}% conversion
+                <div className="flex flex-col items-center py-1">
+                  <ArrowDown className="h-4 w-4 text-gray-400" />
+                  <div className="text-xs font-semibold text-gray-700">
+                    {conversionRates[index]}%
                   </div>
                 </div>
               )}
@@ -168,11 +168,11 @@ export function SalesFunnel({ ownerId, dateFrom, dateTo }: SalesFunnelProps) {
           ))}
 
           {/* Overall Stats */}
-          <div className="mt-6 pt-6 border-t border-gray-200 w-full max-w-2xl">
-            <div className="grid grid-cols-3 gap-4 text-center">
+          <div className="mt-3 pt-3 border-t border-gray-200 w-full max-w-xl">
+            <div className="grid grid-cols-3 gap-3 text-center">
               <div>
-                <div className="text-xs text-gray-500 mb-1">Overall Conversion</div>
-                <div className="text-lg font-bold text-gray-900">
+                <div className="text-xs text-gray-500 mb-1">Overall</div>
+                <div className="text-sm font-bold text-gray-900">
                   {data.contacts.total > 0
                     ? ((data.deals.closed_won / data.contacts.total) * 100).toFixed(2)
                     : 0}
@@ -181,13 +181,13 @@ export function SalesFunnel({ ownerId, dateFrom, dateTo }: SalesFunnelProps) {
               </div>
               <div>
                 <div className="text-xs text-gray-500 mb-1">Closed Lost</div>
-                <div className="text-lg font-bold text-red-600">
+                <div className="text-sm font-bold text-red-600">
                   {data.deals.closed_lost.toLocaleString()}
                 </div>
               </div>
               <div>
-                <div className="text-xs text-gray-500 mb-1">Total Pipeline</div>
-                <div className="text-lg font-bold text-gray-900">
+                <div className="text-xs text-gray-500 mb-1">Pipeline</div>
+                <div className="text-sm font-bold text-gray-900">
                   {(
                     data.deals.qualified_to_buy +
                     data.deals.high_interest
