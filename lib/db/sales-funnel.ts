@@ -54,7 +54,7 @@ export async function getSalesFunnelMetrics(
   }
 
   if (!data) {
-    logger.warn('No data returned from get_sales_funnel_metrics');
+    logger.warning('No data returned from get_sales_funnel_metrics');
     return {
       contacts: {
         total: 0,

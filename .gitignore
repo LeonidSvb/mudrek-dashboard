@@ -32,6 +32,17 @@ Thumbs.db
 # Logs
 *.log
 
+# Next.js build artifacts
+.next/
+tsconfig.tsbuildinfo
+
+# Test results
+test-results/
+playwright-report/
+
+# Old frontend directory (moved to root)
+frontend/
+
 # Temporary files and directories
 *.tmp
 *.temp

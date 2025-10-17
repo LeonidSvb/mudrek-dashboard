@@ -351,7 +351,7 @@ export default function DashboardPage() {
                     <div key={stat.watched} className="flex items-center justify-between border-b pb-2">
                       <div>
                         <p className="font-medium text-gray-900">
-                          {stat.watched === true ? 'Watched VSL' : stat.watched === false ? 'Did not watch' : 'Unknown'}
+                          {stat.watched === 'true' ? 'Watched VSL' : stat.watched === 'false' ? 'Did not watch' : 'Unknown'}
                         </p>
                         <p className="text-sm text-gray-500">
                           {stat.conversions} / {stat.totalContacts} contacts
