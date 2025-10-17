@@ -1,37 +1,42 @@
-name: HubSpot Incremental Sync
+name: Hourly Incremental Sync
 
 on:
   schedule:
-    # Каждые 2 часа (можешь поменять на любой интервал)
-    - cron: '0 */2 * * *'
+    # Every hour (API is free, no need to save requests)
+    - cron: '0 * * * *'
 
-  # Кнопка "Run manually" в GitHub Actions
+  # Manual trigger from GitHub Actions tab
   workflow_dispatch:
 
 jobs:
-  sync:
+  incremental-sync:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - name: Incremental Sync HubSpot → Supabase
+        run: |
+          echo "Starting hourly incremental sync..."
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-          cache: 'npm'
+          # Call the sync API (incremental mode by default)
+          response=$(curl -X POST \
+            -H "Content-Type: application/json" \
+            -w "\n%{http_code}" \
+            -s \
+            "${{ secrets.VERCEL_DEPLOYMENT_URL }}/api/sync")
 
-      - name: Install dependencies
-        run: npm install
+          # Extract HTTP status code (last line)
+          http_code=$(echo "$response" | tail -n1)
 
-      - name: Run incremental sync
-        env:
-          HUBSPOT_API_KEY: ${{ secrets.HUBSPOT_API_KEY }}
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-        run: node src/hubspot/sync-incremental.js
+          # Extract response body (everything except last line)
+          body=$(echo "$response" | sed '$d')
 
-      - name: Notify on failure
-        if: failure()
-        run: echo "Sync failed! Check logs above."
+          echo "Response: $body"
+          echo "HTTP Status: $http_code"
+
+          # Check if successful
+          if [ "$http_code" -eq 200 ]; then
+            echo "✅ Incremental sync completed successfully!"
+          else
+            echo "❌ Incremental sync failed with status $http_code"
+            exit 1
+          fi
