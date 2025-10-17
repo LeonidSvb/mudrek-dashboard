@@ -3,7 +3,38 @@
 Все значимые изменения в этом проекте будут задокументированы в этом файле.
 
 
-## [v3.31.0] - 2025-10-17 (CURRENT) - ✅ Sync Testing & Daily Full Sync
+## [v3.31.1] - 2025-10-17 (CURRENT) - Dashboard UI Cleanup
+
+### UI Improvements - Minimalist Design
+
+**Что реализовано:**
+
+**1. Dashboard Header Cleanup**
+- ❌ Удалён заголовок "Sales Dashboard" (занимал лишнее место)
+- ❌ Удалён subtitle "Track your sales performance and metrics" (дублировал информацию)
+- ✅ Help иконка (?) перенесена в правый верхний угол рядом с фильтрами
+- ✅ Освобождено вертикальное пространство для данных
+
+**Before:**
+```
+Sales Dashboard
+Track your sales performance and metrics     [?]
+
+[Filters]
+```
+
+**After:**
+```
+[Filters]                                     [?]
+```
+
+**Коммиты:**
+- 998e293 - refactor: Remove redundant subtitle from dashboard header
+- d64b8bc - refactor: Remove dashboard title to save space
+
+---
+
+## [v3.31.0] - 2025-10-17 - ✅ Sync Testing & Daily Full Sync
 
 ### End-to-End Synchronization Testing & Critical Bug Fixes
 
