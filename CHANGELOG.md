@@ -3,7 +3,132 @@
 Все значимые изменения в этом проекте будут задокументированы в этом файле.
 
 
-## [v3.30.0] - 2025-10-17 (CURRENT) - ✅ PHASE 5A: Sync History UI Complete
+## [v3.31.0] - 2025-10-17 (CURRENT) - ✅ Sync Testing & Daily Full Sync
+
+### End-to-End Synchronization Testing & Critical Bug Fixes
+
+**Phase: Comprehensive Testing + Full Sync Implementation**
+
+**Что реализовано:**
+
+**1. End-to-End Testing Results**
+- ✅ **Contacts Sync**: Создан тестовый контакт через HubSpot API → успешно синхронизирован в Supabase
+- ✅ **Deals Sync**: Создан тестовый deal через HubSpot API → успешно синхронизирован в Supabase (47 deals fetched, 1 new, 46 updated)
+- ✅ **Calls Sync**: Проверено - 122,888 звонков в базе, incremental sync работает корректно
+- ⚠️ **Updates Issue**: Обнаружена критическая проблема с обновлениями контактов (см. ниже)
+
+**2. CRITICAL BUG DISCOVERED & FIXED: Incremental Sync Missing New Contacts**
+
+**Problem:**
+- У новых контактов в HubSpot `hs_lastmodifieddate = NULL` (при создании через API)
+- Старый incremental sync фильтр использовал только `hs_lastmodifieddate >= since`
+- Контакты с NULL значением пропускались даже после создания
+
+**Fix Applied:**
+```typescript
+// frontend/lib/hubspot/api.ts - searchContactsByDate()
+const searchPayload = {
+  filterGroups: [
+    // Filter Group 1: Modified since date
+    {
+      filters: [
+        { propertyName: 'hs_lastmodifieddate', operator: 'GTE', value: since.getTime() }
+      ],
+    },
+    // Filter Group 2: Created since date (OR logic between groups)
+    {
+      filters: [
+        { propertyName: 'createdate', operator: 'GTE', value: since.getTime() }
+      ],
+    },
+  ],
+  ...
+}
+```
+
+- ✅ Добавлен OR filter с `createdate >= since` для новых контактов
+- ✅ Аналогичный фикс применен к `searchDealsByDate()`
+- ✅ Звонки используют `hs_timestamp`, проблемы нет
+
+**3. KNOWN LIMITATION: Contact Updates with NULL hs_lastmodifieddate**
+
+**Discovery:**
+- HubSpot НЕ обновляет `hs_lastmodifieddate` при PATCH через API для контактов с NULL значением
+- Проверено на реальных контактах (не только тестовых):
+  ```
+  Contact: anwarabubader9@gmail.com
+  BEFORE UPDATE: hs_lastmodifieddate = NULL
+  AFTER UPDATE (phone changed): hs_lastmodifieddate = STILL NULL
+  ```
+- `updatedAt` в метаданных обновляется, но Search API не поддерживает фильтрацию по нему
+- Incremental sync пропускает такие обновления
+
+**Solution: Daily Full Sync**
+- Раз в день делается FULL sync всех контактов (не только измененных)
+- Гарантирует, что все обновления будут синхронизированы в течение 24 часов
+- Deals и Calls обновляются корректно через incremental sync
+
+**4. Full Sync Endpoint & Daily Cron**
+
+**Backend:**
+```typescript
+// frontend/app/api/sync/route.ts
+export async function POST(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const mode = searchParams.get('mode');
+  const isFullSync = mode === 'full';
+
+  await Promise.allSettled([
+    syncContacts(sessionBatchId, isFullSync),  // forceFullSync parameter
+    syncDeals(sessionBatchId, isFullSync),
+    syncCalls(sessionBatchId, isFullSync),
+  ]);
+}
+```
+
+**Usage:**
+- Incremental: `POST /api/sync` (default)
+- Full: `POST /api/sync?mode=full` (fetches ALL records)
+
+**GitHub Actions:**
+```yaml
+# .github/workflows/daily-full-sync.yml
+on:
+  schedule:
+    - cron: '0 2 * * *'  # Daily at 2:00 AM UTC
+  workflow_dispatch:  # Manual trigger available
+
+jobs:
+  full-sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Full Sync HubSpot → Supabase
+        run: curl -X POST "${{ secrets.VERCEL_DEPLOYMENT_URL }}/api/sync?mode=full"
+```
+
+**Files Changed:**
+1. `frontend/lib/hubspot/api.ts` - Added `createdate` OR filter to searchContactsByDate() and searchDealsByDate()
+2. `frontend/app/api/sync/route.ts` - Added forceFullSync parameter to sync functions, added mode=full support
+3. `.github/workflows/daily-full-sync.yml` - NEW file for daily full sync cron
+4. `.github/workflows/sync-hubspot.yml` - Existing incremental sync (every 2 hours)
+
+**Sync Strategy Summary:**
+- **Every 2 hours**: Incremental sync (новые + измененные records за последние 2 часа)
+- **Daily at 2 AM UTC**: Full sync (все records, гарантирует актуальность даже для контактов с NULL hs_lastmodifieddate)
+
+**Testing Summary:**
+- ✅ New contacts sync: WORKS (via createdate filter)
+- ✅ New deals sync: WORKS
+- ✅ Calls sync: WORKS
+- ⚠️ Contact updates with NULL hs_lastmodifieddate: Requires daily full sync (acceptable trade-off)
+
+**Next Steps:**
+- Monitor daily full sync execution
+- Consider adding webhook support for real-time updates (future optimization)
+- Track performance metrics for full sync duration
+
+
+## [v3.30.0] - 2025-10-17 - ✅ PHASE 5A: Sync History UI Complete
 
 ### Sync Sessions Display - Industry-Standard UI Implementation
 

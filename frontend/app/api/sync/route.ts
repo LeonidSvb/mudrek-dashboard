@@ -137,7 +137,7 @@ function transformCall(call: HubSpotCall): Omit<CallRaw, 'synced_at' | 'updated_
   };
 }
 
-async function syncContacts(sessionBatchId: string): Promise<SyncResult> {
+async function syncContacts(sessionBatchId: string, forceFullSync = false): Promise<SyncResult> {
   const logger = new SyncLogger();
   const { batchId } = await logger.start('contacts', 'manual', sessionBatchId);
 
@@ -147,14 +147,14 @@ async function syncContacts(sessionBatchId: string): Promise<SyncResult> {
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
     // Check if this is incremental or full sync
-    const lastSyncTime = await getLastSuccessfulSyncTime('contacts');
+    const lastSyncTime = forceFullSync ? null : await getLastSuccessfulSyncTime('contacts');
 
     let contacts: HubSpotContact[];
     if (lastSyncTime) {
       console.log(`🔄 Incremental sync: fetching contacts modified since ${lastSyncTime.toISOString()}`);
       contacts = await searchContactsByDate(lastSyncTime, CONTACT_PROPERTIES);
     } else {
-      console.log('🆕 First sync: fetching ALL contacts (this will take longer)');
+      console.log(forceFullSync ? '🌍 FULL sync: fetching ALL contacts (this will take longer)' : '🆕 First sync: fetching ALL contacts (this will take longer)');
       contacts = await fetchAllContacts(CONTACT_PROPERTIES, CONTACT_ASSOCIATIONS);
     }
 
@@ -215,7 +215,7 @@ async function syncContacts(sessionBatchId: string): Promise<SyncResult> {
   }
 }
 
-async function syncDeals(sessionBatchId: string): Promise<SyncResult> {
+async function syncDeals(sessionBatchId: string, forceFullSync = false): Promise<SyncResult> {
   const logger = new SyncLogger();
   const { batchId } = await logger.start('deals', 'manual', sessionBatchId);
 
@@ -225,14 +225,14 @@ async function syncDeals(sessionBatchId: string): Promise<SyncResult> {
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
     // Check if this is incremental or full sync
-    const lastSyncTime = await getLastSuccessfulSyncTime('deals');
+    const lastSyncTime = forceFullSync ? null : await getLastSuccessfulSyncTime('deals');
 
     let deals: HubSpotDeal[];
     if (lastSyncTime) {
       console.log(`🔄 Incremental sync: fetching deals modified since ${lastSyncTime.toISOString()}`);
       deals = await searchDealsByDate(lastSyncTime, DEAL_PROPERTIES);
     } else {
-      console.log('🆕 First sync: fetching ALL deals (this will take longer)');
+      console.log(forceFullSync ? '🌍 FULL sync: fetching ALL deals (this will take longer)' : '🆕 First sync: fetching ALL deals (this will take longer)');
       deals = await fetchAllDeals(DEAL_PROPERTIES, DEAL_ASSOCIATIONS);
     }
 
@@ -293,7 +293,7 @@ async function syncDeals(sessionBatchId: string): Promise<SyncResult> {
   }
 }
 
-async function syncCalls(sessionBatchId: string): Promise<SyncResult> {
+async function syncCalls(sessionBatchId: string, forceFullSync = false): Promise<SyncResult> {
   const logger = new SyncLogger();
   const { batchId } = await logger.start('calls', 'manual', sessionBatchId);
 
@@ -303,14 +303,14 @@ async function syncCalls(sessionBatchId: string): Promise<SyncResult> {
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
     // Check if this is incremental or full sync
-    const lastSyncTime = await getLastSuccessfulSyncTime('calls');
+    const lastSyncTime = forceFullSync ? null : await getLastSuccessfulSyncTime('calls');
 
     let calls: HubSpotCall[];
     if (lastSyncTime) {
       console.log(`🔄 Incremental sync: fetching calls created since ${lastSyncTime.toISOString()}`);
       calls = await searchCallsByDate(lastSyncTime, CALL_PROPERTIES);
     } else {
-      console.log('🆕 First sync: fetching ALL calls (this will take longer)');
+      console.log(forceFullSync ? '🌍 FULL sync: fetching ALL calls (this will take longer)' : '🆕 First sync: fetching ALL calls (this will take longer)');
       calls = await fetchAllCalls(CALL_PROPERTIES, CALL_ASSOCIATIONS);
     }
 
@@ -375,18 +375,23 @@ export async function POST(request: NextRequest) {
   const startTime = Date.now();
 
   try {
+    // Check if this is a full sync (mode=full query parameter)
+    const { searchParams } = new URL(request.url);
+    const mode = searchParams.get('mode');
+    const isFullSync = mode === 'full';
+
     // Generate session-level batch ID (all sync logs in this session share this ID)
     const sessionBatchId = crypto.randomUUID();
 
     console.log('\n╔═══════════════════════════════════════════╗');
-    console.log('║     HUBSPOT → SUPABASE SYNC STARTED      ║');
+    console.log(`║     HUBSPOT → SUPABASE ${isFullSync ? 'FULL' : 'SYNC'} STARTED      ║`);
     console.log(`║     Session Batch: ${sessionBatchId.slice(0, 8)}...       ║`);
     console.log('╚═══════════════════════════════════════════╝\n');
 
     const [contactsResult, dealsResult, callsResult] = await Promise.allSettled([
-      syncContacts(sessionBatchId),
-      syncDeals(sessionBatchId),
-      syncCalls(sessionBatchId),
+      syncContacts(sessionBatchId, isFullSync),
+      syncDeals(sessionBatchId, isFullSync),
+      syncCalls(sessionBatchId, isFullSync),
     ]);
 
     const results = {
