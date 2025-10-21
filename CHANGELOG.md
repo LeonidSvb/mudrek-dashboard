@@ -3,7 +3,130 @@
 Все значимые изменения в этом проекте будут задокументированы в этом файле.
 
 
-## [v3.32.0] - 2025-10-21 (CURRENT) - Call-to-Close Rate Metrics with ML-based Phone Mapping
+## [v3.33.0] - 2025-10-22 - Supabase CLI Migrations + GitHub Actions Sync Architecture
+
+### ЧАСТЬ 1: Система миграций БД (Supabase CLI + Baseline подход)
+
+**Проблема:**
+- 51 файл миграций в `migrations/`, только 17 применено в Supabase
+- Хаос: какие миграции применены, какие нет
+- Ручное применение через SQL Editor и MCP Supabase tools
+- Нет автоматической tracking системы
+- Нет истории изменений БД
+
+**Решение - Supabase CLI с Baseline подходом:**
+1. **Установлен Supabase CLI** (npx supabase)
+2. **Создан baseline migration** (2025-10-21) - точка отсчета
+3. **Все старые миграции** перенесены в `archive/old-migrations/` (51 файл)
+4. **Новый workflow:**
+   - Создать: `npx supabase migration new feature_name`
+   - Применить: `npx supabase db push`
+   - Проверить: `npx supabase migration list`
+
+**Структура:**
+```
+supabase/migrations/          ← Новые миграции (через CLI)
+  └── 20251021163342_baseline.sql
+archive/old-migrations/       ← Старые (51 файл, НЕ трогать!)
+WORKFLOW.md                   ← Подробные инструкции
+archive/BASELINE.md           ← История baseline
+```
+
+**Преимущества:**
+- Industry standard (используется во всех современных проектах)
+- Автоматический tracking применённых миграций
+- Невозможно применить одну миграцию дважды
+- Чистая история изменений БД
+- Agency Coding Principles: source of truth в коде
+
+**Файлы:**
+- `supabase/config.toml` (NEW) - конфигурация Supabase CLI
+- `supabase/migrations/20251021163342_baseline.sql` (NEW) - baseline migration
+- `WORKFLOW.md` (NEW) - пошаговые инструкции
+- `archive/BASELINE.md` (NEW) - история решения
+- `CLAUDE.md` (UPDATED) - секция Database Migrations
+- `docs/ADR.md` (UPDATED) - секция 11 с обоснованием решения
+
+---
+
+### ЧАСТЬ 2: Миграция Sync с Vercel на GitHub Actions
+
+**Проблема:**
+- Vercel 10-секундный timeout → full sync невозможен (занимает 3-22 минуты)
+- Vercel Pro ($20/mo) нужен для hourly cron
+- Incremental sync перезаписывал весь raw_json → потеря старых custom полей
+- Синк использовал 421 поле → расход 91% места в Supabase впустую
+- Новые custom поля от Jason не синхронизировались автоматически
+
+**Решение - GitHub Actions + JSONB Merge + Auto-detect:**
+
+1. **GitHub Actions (FREE, 6-hour timeout):**
+   - Incremental Sync: каждые 4 часа (00:00, 04:00, 08:00, 12:00, 16:00, 20:00 UTC)
+   - Daily Full Sync: ежедневно в 02:00 UTC
+   - Стоимость: FREE (2000 мин/месяц, используем ~960 мин)
+   - Timeout: 6 часов (vs Vercel 10 секунд)
+
+2. **JSONB Merge (сохранение старых полей):**
+   ```javascript
+   record.raw_json.properties = {
+     ...existing.properties,      // старые поля (сохраняем!)
+     ...record.raw_json.properties // новые поля (добавляем/обновляем)
+   }
+   ```
+
+3. **Оптимизация полей (421 → 35, экономия 91%):**
+   - 11 стандартных HubSpot полей
+   - 9 критических custom (sold_by_, contact_stage, sales_script_version, etc.)
+   - 15 полезных custom (first_contact_within_30min, offer_sent, deal_amount, etc.)
+
+4. **Auto-detect новых custom полей:**
+   - Daily Full Sync автоматически находит новые custom fields от Jason
+   - Исключает garbage (lead_ad_prop, legacy, notes, quick_test)
+   - Синхронизирует все релевантные поля
+
+**Архитектура:**
+```
+GitHub Actions (FREE)
+├─ Каждые 4 часа: Incremental Sync (35 полей + JSONB merge)
+└─ Ежедневно 02:00: Full Sync (auto-detect новых custom полей)
+     ↓
+HubSpot ←→ Supabase
+
+Vercel (FREE Hobby)
+└─ Next.js Dashboard (UI only, no sync)
+```
+
+**Безопасность:**
+- Удалены `.env.supabase` и `scripts/migrate.sh` (с hardcoded токенами)
+- Discovery скрипты обновлены на `process.env`
+- Добавлен `scripts/discovery/` в `.gitignore`
+- GitHub Push Protection заблокировал коммит с HubSpot API ключом
+- GitHub автоматически удалил скомпрометированные секреты
+
+**Текущий статус (22.10.2025):**
+- ✅ Workflows созданы и запушены на GitHub
+- ✅ Секреты восстановлены в GitHub Secrets
+- ⏳ Ожидается запуск воркфлоу с обновленными секретами
+- ⏳ Проверка JSONB merge и auto-detect полей
+
+**Файлы:**
+- `scripts/sync-incremental.js` (NEW) - incremental sync с JSONB merge
+- `scripts/sync-full.js` (NEW) - full sync с auto-detect
+- `.github/workflows/incremental-sync.yml` (UPDATED) - каждые 4 часа
+- `.github/workflows/daily-full-sync.yml` (NEW) - ежедневно
+- `DEPLOYMENT.md` (UPDATED) - новая архитектура
+- `SETUP.md` (NEW) - quick setup guide
+- `.gitignore` (UPDATED) - добавлен scripts/discovery/, .env.supabase, scripts/migrate.sh
+
+**Коммиты:**
+- 430f643 - feat: setup Supabase CLI for database migrations
+- 6e7207c - docs: Update ADR with migration system decision (Supabase CLI + Baseline)
+- 98536cd - feat: migrate sync from Vercel Cron to GitHub Actions
+- a06a6e0 - chore: remove discovery scripts with hardcoded API keys for security
+- ee64155 - chore: add scripts/discovery/ to gitignore
+
+
+## [v3.32.0] - 2025-10-21 - Call-to-Close Rate Metrics with ML-based Phone Mapping
 
 ### Автоматическое отслеживание Call-to-Close Rate для sales managers
 
