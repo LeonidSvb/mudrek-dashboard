@@ -273,3 +273,62 @@ npx prisma generate
 - Don't modify shadcn/ui components in node_modules
 - Don't expose API keys to client
 - Don't use deprecated Supabase methods (`get`, `set`, `remove`)
+
+---
+
+## Database Migrations (Supabase CLI)
+
+### ВАЖНО: ВСЕГДА используй Supabase CLI для миграций!
+
+**Baseline:** 2025-10-21 (все до этого уже применено)
+
+### Workflow
+
+**Создать миграцию:**
+```bash
+export SUPABASE_ACCESS_TOKEN="sbp_xxx"
+npx supabase migration new feature_name
+```
+
+**Применить:**
+```bash
+bash scripts/migrate.sh
+# или
+export SUPABASE_ACCESS_TOKEN="sbp_xxx"
+npx supabase db push
+```
+
+**Проверить статус:**
+```bash
+export SUPABASE_ACCESS_TOKEN="sbp_xxx"
+npx supabase migration list
+```
+
+### Структура
+
+```
+supabase/
+└── migrations/
+    ├── 20251021163342_baseline.sql    ← Baseline (точка отсчета)
+    └── 20251022_xxx_new_feature.sql   ← Новые миграции
+
+archive/
+└── old-migrations/                    ← Старые (НЕ трогать!)
+```
+
+### Правила
+
+✅ **DO:**
+- Все новые миграции через Supabase CLI
+- Файлы в `supabase/migrations/`
+- Применение через `bash scripts/migrate.sh`
+
+❌ **DON'T:**
+- НЕ создавай в `migrations/` (используй `supabase/migrations/`)
+- НЕ применяй через SQL Editor
+- НЕ применяй через MCP вручную
+- НЕ трогай `archive/old-migrations/`
+
+### Подробности
+
+См. `WORKFLOW.md` для детальных инструкций.
