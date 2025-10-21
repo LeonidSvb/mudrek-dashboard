@@ -9,8 +9,8 @@ import { DashboardHelp } from '@/components/dashboard/DashboardHelp';
 import { SalesFunnel } from '@/components/dashboard/SalesFunnel';
 import { DealsBreakdown } from '@/components/dashboard/DealsBreakdown';
 import { TimelineCharts } from '@/components/dashboard/TimelineCharts';
-import { CallToCloseTable } from '@/components/dashboard/CallToCloseTable';
 import type { AllMetrics } from '@/lib/db/metrics-fast';
+import { formatMetricHelp, METRIC_DEFINITIONS } from '@/lib/metric-definitions';
 
 interface DateRange {
   from: Date;
@@ -26,6 +26,7 @@ export default function DashboardPage() {
     from: subDays(new Date(), 30),
     to: new Date(),
   });
+  const [teamCallToClose, setTeamCallToClose] = useState<number>(0);
 
   useEffect(() => {
     async function fetchMetrics() {
@@ -62,6 +63,45 @@ export default function DashboardPage() {
 
     fetchMetrics();
   }, [ownerId, dateRange]);
+
+  useEffect(() => {
+    async function fetchTeamCallToClose() {
+      try {
+        const params = new URLSearchParams();
+        params.set('date_from', dateRange.from.toISOString().split('T')[0]);
+        params.set('date_to', dateRange.to.toISOString().split('T')[0]);
+
+        const url = `/api/metrics/call-to-close${params.toString() ? '?' + params.toString() : ''}`;
+        const res = await fetch(url);
+
+        if (!res.ok) return;
+
+        const data = await res.json();
+
+        // Filter only 3 sales managers
+        const salesManagers = data.filter((m: any) =>
+          ['81280578', '726197388', '687247262'].includes(m.owner_id)
+        );
+
+        if (salesManagers.length === 0) {
+          setTeamCallToClose(0);
+          return;
+        }
+
+        // Calculate team rate: (Total Closed Won / Total Calls) × 100
+        const totalCalls = salesManagers.reduce((sum: number, m: any) => sum + m.total_calls, 0);
+        const totalClosedWon = salesManagers.reduce((sum: number, m: any) => sum + m.closed_won, 0);
+        const rate = totalCalls > 0 ? (totalClosedWon / totalCalls) * 100 : 0;
+
+        setTeamCallToClose(rate);
+      } catch (err) {
+        console.error('Failed to fetch team call-to-close:', err);
+        setTeamCallToClose(0);
+      }
+    }
+
+    fetchTeamCallToClose();
+  }, [dateRange]);
 
   if (error) {
     return (
@@ -130,15 +170,6 @@ export default function DashboardPage() {
           dateTo={dateRange.to.toISOString().split('T')[0]}
         />
 
-        {/* Call-to-Close Performance Table */}
-        <div className="mb-6">
-          <CallToCloseTable
-            ownerId={ownerId === 'all' ? null : ownerId}
-            dateFrom={dateRange.from.toISOString().split('T')[0]}
-            dateTo={dateRange.to.toISOString().split('T')[0]}
-          />
-        </div>
-
         {/* Top 5 KPIs */}
         <div className="mb-4">
           <h2 className="mb-2 text-sm font-semibold text-gray-700 uppercase tracking-wide">Key Metrics</h2>
@@ -148,7 +179,7 @@ export default function DashboardPage() {
               value={metrics.totalSales}
               format="currency"
               subtitle="Closed won deals"
-              helpText="Sum of all deal amounts in 'Closed Won' stage. Source: HubSpot deals with dealstage = 'closedwon'."
+              helpText={formatMetricHelp(METRIC_DEFINITIONS.totalSales)}
             />
 
             <MetricCard
@@ -156,6 +187,7 @@ export default function DashboardPage() {
               value={metrics.avgDealSize}
               format="currency"
               subtitle="Per closed deal"
+              helpText={formatMetricHelp(METRIC_DEFINITIONS.avgDealSize)}
             />
 
             <MetricCard
@@ -163,6 +195,7 @@ export default function DashboardPage() {
               value={metrics.totalDeals}
               format="number"
               subtitle="Closed won"
+              helpText={formatMetricHelp(METRIC_DEFINITIONS.totalDeals)}
             />
 
             <MetricCard
@@ -170,7 +203,7 @@ export default function DashboardPage() {
               value={metrics.conversionRate}
               format="percentage"
               subtitle="Contacts to customers"
-              helpText="Percentage of contacts who became paying customers. Formula: (Closed Won Deals / Total Contacts) × 100."
+              helpText={formatMetricHelp(METRIC_DEFINITIONS.conversionRate)}
             />
 
             <MetricCard
@@ -178,6 +211,7 @@ export default function DashboardPage() {
               value={metrics.totalContactsCreated || 0}
               format="number"
               subtitle="New contacts in period"
+              helpText={formatMetricHelp(METRIC_DEFINITIONS.totalContactsCreated)}
             />
           </div>
         </div>
@@ -185,12 +219,13 @@ export default function DashboardPage() {
         {/* Call Metrics */}
         <div className="mb-4">
           <h2 className="mb-2 text-sm font-semibold text-gray-700 uppercase tracking-wide">Call Performance</h2>
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-5">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-6">
             <MetricCard
               title="Total Calls"
               value={metrics.totalCalls}
               format="number"
               subtitle="All calls made"
+              helpText={formatMetricHelp(METRIC_DEFINITIONS.totalCalls)}
             />
 
             <MetricCard
@@ -198,6 +233,7 @@ export default function DashboardPage() {
               value={metrics.avgCallTime}
               format="decimal"
               subtitle="Minutes per call"
+              helpText={formatMetricHelp(METRIC_DEFINITIONS.avgCallTime)}
             />
 
             <MetricCard
@@ -205,6 +241,7 @@ export default function DashboardPage() {
               value={metrics.totalCallTime}
               format="decimal"
               subtitle="Hours total"
+              helpText={formatMetricHelp(METRIC_DEFINITIONS.totalCallTime)}
             />
 
             <MetricCard
@@ -212,7 +249,7 @@ export default function DashboardPage() {
               value={metrics.pickupRate}
               format="percentage"
               subtitle="Connected calls"
-              helpText="Percentage of calls where the contact answered and had a real conversation (avg 4+ min). Calculated using HubSpot call outcome UUID (f240bbac = Connected)."
+              helpText={formatMetricHelp(METRIC_DEFINITIONS.pickupRate)}
             />
 
             <MetricCard
@@ -220,7 +257,15 @@ export default function DashboardPage() {
               value={metrics.fiveMinReachedRate}
               format="percentage"
               subtitle="Calls over 5 minutes"
-              helpText="Percentage of calls that lasted 5 minutes or longer. Quality indicator for meaningful conversations. Formula: (Calls >= 5 min / Total Calls) × 100."
+              helpText={formatMetricHelp(METRIC_DEFINITIONS.fiveMinReachedRate)}
+            />
+
+            <MetricCard
+              title="Team Call-to-Close"
+              value={teamCallToClose}
+              format="percentage"
+              subtitle="3 sales managers"
+              helpText="Percentage of calls that result in closed deals. Calculated for 3 sales managers (Wala, Mothanna, Abd Elsalam). Formula: (Total Closed Won / Total Calls) × 100. System automatically determines closing manager from last call before deal close."
             />
           </div>
         </div>
@@ -234,6 +279,7 @@ export default function DashboardPage() {
               value={metrics.qualifiedRate}
               format="percentage"
               subtitle="Qualified leads"
+              helpText={formatMetricHelp(METRIC_DEFINITIONS.qualifiedRate)}
             />
 
             <MetricCard
@@ -241,6 +287,7 @@ export default function DashboardPage() {
               value={metrics.trialRate}
               format="percentage"
               subtitle="Trial signups"
+              helpText={formatMetricHelp(METRIC_DEFINITIONS.trialRate)}
             />
 
             <MetricCard
@@ -248,6 +295,7 @@ export default function DashboardPage() {
               value={metrics.cancellationRate}
               format="percentage"
               subtitle="Closed lost deals"
+              helpText={formatMetricHelp(METRIC_DEFINITIONS.cancellationRate)}
             />
           </div>
         </div>
@@ -261,6 +309,7 @@ export default function DashboardPage() {
               value={metrics.upfrontCashCollected}
               format="currency"
               subtitle="Total first payments"
+              helpText={formatMetricHelp(METRIC_DEFINITIONS.upfrontCashCollected)}
             />
 
             <MetricCard
@@ -268,7 +317,7 @@ export default function DashboardPage() {
               value={metrics.avgInstallments}
               format="decimal"
               subtitle="Payment plan months"
-              helpText="Average number of monthly installments for payment plans. Currently shows 0 because 'number_of_installments__months' field is empty in HubSpot. Please fill this field in HubSpot to see data."
+              helpText={formatMetricHelp(METRIC_DEFINITIONS.avgInstallments)}
             />
           </div>
         </div>
@@ -282,6 +331,7 @@ export default function DashboardPage() {
               value={metrics.followupRate}
               format="percentage"
               subtitle="Contacts with multiple calls"
+              helpText={formatMetricHelp(METRIC_DEFINITIONS.followupRate)}
             />
 
             <MetricCard
@@ -289,6 +339,7 @@ export default function DashboardPage() {
               value={metrics.avgFollowups}
               format="decimal"
               subtitle="Followup calls per contact"
+              helpText={formatMetricHelp(METRIC_DEFINITIONS.avgFollowups)}
             />
 
             <MetricCard
@@ -296,6 +347,7 @@ export default function DashboardPage() {
               value={metrics.timeToFirstContact}
               format="decimal"
               subtitle="Days to first call"
+              helpText={formatMetricHelp(METRIC_DEFINITIONS.timeToFirstContact)}
             />
           </div>
         </div>
@@ -309,6 +361,7 @@ export default function DashboardPage() {
               value={metrics.timeToSale}
               format="decimal"
               subtitle="Days from create to close"
+              helpText={formatMetricHelp(METRIC_DEFINITIONS.timeToSale)}
             />
 
             <MetricCard
@@ -316,6 +369,7 @@ export default function DashboardPage() {
               value={metrics.timeToFirstContact}
               format="decimal"
               subtitle="Days to first call"
+              helpText={formatMetricHelp(METRIC_DEFINITIONS.timeToFirstContact)}
             />
           </div>
         </div>
@@ -329,6 +383,7 @@ export default function DashboardPage() {
               value={metrics.offersGivenRate}
               format="percentage"
               subtitle="Deals with offers sent"
+              helpText={formatMetricHelp(METRIC_DEFINITIONS.offersGivenRate)}
             />
 
             <MetricCard
@@ -336,6 +391,7 @@ export default function DashboardPage() {
               value={metrics.offerCloseRate}
               format="percentage"
               subtitle="Offers that closed won"
+              helpText={formatMetricHelp(METRIC_DEFINITIONS.offerCloseRate)}
             />
           </div>
         </div>
