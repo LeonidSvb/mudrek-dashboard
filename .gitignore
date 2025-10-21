@@ -53,6 +53,9 @@ frontend/
 tmp/
 scripts/tmp/
 
+# Discovery scripts (temporary analysis, may contain API keys)
+scripts/discovery/
+
 # ⛔ Discovery/test scripts - SHOULD NOT BE CREATED IN ROOT!
 # These files are gitignored as a safety net, but they should NEVER be created here.
 # Use: node -e "..." or create in scripts/discovery/ with date prefix
