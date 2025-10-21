@@ -1,11 +1,12 @@
+require('dotenv').config();
 const https = require('https');
 const { createClient } = require('@supabase/supabase-js');
 
-const HUBSPOT_API_KEY = 'pat-na1-0fcb5cbd-d2f6-43a9-88c1-cb3f5e3ff44e';
+const HUBSPOT_API_KEY = process.env.HUBSPOT_API_KEY;
 
 const supabase = createClient(
-  'https://ncsyuddcnnmatzxyjgwp.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5jc3l1ZGRjbm5tYXR6eHlqZ3dwIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1OTY3NDUwMCwiZXhwIjoyMDc1MjUwNTAwfQ.n6aHoPOxM2LK8VXEqtOxBi4-qZRhxu2WhwNsxuQpkTI'
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_KEY
 );
 
 async function searchCallsHubSpot(dateFrom, dateTo) {

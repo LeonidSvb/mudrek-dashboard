@@ -1,6 +1,7 @@
+require('dotenv').config();
 const https = require('https');
 
-const HUBSPOT_API_KEY = 'pat-na1-0fcb5cbd-d2f6-43a9-88c1-cb3f5e3ff44e';
+const HUBSPOT_API_KEY = process.env.HUBSPOT_API_KEY;
 
 // Даты для фильтрации
 const dateFrom = new Date('2025-10-15T00:00:00Z').getTime();

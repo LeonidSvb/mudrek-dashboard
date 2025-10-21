@@ -1,15 +1,15 @@
-name: Incremental Sync (Every 4 Hours)
+name: Daily Full Sync
 
 on:
   schedule:
-    # Every 4 hours (6 times per day: 00:00, 04:00, 08:00, 12:00, 16:00, 20:00 UTC)
-    - cron: '0 */4 * * *'
+    # Every day at 02:00 UTC
+    - cron: '0 2 * * *'
 
   # Manual trigger from GitHub Actions tab
   workflow_dispatch:
 
 jobs:
-  incremental-sync:
+  full-sync:
     runs-on: ubuntu-latest
 
     steps:
@@ -25,9 +25,9 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Run incremental sync
+      - name: Run full sync (auto-detect new custom fields)
         env:
           HUBSPOT_API_KEY: ${{ secrets.HUBSPOT_API_KEY }}
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-        run: node scripts/sync-incremental.js
+        run: node scripts/sync-full.js

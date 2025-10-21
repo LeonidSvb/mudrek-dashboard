@@ -4,6 +4,10 @@
 .env.development.local
 .env.test.local
 .env.production.local
+.env.supabase
+
+# Migration scripts with hardcoded tokens
+scripts/migrate.sh
 
 # Ignore CSV data files (contains sensitive customer data)
 export/

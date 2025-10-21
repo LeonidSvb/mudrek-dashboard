@@ -1,106 +1,83 @@
-# 🚀 Deployment Guide for Client
+# 🚀 Deployment Guide
 
-## Quick Setup (5 minutes)
+## Architecture Overview
 
-### 1. Deploy to Vercel
+**NEW Architecture (No Vercel timeout issues!):**
 
-**Option A: Via GitHub (Recommended)**
-1. Fork or clone this repository to your GitHub account
-2. Go to [vercel.com](https://vercel.com)
-3. Click "New Project"
-4. Import your GitHub repository
-5. Vercel will auto-detect Next.js and configure everything
+```
+GitHub Actions (FREE, 2000 min/month)
+  ├─ Every 4 hours: Incremental Sync (35 fields + JSONB merge)
+  └─ Daily at 02:00: Full Sync (auto-detect new custom fields)
+       ↓
+  HubSpot ←→ Supabase
 
-**Option B: Via Vercel CLI**
-```bash
-npm i -g vercel
-vercel --prod
+Vercel (FREE Hobby plan)
+  └─ Next.js Dashboard (UI only, no sync)
 ```
 
----
-
-### 2. Add Environment Variables
-
-In Vercel Dashboard → Project Settings → Environment Variables, add:
-
-| Variable | Value | Where to get |
-|----------|-------|--------------|
-| `HUBSPOT_API_KEY` | Your HubSpot API key | HubSpot Settings → Integrations → Private Apps |
-| `SUPABASE_URL` | Your Supabase project URL | Supabase Dashboard → Settings → API |
-| `SUPABASE_SERVICE_KEY` | Your Supabase service role key | Supabase Dashboard → Settings → API |
-| `NEXT_PUBLIC_SUPABASE_URL` | Same as SUPABASE_URL | Supabase Dashboard → Settings → API |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Your Supabase anon key | Supabase Dashboard → Settings → API |
-
-After adding variables, redeploy:
-```bash
-Deployments → Latest → Redeploy
-```
+**Key benefits:**
+- ✅ No 10-second Vercel timeout (GitHub Actions = 6 hours max)
+- ✅ JSONB merge preserves old fields when syncing
+- ✅ Auto-detects new custom fields from Jason
+- ✅ 35 fields instead of 421 (91% space savings)
+- ✅ 100% FREE (no Vercel Pro needed)
 
 ---
 
-### 3. Automatic Sync Options
+## Quick Setup (10 minutes)
 
-**Current Configuration:**
-- ⏰ **Daily at 02:00 UTC**: Full sync (Vercel Cron - FREE on Hobby plan)
-- ⏰ **Hourly sync**: Requires external setup (see below)
+### 1. Fork Repository
 
-**Vercel Cron Limitations:**
-- ✅ **Hobby Plan (FREE)**: Daily cron jobs only (1 per day max)
-- ✅ **Pro Plan ($20/mo)**: Hourly/any frequency cron jobs
+1. Go to this repository on GitHub
+2. Click "Fork" button (top right)
+3. Wait for fork to complete
 
-**How to verify Vercel daily sync works:**
-1. Wait until next day 02:00 UTC
-2. Check Vercel Dashboard → Deployments → Functions
-3. You should see `/api/sync?mode=full` invocation
+### 2. Configure GitHub Secrets
 
----
+In your forked repository:
 
-### 4. Manual Sync (Optional)
+1. Go to **Settings** → **Secrets and variables** → **Actions**
+2. Click "New repository secret"
+3. Add these 3 secrets:
 
-**Via Dashboard:**
-1. Go to your deployed URL: `https://your-project.vercel.app`
-2. Navigate to `/sync` page
-3. Click "Sync Now"
+| Secret Name | Value | Where to get |
+|-------------|-------|--------------|
+| `HUBSPOT_API_KEY` | Your HubSpot private app token | HubSpot → Settings → Integrations → Private Apps |
+| `NEXT_PUBLIC_SUPABASE_URL` | `https://xxx.supabase.co` | Supabase Dashboard → Settings → API |
+| `SUPABASE_SERVICE_KEY` | `eyJxxx...` (service_role key) | Supabase Dashboard → Settings → API → service_role key |
 
-**Via API:**
-```bash
-# Incremental sync
-curl -X POST https://your-project.vercel.app/api/sync
+**Important:** Use the **service_role** key, NOT the anon key!
 
-# Full sync
-curl -X POST https://your-project.vercel.app/api/sync?mode=full
-```
+### 3. Verify Sync Works
 
----
+**Option A: Manual Test (recommended first time)**
 
-## Hourly Sync Setup (FREE - No Vercel Pro needed)
+1. Go to **Actions** tab in your GitHub repository
+2. Click "Hourly Incremental Sync" workflow
+3. Click "Run workflow" → "Run workflow"
+4. Wait 2-5 minutes
+5. Check run logs - should see "SYNC COMPLETED SUCCESSFULLY"
 
-**Recommended for production**: Use external cron service for hourly incremental sync.
+**Option B: Wait for automatic run**
 
-This works with Vercel Hobby (free) plan:
+- Incremental sync runs every 4 hours (00:00, 04:00, 08:00, 12:00, 16:00, 20:00 UTC)
+- Full sync runs daily at 02:00 UTC
 
-### Option 1: cron-job.org (Free)
+### 4. Deploy Dashboard to Vercel
 
-1. Go to [cron-job.org](https://cron-job.org)
-2. Register (free)
-3. Create new cronjob:
-   - **URL**: `https://your-project.vercel.app/api/sync`
-   - **Schedule**: Every hour (`0 * * * *`)
-   - **Name**: "HubSpot Incremental Sync"
-4. Create another cronjob:
-   - **URL**: `https://your-project.vercel.app/api/sync?mode=full`
-   - **Schedule**: Daily at 02:00 (`0 2 * * *`)
-   - **Name**: "HubSpot Full Sync"
+1. Go to [vercel.com](https://vercel.com)
+2. Click "New Project"
+3. Import your forked GitHub repository
+4. Add environment variables in Vercel:
 
-### Option 2: UptimeRobot (Free + Monitoring)
+| Variable | Value |
+|----------|-------|
+| `NEXT_PUBLIC_SUPABASE_URL` | Same as GitHub secret |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Your Supabase anon key (NOT service_role!) |
 
-1. Go to [uptimerobot.com](https://uptimerobot.com)
-2. Add Monitor → HTTP(s)
-3. URL: `https://your-project.vercel.app/api/sync`
-4. Monitoring Interval: 60 minutes
-5. Create another monitor for full sync (if needed)
+5. Deploy!
 
-**Note:** UptimeRobot checks every 5 minutes on free plan, so use keyword monitoring to trigger hourly.
+**Your dashboard will be live at:** `https://your-project.vercel.app`
 
 ---
 
@@ -131,46 +108,88 @@ Dashboard shows last sync time and status.
 
 ### Sync not running?
 
-**If using Vercel Cron:**
-1. Check you have Vercel Pro plan
-2. Verify environment variables are set
-3. Check Vercel Dashboard → Functions for errors
+**Check GitHub Actions:**
+1. Go to **Actions** tab in your repository
+2. Look for recent workflow runs
+3. Click on failed run to see error logs
 
-**If using external cron:**
-1. Verify URL is correct
-2. Test manually: `curl -X POST https://your-url/api/sync`
-3. Check cron service logs
+**Common issues:**
+- ❌ Missing GitHub Secrets → Add them in Settings → Secrets
+- ❌ Wrong Supabase key → Use service_role key, not anon key
+- ❌ HubSpot API key expired → Generate new one
 
 ### Sync failing?
 
-1. Check Vercel Function Logs
+1. Check GitHub Actions logs for specific error
 2. Verify HubSpot API key is valid
 3. Verify Supabase credentials
-4. Check Supabase `sync_logs` table for errors
+4. Check Supabase `sync_logs` table:
+   ```sql
+   SELECT * FROM sync_logs ORDER BY sync_started_at DESC LIMIT 10;
+   ```
+
+### Manual sync for testing
+
+Run locally:
+```bash
+# Install dependencies
+npm install
+
+# Set environment variables
+export HUBSPOT_API_KEY="your_key"
+export NEXT_PUBLIC_SUPABASE_URL="https://xxx.supabase.co"
+export SUPABASE_SERVICE_KEY="your_service_key"
+
+# Test incremental sync
+node scripts/sync-incremental.js
+
+# Test full sync
+node scripts/sync-full.js
+```
 
 ---
 
 ## Cost Breakdown
 
-**FREE Setup (Recommended):**
-- Vercel Hobby (Free): Hosting + daily sync
-- cron-job.org (Free): Hourly incremental sync
+**100% FREE Setup:**
+- GitHub Actions: Incremental (4hr) + Daily Full sync (FREE, 2000 minutes/month)
+- Vercel Hobby: Next.js dashboard hosting (FREE)
+- Supabase Free tier: 500MB database (FREE)
 - **Total: $0/month**
 
-**Alternative (Pro Plan):**
-- Vercel Pro ($20/mo): Everything + hourly cron built-in
-- **Total: $20/month**
+**If you exceed free limits:**
+- GitHub Actions Pro: $0.008/minute after 2000 minutes
+- Supabase Pro: $25/month for 8GB database
+- Vercel Pro: $20/month (NOT needed for this setup)
 
-**Current Project (GitHub repo owner):**
-- GitHub Actions: Hourly sync (FREE, already configured)
-- Vercel Hobby: Daily full sync (FREE)
-- **Total: $0/month**
+**Current setup uses:**
+- Incremental (6×/day): ~360 min/month
+- Daily full sync: ~600 min/month
+- **Total: ~960 min/month** (well under 2000 limit!)
+- Supabase: ~10MB (well under 500MB limit)
 
 ---
 
 ## Support
 
 For issues or questions, check:
-- Vercel logs: Vercel Dashboard → Functions
+- GitHub Actions logs: Actions tab in your repository
 - Supabase logs: `sync_logs` table
-- API endpoint: `/api/sync` (test manually)
+- Test locally: `node scripts/sync-incremental.js`
+
+---
+
+## What Changed from Old Architecture?
+
+**OLD (Vercel-based sync):**
+- ❌ 10-second timeout → sync failed for large datasets
+- ❌ Needed Vercel Pro ($20/mo) for hourly cron
+- ❌ Lost old fields when sync ran (no JSONB merge)
+- ❌ Synced 421 fields → wasted space
+
+**NEW (GitHub Actions):**
+- ✅ 6-hour timeout → no failures
+- ✅ 100% FREE (GitHub Actions free tier)
+- ✅ JSONB merge → preserves old fields
+- ✅ 35 critical fields → 91% space savings
+- ✅ Auto-detects new custom fields weekly
