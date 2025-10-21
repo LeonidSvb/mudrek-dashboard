@@ -173,7 +173,7 @@ export default function DashboardPage() {
         {/* Call Metrics */}
         <div className="mb-4">
           <h2 className="mb-2 text-sm font-semibold text-gray-700 uppercase tracking-wide">Call Performance</h2>
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-5">
             <MetricCard
               title="Total Calls"
               value={metrics.totalCalls}
@@ -193,6 +193,13 @@ export default function DashboardPage() {
               value={metrics.totalCallTime}
               format="decimal"
               subtitle="Hours total"
+            />
+
+            <MetricCard
+              title="Pickup Rate"
+              value={metrics.pickupRate}
+              format="percentage"
+              subtitle="Connected calls"
             />
 
             <MetricCard

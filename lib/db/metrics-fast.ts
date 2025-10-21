@@ -49,11 +49,12 @@ export interface AllMetrics {
   conversionRate: number;
   totalContactsCreated: number; // NEW! Contacts created in period
 
-  // Calls (4)
+  // Calls (5)
   totalCalls: number;
   avgCallTime: number;
   totalCallTime: number;
   fiveMinReachedRate: number;
+  pickupRate: number; // NEW! Connected calls / total calls
 
   // Conversion (3)
   qualifiedRate: number;
@@ -194,11 +195,12 @@ export async function getDashboardOverview(
       conversionRate: salesResult.data?.conversionRate || 0,
       totalContactsCreated: salesResult.data?.totalContactsCreated || 0,
 
-      // Call metrics (4)
+      // Call metrics (5)
       totalCalls: callsResult.data?.totalCalls || 0,
       avgCallTime: callsResult.data?.avgCallTime || 0,
       totalCallTime: callsResult.data?.totalCallTime || 0,
       fiveMinReachedRate: callsResult.data?.fiveMinReachedRate || 0,
+      pickupRate: callsResult.data?.pickupRate || 0,
 
       // Conversion metrics (3)
       qualifiedRate: conversionResult.data?.qualifiedRate || 0,
