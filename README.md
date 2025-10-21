@@ -20,6 +20,40 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## HubSpot Sync
+
+### Automatic Incremental Sync
+
+Incremental sync runs automatically **every hour** via GitHub Actions (`.github/workflows/incremental-sync.yml`).
+
+- Fetches only new/modified records since last sync
+- Duration: ~10-20 seconds
+- Handles rate limits with retry logic
+- Works perfectly on Vercel serverless
+
+### Manual Full Sync
+
+Full sync fetches ALL data from HubSpot (30,000+ contacts, deals, calls).
+
+**Important**: Full sync takes ~10 minutes and **CANNOT run on Vercel** due to serverless timeout limits (10 seconds on Hobby, 60 seconds on Pro).
+
+**When to use**:
+- Initial data load
+- Data recovery after issues
+- Major schema changes
+
+**How to run locally**:
+
+```bash
+# Start dev server
+npm run dev
+
+# In another terminal, trigger full sync
+curl -X POST "http://localhost:3000/api/sync?mode=full"
+```
+
+**Note**: Incremental sync captures all changes hourly, so full sync is rarely needed.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
