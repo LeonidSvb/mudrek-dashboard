@@ -345,6 +345,7 @@ CRON_SECRET=xxx
 | 2025-10-06 | **TypeScript over JavaScript** | Better autocomplete for AI coding, type safety, easier refactoring |
 | 2025-10-06 | **Next.js over Vite** | Known stack, Server Components, built-in API routes, free Vercel hosting |
 | 2025-10-06 | **@supabase/ssr for Next.js** | Proper SSR support, cookie management, Server Components compatible |
+| 2025-10-21 | **Supabase CLI + Baseline** | Industry standard, automatic tracking, clean slate from migration chaos |
 
 ---
 
@@ -429,7 +430,77 @@ import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 ```
 
+### 11. Migration Management: Supabase CLI + Baseline
+
+**Decision:** Use Supabase CLI for all database migrations with baseline approach
+
+**Date:** 2025-10-21
+
+**Problem:**
+- 51 migration files existed in `migrations/` directory
+- Only 17 actually applied in Supabase database
+- No tracking system - chaos of which migrations were applied
+- Manual application through SQL Editor and MCP
+- No standardized workflow for team
+
+**Solution:**
+1. **Baseline Migration:** Created snapshot of current database state (2025-10-21)
+2. **Supabase CLI:** Official tool for migration management
+3. **Archive:** Moved all 51 old migrations to `archive/old-migrations/`
+4. **Clean Slate:** Start fresh with timestamp-based migrations in `supabase/migrations/`
+
+**New Workflow:**
+```bash
+# Create migration
+npx supabase migration new feature_name
+
+# Apply migrations
+export SUPABASE_ACCESS_TOKEN="xxx"
+npx supabase db push
+
+# Check status
+npx supabase migration list
+```
+
+**Why Supabase CLI over Custom Script:**
+- **Industry Standard:** Official Supabase tool, well-maintained
+- **Automatic Tracking:** Creates and manages `schema_migrations` table automatically
+- **Timestamp Naming:** Prevents conflicts (20251021163342_feature_name.sql)
+- **Team Consistency:** Everyone uses same commands
+- **Less Code:** No need to maintain custom migration runner
+- **Version Control:** Full history in git + database
+
+**Why Baseline Approach:**
+- **Clean Start:** All existing changes already in production database
+- **No Re-Application:** Don't need to re-run old migrations
+- **Historical Record:** Old migrations archived for reference
+- **Agency Coding:** Simple, maintainable, no complex state reconciliation
+
+**Benefits:**
+- ✅ Clear source of truth (Supabase CLI migration table)
+- ✅ No more manual SQL Editor application
+- ✅ Git history tracks all schema changes
+- ✅ Easy onboarding for new developers
+- ✅ Prevents migration drift
+
+**Files Created:**
+- `supabase/migrations/20251021163342_baseline.sql` - Baseline marker
+- `WORKFLOW.md` - Step-by-step migration guide
+- `archive/BASELINE.md` - Documents pre-baseline state
+- `scripts/migrate.sh` - Helper script for easy migration push
+- `.env.supabase` - Stores Supabase credentials
+
+**Migration Table:**
+- Table: `supabase_migrations.schema_migrations`
+- Created automatically by Supabase CLI on first push
+- No manual creation needed
+
+**References:**
+- See `WORKFLOW.md` for complete workflow documentation
+- See `archive/BASELINE.md` for historical context
+- See `CLAUDE.md` section "Database Migrations (Supabase CLI)"
+
 ---
 
-**Last Reviewed:** 2025-10-06
+**Last Reviewed:** 2025-10-21
 **Next Review:** After Phase 1 completion
