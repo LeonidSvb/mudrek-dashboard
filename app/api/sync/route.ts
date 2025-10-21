@@ -388,39 +388,101 @@ export async function POST(request: NextRequest) {
     console.log(`║     Session Batch: ${sessionBatchId.slice(0, 8)}...       ║`);
     console.log('╚═══════════════════════════════════════════╝\n');
 
-    const [contactsResult, dealsResult, callsResult] = await Promise.allSettled([
-      syncContacts(sessionBatchId, isFullSync),
-      syncDeals(sessionBatchId, isFullSync),
-      syncCalls(sessionBatchId, isFullSync),
-    ]);
+    // Sequential sync to avoid HubSpot API rate limits
+    // Running all 3 in parallel can trigger "TEN_SECONDLY_ROLLING" limit
+    let contactsResult: SyncResult | null = null;
+    let dealsResult: SyncResult | null = null;
+    let callsResult: SyncResult | null = null;
+
+    const errors: string[] = [];
+
+    try {
+      contactsResult = await syncContacts(sessionBatchId, isFullSync);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      console.error('❌ Contacts sync failed:', message);
+      errors.push(`Contacts: ${message}`);
+    }
+
+    try {
+      dealsResult = await syncDeals(sessionBatchId, isFullSync);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      console.error('❌ Deals sync failed:', message);
+      errors.push(`Deals: ${message}`);
+    }
+
+    try {
+      callsResult = await syncCalls(sessionBatchId, isFullSync);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      console.error('❌ Calls sync failed:', message);
+      errors.push(`Calls: ${message}`);
+    }
 
     const results = {
-      contacts: contactsResult.status === 'fulfilled' ? contactsResult.value : null,
-      deals: dealsResult.status === 'fulfilled' ? dealsResult.value : null,
-      calls: callsResult.status === 'fulfilled' ? callsResult.value : null,
+      contacts: contactsResult,
+      deals: dealsResult,
+      calls: callsResult,
     };
 
     const totalDuration = Math.round((Date.now() - startTime) / 1000);
 
+    // Determine overall status
+    const successCount = [contactsResult, dealsResult, callsResult].filter(r => r !== null).length;
+    const totalCount = 3;
+    const allSuccess = successCount === totalCount;
+    const allFailed = successCount === 0;
+    const partialSuccess = successCount > 0 && successCount < totalCount;
+
     console.log('\n╔═══════════════════════════════════════════╗');
-    console.log('║         SYNC COMPLETED SUCCESSFULLY       ║');
+    if (allSuccess) {
+      console.log('║         SYNC COMPLETED SUCCESSFULLY       ║');
+    } else if (partialSuccess) {
+      console.log('║         SYNC COMPLETED PARTIALLY          ║');
+    } else {
+      console.log('║            SYNC FAILED                    ║');
+    }
     console.log('╚═══════════════════════════════════════════╝');
     console.log(`\n⏱️  Total duration: ${totalDuration}s`);
     console.log(`\n📊 Summary:`);
     if (results.contacts) {
       console.log(`   Contacts: ${results.contacts.records_fetched} fetched, ${results.contacts.records_inserted} new, ${results.contacts.records_updated} updated`);
+    } else {
+      console.log(`   Contacts: ❌ FAILED`);
     }
     if (results.deals) {
       console.log(`   Deals: ${results.deals.records_fetched} fetched, ${results.deals.records_inserted} new, ${results.deals.records_updated} updated`);
+    } else {
+      console.log(`   Deals: ❌ FAILED`);
     }
     if (results.calls) {
       console.log(`   Calls: ${results.calls.records_fetched} fetched, ${results.calls.records_inserted} new, ${results.calls.records_updated} updated`);
+    } else {
+      console.log(`   Calls: ❌ FAILED`);
+    }
+
+    if (errors.length > 0) {
+      console.log(`\n⚠️  Errors (${errors.length}):`);
+      errors.forEach(err => console.log(`   - ${err}`));
     }
     console.log('\n');
 
+    // Return appropriate status code
+    if (allFailed) {
+      return NextResponse.json({
+        success: false,
+        results,
+        errors,
+        total_duration_seconds: totalDuration,
+      }, { status: 500 });
+    }
+
     return NextResponse.json({
-      success: true,
+      success: allSuccess,
+      partial: partialSuccess,
       results,
+      errors: errors.length > 0 ? errors : undefined,
       total_duration_seconds: totalDuration,
     });
 

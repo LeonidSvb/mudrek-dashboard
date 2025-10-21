@@ -15,8 +15,10 @@ if (!HUBSPOT_API_KEY) {
   throw new Error('HUBSPOT_API_KEY is not defined in environment variables');
 }
 
-async function makeRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+async function makeRequest<T>(endpoint: string, options: RequestInit = {}, retryCount = 0): Promise<T> {
   const url = `${BASE_URL}${endpoint}`;
+  const MAX_RETRIES = 3;
+  const RETRY_DELAY_MS = 10000; // 10 seconds for rate limit recovery
 
   const defaultOptions: RequestInit = {
     headers: {
@@ -32,6 +34,14 @@ async function makeRequest<T>(endpoint: string, options: RequestInit = {}): Prom
 
     if (!response.ok) {
       const errorText = await response.text();
+
+      // Handle rate limit (429) with retry
+      if (response.status === 429 && retryCount < MAX_RETRIES) {
+        console.warn(`⚠️  Rate limit hit (429). Waiting ${RETRY_DELAY_MS/1000}s before retry ${retryCount + 1}/${MAX_RETRIES}...`);
+        await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
+        return makeRequest<T>(endpoint, options, retryCount + 1);
+      }
+
       throw new Error(`HubSpot API Error: ${response.status} - ${errorText}`);
     }
 
