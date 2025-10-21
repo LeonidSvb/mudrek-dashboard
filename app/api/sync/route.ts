@@ -426,6 +426,17 @@ export async function POST(request: NextRequest) {
       calls: callsResult,
     };
 
+    // Refresh materialized views to ensure metrics are up-to-date
+    console.log('\n🔄 Refreshing materialized views...');
+    try {
+      await supabase.rpc('refresh_materialized_views');
+      console.log('   ✅ Materialized views refreshed');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      console.warn('   ⚠️  Failed to refresh materialized views:', message);
+      // Don't fail the entire sync if refresh fails
+    }
+
     const totalDuration = Math.round((Date.now() - startTime) / 1000);
 
     // Determine overall status
