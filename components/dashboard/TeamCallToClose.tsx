@@ -2,6 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
+import { HelpCircle } from 'lucide-react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { formatMetricHelp, METRIC_DEFINITIONS } from '@/lib/metric-definitions';
 
 interface CallToCloseMetric {
   owner_id: string;
@@ -45,10 +53,13 @@ export function TeamCallToClose({ dateFrom, dateTo }: TeamCallToCloseProps) {
           return;
         }
 
-        // Calculate team rate
+        // Calculate team rate using weighted average (weighted by call volume)
         const totalCalls = salesManagers.reduce((sum: number, m: CallToCloseMetric) => sum + m.total_calls, 0);
-        const totalWon = salesManagers.reduce((sum: number, m: CallToCloseMetric) => sum + m.closed_won, 0);
-        const rate = totalCalls > 0 ? (totalWon / totalCalls) * 100 : 0;
+        const weightedSum = salesManagers.reduce(
+          (sum: number, m: CallToCloseMetric) => sum + (m.call_to_close_rate * m.total_calls),
+          0
+        );
+        const rate = totalCalls > 0 ? weightedSum / totalCalls : 0;
 
         // Sort by call_to_close_rate descending
         const sorted = [...salesManagers].sort((a, b) => b.call_to_close_rate - a.call_to_close_rate);
@@ -76,9 +87,23 @@ export function TeamCallToClose({ dateFrom, dateTo }: TeamCallToCloseProps) {
     );
   }
 
+  const helpText = formatMetricHelp(METRIC_DEFINITIONS.callToCloseRate);
+
   return (
     <Card className="p-3 hover:shadow-lg transition-shadow">
-      <div className="text-xs font-medium text-gray-500 mb-0.5">Team Call-to-Close</div>
+      <div className="flex items-center justify-between mb-0.5">
+        <div className="text-xs font-medium text-gray-500">Team Call-to-Close</div>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <HelpCircle className="h-3 w-3 text-gray-400 cursor-help" />
+            </TooltipTrigger>
+            <TooltipContent className="max-w-xs">
+              <p className="whitespace-pre-line text-xs">{helpText}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
       <div className="text-2xl font-bold text-gray-900 mb-1">{teamRate.toFixed(1)}%</div>
 
       <div className="flex gap-3 text-xs">

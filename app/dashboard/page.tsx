@@ -356,18 +356,18 @@ export default function DashboardPage() {
 
         {/* A/B Testing Metrics */}
         <div>
-          <h2 className="mb-4 text-xl font-semibold text-gray-700">A/B Testing</h2>
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-            <div className="rounded-lg border border-gray-200 bg-white p-6">
-              <h3 className="mb-4 text-lg font-semibold text-gray-900">Sales Script Performance</h3>
+          <h2 className="mb-2 text-sm font-semibold text-gray-700 uppercase tracking-wide">A/B Testing</h2>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <div className="rounded-lg border border-gray-200 bg-white p-4">
+              <h3 className="mb-3 text-base font-semibold text-gray-900">Sales Script Performance</h3>
               {metrics.salesScriptStats && metrics.salesScriptStats.length > 0 ? (
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {metrics.salesScriptStats.map((stat) => (
-                    <div key={stat.version} className="flex items-center justify-between border-b pb-2">
+                    <div key={stat.version} className="flex items-center justify-between border-b border-gray-100 pb-2 last:border-0">
                       <div>
-                        <p className="font-medium text-gray-900">{stat.version}</p>
-                        <p className="text-sm text-gray-500">
-                          {stat.conversions} / {stat.totalContacts} contacts
+                        <p className="font-medium text-gray-900">{stat.version || 'No version'}</p>
+                        <p className="text-xs text-gray-500">
+                          {stat.conversions} closed won / {stat.totalContacts} contacts
                         </p>
                       </div>
                       <p className="text-lg font-bold text-gray-900">{stat.conversionRate.toFixed(1)}%</p>
@@ -375,22 +375,27 @@ export default function DashboardPage() {
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-gray-500">No data available</p>
+                <div className="text-sm text-gray-500">
+                  <p>No data available</p>
+                  <p className="mt-1 text-xs">Fill &apos;sales_script_version&apos; field in HubSpot contacts</p>
+                </div>
               )}
             </div>
 
-            <div className="rounded-lg border border-gray-200 bg-white p-6">
-              <h3 className="mb-4 text-lg font-semibold text-gray-900">VSL Watch Impact</h3>
+            <div className="rounded-lg border border-gray-200 bg-white p-4">
+              <h3 className="mb-3 text-base font-semibold text-gray-900">VSL Watch Impact</h3>
               {metrics.vslWatchStats && metrics.vslWatchStats.length > 0 ? (
-                <div className="space-y-3">
-                  {metrics.vslWatchStats.map((stat) => (
-                    <div key={stat.watched} className="flex items-center justify-between border-b pb-2">
+                <div className="space-y-2">
+                  {metrics.vslWatchStats.map((stat, idx) => (
+                    <div key={idx} className="flex items-center justify-between border-b border-gray-100 pb-2 last:border-0">
                       <div>
                         <p className="font-medium text-gray-900">
-                          {stat.watched === 'true' ? 'Watched VSL' : stat.watched === 'false' ? 'Did not watch' : 'Unknown'}
+                          {stat.watched === 'true' ? '✓ Watched VSL' :
+                           stat.watched === 'false' ? '✗ Did not watch' :
+                           '? Unknown'}
                         </p>
-                        <p className="text-sm text-gray-500">
-                          {stat.conversions} / {stat.totalContacts} contacts
+                        <p className="text-xs text-gray-500">
+                          {stat.conversions} closed won / {stat.totalContacts} contacts
                         </p>
                       </div>
                       <p className="text-lg font-bold text-gray-900">{stat.conversionRate.toFixed(1)}%</p>
@@ -398,7 +403,10 @@ export default function DashboardPage() {
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-gray-500">No data available</p>
+                <div className="text-sm text-gray-500">
+                  <p>No data available</p>
+                  <p className="mt-1 text-xs">Fill &apos;vsl_watched&apos; field in HubSpot contacts</p>
+                </div>
               )}
             </div>
           </div>

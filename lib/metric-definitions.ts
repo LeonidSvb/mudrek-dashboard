@@ -165,6 +165,16 @@ export const METRIC_DEFINITIONS: Record<string, MetricDefinition> = {
   },
 
   // ============================================================
+  // CALL-TO-CLOSE METRICS (1)
+  // ============================================================
+  callToCloseRate: {
+    description: "Percentage of calls that resulted in closed won deals",
+    source: "HubSpot Calls → Associated contacts → Deals (closedwon) / Total calls",
+    interpretation: "Good rate: 1-3%. Shows conversion efficiency from calls to sales.",
+    ifZero: "May indicate: no closed deals yet, or contacts not properly associated with calls.",
+  },
+
+  // ============================================================
   // A/B TESTING METRICS (2)
   // ============================================================
   salesScriptVersion: {

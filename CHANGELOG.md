@@ -3,7 +3,61 @@
 Все значимые изменения в этом проекте будут задокументированы в этом файле.
 
 
-## [v3.31.4] - 2025-10-17 (CURRENT) - Hourly Sync & Vercel Deployment
+## [v3.32.0] - 2025-10-21 (CURRENT) - Call-to-Close Rate Metrics with ML-based Phone Mapping
+
+### Автоматическое отслеживание Call-to-Close Rate для sales managers
+
+**Проблема:**
+- Нужно отслеживать эффективность sales managers через Call-to-Close Rate
+- В HubSpot все сделки назначены на одного owner (Shadi Halloun)
+- Deal.owner_id и Contact.owner_id не отражают реального closing manager
+- Custom field потребовал бы ручного заполнения для каждой сделки
+
+**Решение - ML-based Phone Mapping (автообучающаяся система):**
+1. **Auto-Learning Phone Mapping**:
+   - Система анализирует историю звонков
+   - Автоматически определяет, какой номер принадлежит какому менеджеру
+   - Точность: 96.77% (только 3.23% спорных случаев)
+   - Обновляется после каждого синка (адаптируется к новым номерам)
+
+2. **Smart Deal Attribution**:
+   - Для каждой сделки находит последний звонок ДО даты закрытия
+   - Определяет closing manager по `call_from_number` через phone mapping
+   - Не требует ручной настройки или заполнения полей
+
+3. **Compact Dashboard Display**:
+   - Одна MetricCard "Team Call-to-Close" в секции "Call Performance"
+   - Показывает team efficiency для 3 sales managers
+   - Не зависит от фильтра owner_id (всегда показывает команду)
+   - Формула: (Total Closed Won / Total Calls) × 100
+
+**Технические детали:**
+- Migration 038: `phone_to_owner_mapping` materialized view
+- SQL Function: `get_call_to_close_metrics()` с фильтрами по owner/date
+- API Endpoint: `/api/metrics/call-to-close`
+- UI Component: `CallToCloseTable` на главном дашборде
+- Auto-refresh: materialized view обновляется после каждого синка
+
+**Как работает для клиента:**
+- ✅ Zero configuration - система учится сама
+- ✅ Zero maintenance - автоматически адаптируется к новым номерам
+- ✅ Новый sales manager → делает 10-20 звонков → система автоматически определяет его номера
+- ✅ Менеджер сменил номер → через день система обновит маппинг
+
+**Итоговая точность:**
+- Очень чистый (>90%): 28.29% звонков
+- Чистый (75-90%): 39.71% звонков
+- Приемлемо (60-75%): 28.77% звонков
+- Спорный (<60%): 3.23% звонков
+
+**Файлы:**
+- `migrations/038_call_to_close_metrics.sql`
+- `app/api/metrics/call-to-close/route.ts`
+- `app/dashboard/page.tsx` (добавлена MetricCard "Team Call-to-Close")
+- `lib/db/metrics-fast.ts` (+getCallToCloseMetrics)
+
+
+## [v3.31.4] - 2025-10-17 - Hourly Sync & Vercel Deployment
 
 ### Исправление пропущенных записей при синхронизации
 

@@ -276,3 +276,51 @@ export async function getAllMetrics(
     throw error;
   }
 }
+
+export interface CallToCloseMetric {
+  owner_id: string;
+  owner_name: string;
+  total_calls: number;
+  total_deals: number;
+  closed_won: number;
+  revenue: number;
+  call_to_close_rate: number;
+  deal_conversion_rate: number;
+}
+
+/**
+ * Get call-to-close conversion metrics
+ * Returns metrics by owner with automatic closing manager detection
+ */
+export async function getCallToCloseMetrics(
+  ownerId?: string | null,
+  dateFrom?: string | null,
+  dateTo?: string | null
+): Promise<CallToCloseMetric[]> {
+  const startTime = Date.now();
+
+  try {
+    const { data, error } = await supabase.rpc('get_call_to_close_metrics', {
+      p_owner_id: ownerId || null,
+      p_date_from: dateFrom || null,
+      p_date_to: dateTo || null,
+    });
+
+    if (error) {
+      logger.error('Call-to-close metrics SQL error', { error });
+      throw new Error(`Failed to fetch call-to-close metrics: ${error.message}`);
+    }
+
+    const duration = Date.now() - startTime;
+    logger.info('Call-to-close metrics fetched', {
+      duration_ms: duration,
+      count: data?.length || 0,
+    });
+
+    return (data || []) as CallToCloseMetric[];
+
+  } catch (error) {
+    logger.error('Failed to fetch call-to-close metrics', { error });
+    throw error;
+  }
+}
