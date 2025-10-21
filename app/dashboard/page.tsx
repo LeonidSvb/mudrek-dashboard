@@ -9,6 +9,7 @@ import { DashboardHelp } from '@/components/dashboard/DashboardHelp';
 import { SalesFunnel } from '@/components/dashboard/SalesFunnel';
 import { DealsBreakdown } from '@/components/dashboard/DealsBreakdown';
 import { TimelineCharts } from '@/components/dashboard/TimelineCharts';
+import { TeamCallToClose } from '@/components/dashboard/TeamCallToClose';
 import type { AllMetrics } from '@/lib/db/metrics-fast';
 import { formatMetricHelp, METRIC_DEFINITIONS } from '@/lib/metric-definitions';
 
@@ -26,7 +27,6 @@ export default function DashboardPage() {
     from: subDays(new Date(), 30),
     to: new Date(),
   });
-  const [teamCallToClose, setTeamCallToClose] = useState<number>(0);
 
   useEffect(() => {
     async function fetchMetrics() {
@@ -63,45 +63,6 @@ export default function DashboardPage() {
 
     fetchMetrics();
   }, [ownerId, dateRange]);
-
-  useEffect(() => {
-    async function fetchTeamCallToClose() {
-      try {
-        const params = new URLSearchParams();
-        params.set('date_from', dateRange.from.toISOString().split('T')[0]);
-        params.set('date_to', dateRange.to.toISOString().split('T')[0]);
-
-        const url = `/api/metrics/call-to-close${params.toString() ? '?' + params.toString() : ''}`;
-        const res = await fetch(url);
-
-        if (!res.ok) return;
-
-        const data = await res.json();
-
-        // Filter only 3 sales managers
-        const salesManagers = data.filter((m: any) =>
-          ['81280578', '726197388', '687247262'].includes(m.owner_id)
-        );
-
-        if (salesManagers.length === 0) {
-          setTeamCallToClose(0);
-          return;
-        }
-
-        // Calculate team rate: (Total Closed Won / Total Calls) × 100
-        const totalCalls = salesManagers.reduce((sum: number, m: any) => sum + m.total_calls, 0);
-        const totalClosedWon = salesManagers.reduce((sum: number, m: any) => sum + m.closed_won, 0);
-        const rate = totalCalls > 0 ? (totalClosedWon / totalCalls) * 100 : 0;
-
-        setTeamCallToClose(rate);
-      } catch (err) {
-        console.error('Failed to fetch team call-to-close:', err);
-        setTeamCallToClose(0);
-      }
-    }
-
-    fetchTeamCallToClose();
-  }, [dateRange]);
 
   if (error) {
     return (
@@ -260,12 +221,9 @@ export default function DashboardPage() {
               helpText={formatMetricHelp(METRIC_DEFINITIONS.fiveMinReachedRate)}
             />
 
-            <MetricCard
-              title="Team Call-to-Close"
-              value={teamCallToClose}
-              format="percentage"
-              subtitle="3 sales managers"
-              helpText="Percentage of calls that result in closed deals. Calculated for 3 sales managers (Wala, Mothanna, Abd Elsalam). Formula: (Total Closed Won / Total Calls) × 100. System automatically determines closing manager from last call before deal close."
+            <TeamCallToClose
+              dateFrom={dateRange.from.toISOString().split('T')[0]}
+              dateTo={dateRange.to.toISOString().split('T')[0]}
             />
           </div>
         </div>
