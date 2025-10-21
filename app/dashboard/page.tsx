@@ -9,6 +9,7 @@ import { DashboardHelp } from '@/components/dashboard/DashboardHelp';
 import { SalesFunnel } from '@/components/dashboard/SalesFunnel';
 import { DealsBreakdown } from '@/components/dashboard/DealsBreakdown';
 import { TimelineCharts } from '@/components/dashboard/TimelineCharts';
+import { CallToCloseTable } from '@/components/dashboard/CallToCloseTable';
 import type { AllMetrics } from '@/lib/db/metrics-fast';
 
 interface DateRange {
@@ -129,6 +130,15 @@ export default function DashboardPage() {
           dateTo={dateRange.to.toISOString().split('T')[0]}
         />
 
+        {/* Call-to-Close Performance Table */}
+        <div className="mb-6">
+          <CallToCloseTable
+            ownerId={ownerId === 'all' ? null : ownerId}
+            dateFrom={dateRange.from.toISOString().split('T')[0]}
+            dateTo={dateRange.to.toISOString().split('T')[0]}
+          />
+        </div>
+
         {/* Top 5 KPIs */}
         <div className="mb-4">
           <h2 className="mb-2 text-sm font-semibold text-gray-700 uppercase tracking-wide">Key Metrics</h2>
@@ -138,6 +148,7 @@ export default function DashboardPage() {
               value={metrics.totalSales}
               format="currency"
               subtitle="Closed won deals"
+              helpText="Sum of all deal amounts in 'Closed Won' stage. Source: HubSpot deals with dealstage = 'closedwon'."
             />
 
             <MetricCard
@@ -159,6 +170,7 @@ export default function DashboardPage() {
               value={metrics.conversionRate}
               format="percentage"
               subtitle="Contacts to customers"
+              helpText="Percentage of contacts who became paying customers. Formula: (Closed Won Deals / Total Contacts) × 100."
             />
 
             <MetricCard
@@ -200,6 +212,7 @@ export default function DashboardPage() {
               value={metrics.pickupRate}
               format="percentage"
               subtitle="Connected calls"
+              helpText="Percentage of calls where the contact answered and had a real conversation (avg 4+ min). Calculated using HubSpot call outcome UUID (f240bbac = Connected)."
             />
 
             <MetricCard
@@ -207,6 +220,7 @@ export default function DashboardPage() {
               value={metrics.fiveMinReachedRate}
               format="percentage"
               subtitle="Calls over 5 minutes"
+              helpText="Percentage of calls that lasted 5 minutes or longer. Quality indicator for meaningful conversations. Formula: (Calls >= 5 min / Total Calls) × 100."
             />
           </div>
         </div>
@@ -254,6 +268,7 @@ export default function DashboardPage() {
               value={metrics.avgInstallments}
               format="decimal"
               subtitle="Payment plan months"
+              helpText="Average number of monthly installments for payment plans. Currently shows 0 because 'number_of_installments__months' field is empty in HubSpot. Please fill this field in HubSpot to see data."
             />
           </div>
         </div>

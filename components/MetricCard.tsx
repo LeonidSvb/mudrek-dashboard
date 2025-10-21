@@ -1,7 +1,13 @@
 'use client';
 
-import { ArrowUpIcon, ArrowDownIcon, MinusIcon } from 'lucide-react';
+import { ArrowUpIcon, ArrowDownIcon, MinusIcon, HelpCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 interface MetricCardProps {
   title: string;
@@ -14,6 +20,7 @@ interface MetricCardProps {
   };
   subtitle?: string;
   className?: string;
+  helpText?: string; // NEW! Tooltip with explanation
 }
 
 export function MetricCard({
@@ -22,7 +29,8 @@ export function MetricCard({
   format = 'number',
   trend,
   subtitle,
-  className
+  className,
+  helpText
 }: MetricCardProps) {
   const formattedValue = formatValue(value, format);
 
@@ -35,7 +43,23 @@ export function MetricCard({
     >
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <p className="text-xs font-medium text-gray-600">{title}</p>
+          <div className="flex items-center gap-1">
+            <p className="text-xs font-medium text-gray-600">{title}</p>
+            {helpText && (
+              <TooltipProvider delayDuration={200}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button className="text-gray-400 hover:text-gray-600 transition-colors">
+                      <HelpCircle className="h-3 w-3" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-xs">
+                    <p className="text-xs">{helpText}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+          </div>
           <p className="mt-1 text-lg font-bold text-gray-900">{formattedValue}</p>
           {subtitle && (
             <p className="mt-0.5 text-xs text-gray-500">{subtitle}</p>
