@@ -1,0 +1,19 @@
+{
+  "model": "sonnet",
+  "permissions": {
+    "allow": [
+      "Bash(npm:*)",
+      "Bash(npx:*)",
+      "Bash(node:*)",
+      "Bash(git:*)",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "Read(C:\\Users\\79818\\Desktop\\Shadi - new\\**)",
+      "Read(C:\\Users\\79818\\Desktop\\**)",
+      "Bash(python:*)",
+      "Bash(py:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

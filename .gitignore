@@ -35,6 +35,8 @@ Thumbs.db
 
 # Logs
 *.log
+logs/
+archive/old-logs/
 
 # Next.js build artifacts
 .next/
