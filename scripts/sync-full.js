@@ -378,55 +378,15 @@ async function syncContacts(sessionBatchId, contactProperties) {
   const startTime = Date.now();
   const batchId = crypto.randomUUID();
 
-  const { data: logData } = await supabase
-    .from('sync_logs')
-    .insert({
-      object_type: 'contacts',
-      triggered_by: 'github_action_weekly',
-      batch_id: batchId,
-      sync_batch_id: sessionBatchId,
-      sync_started_at: new Date().toISOString(),
-      metadata: { sync_mode: 'full', properties_count: contactProperties.length }
-    })
-    .select()
-    .single();
+  const contacts = await fetchAllContacts(contactProperties);
+  const transformed = contacts.map(c => transformContact(c, batchId));
+  const { inserted, updated, failed } = await upsertWithMerge('hubspot_contacts_raw', transformed);
 
-  try {
-    const contacts = await fetchAllContacts(contactProperties);
-    const transformed = contacts.map(c => transformContact(c, batchId));
-    const { inserted, updated, failed } = await upsertWithMerge('hubspot_contacts_raw', transformed);
+  const duration = Math.round((Date.now() - startTime) / 1000);
 
-    const duration = Math.round((Date.now() - startTime) / 1000);
+  console.log(`✅ Contacts: ${contacts.length} fetched, ${inserted} new, ${updated} updated (${duration}s)`);
 
-    await supabase
-      .from('sync_logs')
-      .update({
-        sync_completed_at: new Date().toISOString(),
-        duration_seconds: duration,
-        records_fetched: contacts.length,
-        records_inserted: inserted,
-        records_updated: updated,
-        records_failed: failed,
-        status: failed === 0 ? 'success' : 'partial',
-      })
-      .eq('id', logData.id);
-
-    console.log(`✅ Contacts: ${contacts.length} fetched, ${inserted} new, ${updated} updated (${duration}s)`);
-
-    return { success: failed === 0 };
-
-  } catch (error) {
-    await supabase
-      .from('sync_logs')
-      .update({
-        sync_completed_at: new Date().toISOString(),
-        status: 'failed',
-        error_message: error.message,
-      })
-      .eq('id', logData.id);
-
-    throw error;
-  }
+  return { success: failed === 0, records: contacts.length, inserted, updated };
 }
 
 async function syncDeals(sessionBatchId) {
@@ -437,55 +397,15 @@ async function syncDeals(sessionBatchId) {
   const startTime = Date.now();
   const batchId = crypto.randomUUID();
 
-  const { data: logData } = await supabase
-    .from('sync_logs')
-    .insert({
-      object_type: 'deals',
-      triggered_by: 'github_action_weekly',
-      batch_id: batchId,
-      sync_batch_id: sessionBatchId,
-      sync_started_at: new Date().toISOString(),
-      metadata: { sync_mode: 'full' }
-    })
-    .select()
-    .single();
+  const deals = await fetchAllDeals(DEAL_PROPERTIES);
+  const transformed = deals.map(d => transformDeal(d, batchId));
+  const { inserted, updated, failed } = await upsertWithMerge('hubspot_deals_raw', transformed);
 
-  try {
-    const deals = await fetchAllDeals(DEAL_PROPERTIES);
-    const transformed = deals.map(d => transformDeal(d, batchId));
-    const { inserted, updated, failed } = await upsertWithMerge('hubspot_deals_raw', transformed);
+  const duration = Math.round((Date.now() - startTime) / 1000);
 
-    const duration = Math.round((Date.now() - startTime) / 1000);
+  console.log(`✅ Deals: ${deals.length} fetched, ${inserted} new, ${updated} updated (${duration}s)`);
 
-    await supabase
-      .from('sync_logs')
-      .update({
-        sync_completed_at: new Date().toISOString(),
-        duration_seconds: duration,
-        records_fetched: deals.length,
-        records_inserted: inserted,
-        records_updated: updated,
-        records_failed: failed,
-        status: failed === 0 ? 'success' : 'partial',
-      })
-      .eq('id', logData.id);
-
-    console.log(`✅ Deals: ${deals.length} fetched, ${inserted} new, ${updated} updated (${duration}s)`);
-
-    return { success: failed === 0 };
-
-  } catch (error) {
-    await supabase
-      .from('sync_logs')
-      .update({
-        sync_completed_at: new Date().toISOString(),
-        status: 'failed',
-        error_message: error.message,
-      })
-      .eq('id', logData.id);
-
-    throw error;
-  }
+  return { success: failed === 0, records: deals.length, inserted, updated };
 }
 
 async function syncCalls(sessionBatchId) {
@@ -496,55 +416,15 @@ async function syncCalls(sessionBatchId) {
   const startTime = Date.now();
   const batchId = crypto.randomUUID();
 
-  const { data: logData } = await supabase
-    .from('sync_logs')
-    .insert({
-      object_type: 'calls',
-      triggered_by: 'github_action_weekly',
-      batch_id: batchId,
-      sync_batch_id: sessionBatchId,
-      sync_started_at: new Date().toISOString(),
-      metadata: { sync_mode: 'full' }
-    })
-    .select()
-    .single();
+  const calls = await fetchAllCalls(CALL_PROPERTIES);
+  const transformed = calls.map(c => transformCall(c, batchId));
+  const { inserted, updated, failed } = await insertNew('hubspot_calls_raw', transformed);
 
-  try {
-    const calls = await fetchAllCalls(CALL_PROPERTIES);
-    const transformed = calls.map(c => transformCall(c, batchId));
-    const { inserted, updated, failed } = await insertNew('hubspot_calls_raw', transformed);
+  const duration = Math.round((Date.now() - startTime) / 1000);
 
-    const duration = Math.round((Date.now() - startTime) / 1000);
+  console.log(`✅ Calls: ${calls.length} fetched, ${inserted} new, ${updated} updated (${duration}s)`);
 
-    await supabase
-      .from('sync_logs')
-      .update({
-        sync_completed_at: new Date().toISOString(),
-        duration_seconds: duration,
-        records_fetched: calls.length,
-        records_inserted: inserted,
-        records_updated: updated,
-        records_failed: failed,
-        status: failed === 0 ? 'success' : 'partial',
-      })
-      .eq('id', logData.id);
-
-    console.log(`✅ Calls: ${calls.length} fetched, ${inserted} new, ${updated} updated (${duration}s)`);
-
-    return { success: failed === 0 };
-
-  } catch (error) {
-    await supabase
-      .from('sync_logs')
-      .update({
-        sync_completed_at: new Date().toISOString(),
-        status: 'failed',
-        error_message: error.message,
-      })
-      .eq('id', logData.id);
-
-    throw error;
-  }
+  return { success: failed === 0, records: calls.length, inserted, updated };
 }
 
 // ===== MAIN =====

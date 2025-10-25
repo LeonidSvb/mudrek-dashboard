@@ -134,14 +134,14 @@ async function makeHubSpotRequest(endpoint, options = {}, retryCount = 0) {
   }
 }
 
-async function getLastSuccessfulSyncTime(objectType) {
+async function getLastSuccessfulSyncTime() {
   const { data, error } = await supabase
-    .from('sync_logs')
-    .select('sync_completed_at')
-    .eq('object_type', objectType)
+    .from('runs')
+    .select('finished_at')
+    .eq('script_name', 'hubspot-incremental-sync')
     .eq('status', 'success')
-    .not('sync_completed_at', 'is', null)
-    .order('sync_completed_at', { ascending: false })
+    .not('finished_at', 'is', null)
+    .order('finished_at', { ascending: false })
     .limit(1)
     .single();
 
@@ -149,7 +149,7 @@ async function getLastSuccessfulSyncTime(objectType) {
     return null;
   }
 
-  return new Date(data.sync_completed_at);
+  return new Date(data.finished_at);
 }
 
 async function searchContactsByDate(since, properties) {
@@ -474,71 +474,24 @@ async function syncContacts(sessionBatchId) {
   const startTime = Date.now();
   const batchId = crypto.randomUUID();
 
-  // Log start
-  const { data: logData, error: logError } = await supabase
-    .from('sync_logs')
-    .insert({
-      object_type: 'contacts',
-      triggered_by: 'github_action',
-      batch_id: sessionBatchId,
-      sync_started_at: new Date().toISOString(),
-      status: 'running',
-    })
-    .select()
-    .single();
+  const lastSyncTime = await getLastSuccessfulSyncTime();
 
-  if (logError || !logData) {
-    console.error('Failed to create sync log:', logError);
-    throw new Error(`Failed to create sync log: ${logError?.message || 'Unknown error'}`);
+  if (!lastSyncTime) {
+    console.log('⚠️  No previous sync found. Use sync-full.js for first sync.');
+    throw new Error('First sync must be full sync');
   }
 
-  try {
-    const lastSyncTime = await getLastSuccessfulSyncTime('contacts');
+  console.log(`🔄 Incremental sync: fetching contacts modified since ${lastSyncTime.toISOString()}`);
+  const contacts = await searchContactsByDate(lastSyncTime, CONTACT_PROPERTIES);
 
-    if (!lastSyncTime) {
-      console.log('⚠️  No previous sync found. Use sync-full.js for first sync.');
-      throw new Error('First sync must be full sync');
-    }
+  const transformed = contacts.map(c => transformContact(c, batchId));
+  const { inserted, updated, failed } = await upsertWithMerge('hubspot_contacts_raw', transformed);
 
-    console.log(`🔄 Incremental sync: fetching contacts modified since ${lastSyncTime.toISOString()}`);
-    const contacts = await searchContactsByDate(lastSyncTime, CONTACT_PROPERTIES);
+  const duration = Math.round((Date.now() - startTime) / 1000);
 
-    const transformed = contacts.map(c => transformContact(c, batchId));
-    const { inserted, updated, failed } = await upsertWithMerge('hubspot_contacts_raw', transformed);
+  console.log(`✅ Contacts: ${contacts.length} fetched, ${inserted} new, ${updated} updated (${duration}s)`);
 
-    const duration = Math.round((Date.now() - startTime) / 1000);
-
-    // Log completion
-    await supabase
-      .from('sync_logs')
-      .update({
-        sync_completed_at: new Date().toISOString(),
-        duration_seconds: duration,
-        records_fetched: contacts.length,
-        records_inserted: inserted,
-        records_updated: updated,
-        records_failed: failed,
-        status: failed === 0 ? 'success' : 'partial',
-      })
-      .eq('id', logData.id);
-
-    console.log(`✅ Contacts: ${contacts.length} fetched, ${inserted} new, ${updated} updated (${duration}s)`);
-
-    return { success: failed === 0, records: contacts.length, inserted, updated };
-
-  } catch (error) {
-    // Log error
-    await supabase
-      .from('sync_logs')
-      .update({
-        sync_completed_at: new Date().toISOString(),
-        status: 'failed',
-        error_message: error.message,
-      })
-      .eq('id', logData.id);
-
-    throw error;
-  }
+  return { success: failed === 0, records: contacts.length, inserted, updated };
 }
 
 async function syncDeals(sessionBatchId) {
@@ -549,63 +502,24 @@ async function syncDeals(sessionBatchId) {
   const startTime = Date.now();
   const batchId = crypto.randomUUID();
 
-  const { data: logData } = await supabase
-    .from('sync_logs')
-    .insert({
-      object_type: 'deals',
-      triggered_by: 'github_action',
-      batch_id: sessionBatchId,
-      sync_started_at: new Date().toISOString(),
-      status: 'running',
-    })
-    .select()
-    .single();
+  const lastSyncTime = await getLastSuccessfulSyncTime();
 
-  try {
-    const lastSyncTime = await getLastSuccessfulSyncTime('deals');
-
-    if (!lastSyncTime) {
-      console.log('⚠️  No previous sync found. Use sync-full.js for first sync.');
-      throw new Error('First sync must be full sync');
-    }
-
-    console.log(`🔄 Incremental sync: fetching deals modified since ${lastSyncTime.toISOString()}`);
-    const deals = await searchDealsByDate(lastSyncTime, DEAL_PROPERTIES);
-
-    const transformed = deals.map(d => transformDeal(d, batchId));
-    const { inserted, updated, failed } = await upsertWithMerge('hubspot_deals_raw', transformed);
-
-    const duration = Math.round((Date.now() - startTime) / 1000);
-
-    await supabase
-      .from('sync_logs')
-      .update({
-        sync_completed_at: new Date().toISOString(),
-        duration_seconds: duration,
-        records_fetched: deals.length,
-        records_inserted: inserted,
-        records_updated: updated,
-        records_failed: failed,
-        status: failed === 0 ? 'success' : 'partial',
-      })
-      .eq('id', logData.id);
-
-    console.log(`✅ Deals: ${deals.length} fetched, ${inserted} new, ${updated} updated (${duration}s)`);
-
-    return { success: failed === 0, records: deals.length, inserted, updated };
-
-  } catch (error) {
-    await supabase
-      .from('sync_logs')
-      .update({
-        sync_completed_at: new Date().toISOString(),
-        status: 'failed',
-        error_message: error.message,
-      })
-      .eq('id', logData.id);
-
-    throw error;
+  if (!lastSyncTime) {
+    console.log('⚠️  No previous sync found. Use sync-full.js for first sync.');
+    throw new Error('First sync must be full sync');
   }
+
+  console.log(`🔄 Incremental sync: fetching deals modified since ${lastSyncTime.toISOString()}`);
+  const deals = await searchDealsByDate(lastSyncTime, DEAL_PROPERTIES);
+
+  const transformed = deals.map(d => transformDeal(d, batchId));
+  const { inserted, updated, failed } = await upsertWithMerge('hubspot_deals_raw', transformed);
+
+  const duration = Math.round((Date.now() - startTime) / 1000);
+
+  console.log(`✅ Deals: ${deals.length} fetched, ${inserted} new, ${updated} updated (${duration}s)`);
+
+  return { success: failed === 0, records: deals.length, inserted, updated };
 }
 
 async function syncCalls(sessionBatchId) {
@@ -616,63 +530,24 @@ async function syncCalls(sessionBatchId) {
   const startTime = Date.now();
   const batchId = crypto.randomUUID();
 
-  const { data: logData } = await supabase
-    .from('sync_logs')
-    .insert({
-      object_type: 'calls',
-      triggered_by: 'github_action',
-      batch_id: sessionBatchId,
-      sync_started_at: new Date().toISOString(),
-      status: 'running',
-    })
-    .select()
-    .single();
+  const lastSyncTime = await getLastSuccessfulSyncTime();
 
-  try {
-    const lastSyncTime = await getLastSuccessfulSyncTime('calls');
-
-    if (!lastSyncTime) {
-      console.log('⚠️  No previous sync found. Use sync-full.js for first sync.');
-      throw new Error('First sync must be full sync');
-    }
-
-    console.log(`🔄 Incremental sync: fetching calls created since ${lastSyncTime.toISOString()}`);
-    const calls = await searchCallsByDate(lastSyncTime, CALL_PROPERTIES);
-
-    const transformed = calls.map(c => transformCall(c, batchId));
-    const { inserted, updated, failed } = await insertNew('hubspot_calls_raw', transformed);
-
-    const duration = Math.round((Date.now() - startTime) / 1000);
-
-    await supabase
-      .from('sync_logs')
-      .update({
-        sync_completed_at: new Date().toISOString(),
-        duration_seconds: duration,
-        records_fetched: calls.length,
-        records_inserted: inserted,
-        records_updated: updated,
-        records_failed: failed,
-        status: failed === 0 ? 'success' : 'partial',
-      })
-      .eq('id', logData.id);
-
-    console.log(`✅ Calls: ${calls.length} fetched, ${inserted} new, ${updated} updated (${duration}s)`);
-
-    return { success: failed === 0, records: calls.length, inserted, updated };
-
-  } catch (error) {
-    await supabase
-      .from('sync_logs')
-      .update({
-        sync_completed_at: new Date().toISOString(),
-        status: 'failed',
-        error_message: error.message,
-      })
-      .eq('id', logData.id);
-
-    throw error;
+  if (!lastSyncTime) {
+    console.log('⚠️  No previous sync found. Use sync-full.js for first sync.');
+    throw new Error('First sync must be full sync');
   }
+
+  console.log(`🔄 Incremental sync: fetching calls created since ${lastSyncTime.toISOString()}`);
+  const calls = await searchCallsByDate(lastSyncTime, CALL_PROPERTIES);
+
+  const transformed = calls.map(c => transformCall(c, batchId));
+  const { inserted, updated, failed } = await insertNew('hubspot_calls_raw', transformed);
+
+  const duration = Math.round((Date.now() - startTime) / 1000);
+
+  console.log(`✅ Calls: ${calls.length} fetched, ${inserted} new, ${updated} updated (${duration}s)`);
+
+  return { success: failed === 0, records: calls.length, inserted, updated };
 }
 
 // ===== MAIN =====
