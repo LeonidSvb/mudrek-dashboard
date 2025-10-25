@@ -102,6 +102,9 @@ const DEAL_PROPERTIES = [
   'offer_accepted',
   'hubspot_owner_id',
   'lastmodifieddate',
+  'deal_whole_amount',
+  'the_left_amount',
+  'installment_monthly_amount',
 ];
 
 const CALL_PROPERTIES = [
@@ -256,6 +259,9 @@ function transformDeal(deal, batchId) {
     offer_given: props.offer_given === 'true' || props.offer_given === '1',
     offer_accepted: props.offer_accepted === 'true' || props.offer_accepted === '1',
     hubspot_owner_id: props.hubspot_owner_id || null,
+    deal_whole_amount: props.deal_whole_amount ? parseFloat(props.deal_whole_amount) : null,
+    the_left_amount: props.the_left_amount ? parseFloat(props.the_left_amount) : null,
+    installment_monthly_amount: props.installment_monthly_amount ? parseFloat(props.installment_monthly_amount) : null,
     raw_json: deal,
     sync_batch_id: batchId,
   };
