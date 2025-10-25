@@ -9,6 +9,7 @@
  */
 
 const { createClient } = require('@supabase/supabase-js');
+const { createRun, Logger, updateRun } = require('../lib/cron-logger');
 
 // Environment variables
 const HUBSPOT_API_KEY = process.env.HUBSPOT_API_KEY;
@@ -338,6 +339,35 @@ async function upsertWithMerge(tableName, records) {
   return { inserted, updated, failed };
 }
 
+async function insertNew(tableName, records) {
+  if (records.length === 0) return { inserted: 0, updated: 0, failed: 0 };
+
+  const BATCH_SIZE = 500;
+  let inserted = 0;
+  let failed = 0;
+
+  console.log(`   📊 Inserting ${records.length} new records (calls are immutable)`);
+
+  // Simple batch insert - calls never update
+  for (let i = 0; i < records.length; i += BATCH_SIZE) {
+    const batch = records.slice(i, i + BATCH_SIZE);
+
+    const { error } = await supabase
+      .from(tableName)
+      .upsert(batch, { onConflict: 'hubspot_id', ignoreDuplicates: true });
+
+    if (error) {
+      console.error(`   ❌ Batch ${i}-${i + BATCH_SIZE} failed:`, error.message);
+      failed += batch.length;
+    } else {
+      inserted += batch.length;
+      console.log(`   ✅ Batch ${i}-${i + BATCH_SIZE}: ${batch.length} inserted`);
+    }
+  }
+
+  return { inserted, updated: 0, failed };
+}
+
 // ===== SYNC FUNCTIONS =====
 
 async function syncContacts(sessionBatchId, contactProperties) {
@@ -482,7 +512,7 @@ async function syncCalls(sessionBatchId) {
   try {
     const calls = await fetchAllCalls(CALL_PROPERTIES);
     const transformed = calls.map(c => transformCall(c, batchId));
-    const { inserted, updated, failed } = await upsertWithMerge('hubspot_calls_raw', transformed);
+    const { inserted, updated, failed } = await insertNew('hubspot_calls_raw', transformed);
 
     const duration = Math.round((Date.now() - startTime) / 1000);
 
@@ -522,80 +552,140 @@ async function syncCalls(sessionBatchId) {
 async function main() {
   const sessionBatchId = crypto.randomUUID();
 
-  console.log('\n╔═══════════════════════════════════════════╗');
-  console.log('║     HUBSPOT → SUPABASE FULL SYNC          ║');
-  console.log(`║     Session: ${sessionBatchId.slice(0, 8)}...             ║`);
-  console.log('╚═══════════════════════════════════════════╝\n');
+  // Create run and logger
+  const run = await createRun(
+    'hubspot-full-sync',
+    SUPABASE_URL,
+    SUPABASE_SERVICE_KEY,
+    process.env.GITHUB_ACTIONS ? 'github-actions' : 'manual'
+  );
+
+  const logger = new Logger(run.id, SUPABASE_URL, SUPABASE_SERVICE_KEY);
+
+  await logger.info('START', `Starting full sync (session: ${sessionBatchId.slice(0, 8)}...)`);
 
   const startTime = Date.now();
   const errors = [];
+  const stats = {
+    contacts: { fetched: 0, inserted: 0, updated: 0 },
+    deals: { fetched: 0, inserted: 0, updated: 0 },
+    calls: { fetched: 0, inserted: 0, updated: 0 },
+  };
 
   // Auto-detect custom contact properties
   let customProperties = [];
   try {
+    await logger.info('DETECT_PROPS', 'Auto-detecting custom contact properties');
     customProperties = await getCustomContactProperties();
+    await logger.info('DETECT_PROPS', `Found ${customProperties.length} custom properties`);
   } catch (error) {
-    console.warn('⚠️  Failed to auto-detect custom properties, using base set only');
-    console.warn(error.message);
+    await logger.warning('DETECT_PROPS', `Failed to auto-detect custom properties: ${error.message}`);
   }
 
   const contactProperties = [...BASE_CONTACT_PROPERTIES, ...customProperties];
-  console.log(`📋 Syncing ${contactProperties.length} contact properties (${BASE_CONTACT_PROPERTIES.length} base + ${customProperties.length} custom)\n`);
+  await logger.info('DETECT_PROPS', `Syncing ${contactProperties.length} contact properties (${BASE_CONTACT_PROPERTIES.length} base + ${customProperties.length} custom)`);
 
   // Sequential sync
   try {
-    await syncContacts(sessionBatchId, contactProperties);
+    await logger.info('SYNC_CONTACTS', 'Starting contacts sync');
+    const result = await syncContacts(sessionBatchId, contactProperties);
+    stats.contacts = { fetched: result.records || 0, inserted: result.inserted || 0, updated: result.updated || 0 };
+    await logger.info('SYNC_CONTACTS', `Contacts synced: ${stats.contacts.fetched} fetched, ${stats.contacts.inserted} new, ${stats.contacts.updated} updated`);
   } catch (error) {
-    console.error('❌ Contacts sync failed:', error.message);
+    await logger.error('SYNC_CONTACTS', `Contacts sync failed: ${error.message}`, { error: error.message, stack: error.stack });
     errors.push(`Contacts: ${error.message}`);
   }
 
   try {
-    await syncDeals(sessionBatchId);
+    await logger.info('SYNC_DEALS', 'Starting deals sync');
+    const result = await syncDeals(sessionBatchId);
+    stats.deals = { fetched: result.records || 0, inserted: result.inserted || 0, updated: result.updated || 0 };
+    await logger.info('SYNC_DEALS', `Deals synced: ${stats.deals.fetched} fetched, ${stats.deals.inserted} new, ${stats.deals.updated} updated`);
   } catch (error) {
-    console.error('❌ Deals sync failed:', error.message);
+    await logger.error('SYNC_DEALS', `Deals sync failed: ${error.message}`, { error: error.message, stack: error.stack });
     errors.push(`Deals: ${error.message}`);
   }
 
   try {
-    await syncCalls(sessionBatchId);
+    await logger.info('SYNC_CALLS', 'Starting calls sync');
+    const result = await syncCalls(sessionBatchId);
+    stats.calls = { fetched: result.records || 0, inserted: result.inserted || 0, updated: result.updated || 0 };
+    await logger.info('SYNC_CALLS', `Calls synced: ${stats.calls.fetched} fetched, ${stats.calls.inserted} new, ${stats.calls.updated} updated`);
   } catch (error) {
-    console.error('❌ Calls sync failed:', error.message);
+    await logger.error('SYNC_CALLS', `Calls sync failed: ${error.message}`, { error: error.message, stack: error.stack });
     errors.push(`Calls: ${error.message}`);
   }
 
   // Refresh materialized views
-  console.log('\n🔄 Refreshing materialized views...');
   try {
+    await logger.info('REFRESH_VIEWS', 'Refreshing materialized views');
     await supabase.rpc('refresh_materialized_views');
-    console.log('   ✅ Materialized views refreshed');
+    await logger.info('REFRESH_VIEWS', 'Materialized views refreshed');
   } catch (error) {
-    console.warn('   ⚠️  Failed to refresh materialized views:', error.message);
+    await logger.warning('REFRESH_VIEWS', `Failed to refresh materialized views: ${error.message}`);
   }
 
   const totalDuration = Math.round((Date.now() - startTime) / 1000);
+  const durationMs = Date.now() - startTime;
 
-  console.log('\n╔═══════════════════════════════════════════╗');
+  // Calculate totals
+  const totalFetched = stats.contacts.fetched + stats.deals.fetched + stats.calls.fetched;
+  const totalInserted = stats.contacts.inserted + stats.deals.inserted + stats.calls.inserted;
+  const totalUpdated = stats.contacts.updated + stats.deals.updated + stats.calls.updated;
+
+  // Update run status
   if (errors.length === 0) {
-    console.log('║         SYNC COMPLETED SUCCESSFULLY       ║');
+    await logger.info('END', `Full sync completed successfully in ${totalDuration}s`, { stats });
+    await updateRun(run.id, {
+      status: 'success',
+      finished_at: new Date().toISOString(),
+      duration_ms: durationMs,
+      records_fetched: totalFetched,
+      records_inserted: totalInserted,
+      records_updated: totalUpdated,
+      metadata: { session_batch_id: sessionBatchId, custom_properties_count: customProperties.length, stats }
+    }, SUPABASE_URL, SUPABASE_SERVICE_KEY);
+    process.exit(0);
   } else if (errors.length < 3) {
-    console.log('║         SYNC COMPLETED PARTIALLY          ║');
+    await logger.warning('END', `Full sync completed with ${errors.length} errors in ${totalDuration}s`, { errors, stats });
+    await updateRun(run.id, {
+      status: 'partial',
+      finished_at: new Date().toISOString(),
+      duration_ms: durationMs,
+      records_fetched: totalFetched,
+      records_inserted: totalInserted,
+      records_updated: totalUpdated,
+      error_message: errors.join('; '),
+      metadata: { session_batch_id: sessionBatchId, errors, stats }
+    }, SUPABASE_URL, SUPABASE_SERVICE_KEY);
+    process.exit(1);
   } else {
-    console.log('║            SYNC FAILED                    ║');
-  }
-  console.log('╚═══════════════════════════════════════════╝');
-  console.log(`\n⏱️  Total duration: ${totalDuration}s`);
-
-  if (errors.length > 0) {
-    console.log(`\n⚠️  Errors (${errors.length}):`);
-    errors.forEach(err => console.log(`   - ${err}`));
+    await logger.error('END', `Full sync failed with ${errors.length} errors in ${totalDuration}s`, { errors });
+    await updateRun(run.id, {
+      status: 'failed',
+      finished_at: new Date().toISOString(),
+      duration_ms: durationMs,
+      error_message: errors.join('; '),
+      metadata: { session_batch_id: sessionBatchId, errors }
+    }, SUPABASE_URL, SUPABASE_SERVICE_KEY);
     process.exit(1);
   }
-
-  process.exit(0);
 }
 
-main().catch(error => {
+main().catch(async (error) => {
   console.error('\n❌ SYNC FAILED:', error);
+  // Try to log error if logger is available
+  try {
+    const run = await createRun('hubspot-full-sync', SUPABASE_URL, SUPABASE_SERVICE_KEY, 'manual');
+    const logger = new Logger(run.id, SUPABASE_URL, SUPABASE_SERVICE_KEY);
+    await logger.error('FATAL', `Sync crashed: ${error.message}`, { error: error.message, stack: error.stack });
+    await updateRun(run.id, {
+      status: 'failed',
+      finished_at: new Date().toISOString(),
+      error_message: error.message
+    }, SUPABASE_URL, SUPABASE_SERVICE_KEY);
+  } catch (logError) {
+    console.error('Failed to log error:', logError);
+  }
   process.exit(1);
 });

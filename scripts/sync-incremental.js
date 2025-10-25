@@ -11,6 +11,7 @@
 require('dotenv').config();
 
 const { createClient } = require('@supabase/supabase-js');
+const { createRun, Logger, updateRun } = require('../lib/cron-logger');
 
 // Environment variables
 const HUBSPOT_API_KEY = process.env.HUBSPOT_API_KEY;
@@ -372,7 +373,7 @@ function transformCall(call, batchId) {
   };
 }
 
-// ===== JSONB MERGE UPSERT =====
+// ===== UPSERT FUNCTIONS =====
 
 async function upsertWithMerge(tableName, records) {
   if (records.length === 0) return { inserted: 0, updated: 0, failed: 0 };
@@ -432,6 +433,35 @@ async function upsertWithMerge(tableName, records) {
   }
 
   return { inserted, updated, failed };
+}
+
+async function insertNew(tableName, records) {
+  if (records.length === 0) return { inserted: 0, updated: 0, failed: 0 };
+
+  const BATCH_SIZE = 500;
+  let inserted = 0;
+  let failed = 0;
+
+  console.log(`   📊 Inserting ${records.length} new records (calls are immutable)`);
+
+  // Simple batch insert - calls never update
+  for (let i = 0; i < records.length; i += BATCH_SIZE) {
+    const batch = records.slice(i, i + BATCH_SIZE);
+
+    const { error } = await supabase
+      .from(tableName)
+      .upsert(batch, { onConflict: 'hubspot_id', ignoreDuplicates: true });
+
+    if (error) {
+      console.error(`   ❌ Batch ${i}-${i + BATCH_SIZE} failed:`, error.message);
+      failed += batch.length;
+    } else {
+      inserted += batch.length;
+      console.log(`   ✅ Batch ${i}-${i + BATCH_SIZE}: ${batch.length} inserted`);
+    }
+  }
+
+  return { inserted, updated: 0, failed };
 }
 
 // ===== SYNC FUNCTIONS =====
@@ -610,7 +640,7 @@ async function syncCalls(sessionBatchId) {
     const calls = await searchCallsByDate(lastSyncTime, CALL_PROPERTIES);
 
     const transformed = calls.map(c => transformCall(c, batchId));
-    const { inserted, updated, failed } = await upsertWithMerge('hubspot_calls_raw', transformed);
+    const { inserted, updated, failed } = await insertNew('hubspot_calls_raw', transformed);
 
     const duration = Math.round((Date.now() - startTime) / 1000);
 
@@ -650,68 +680,127 @@ async function syncCalls(sessionBatchId) {
 async function main() {
   const sessionBatchId = crypto.randomUUID();
 
-  console.log('\n╔═══════════════════════════════════════════╗');
-  console.log('║   HUBSPOT → SUPABASE INCREMENTAL SYNC     ║');
-  console.log(`║   Session: ${sessionBatchId.slice(0, 8)}...              ║`);
-  console.log('╚═══════════════════════════════════════════╝\n');
+  // Create run and logger
+  const run = await createRun(
+    'hubspot-incremental-sync',
+    SUPABASE_URL,
+    SUPABASE_SERVICE_KEY,
+    process.env.GITHUB_ACTIONS ? 'github-actions' : 'manual'
+  );
+
+  const logger = new Logger(run.id, SUPABASE_URL, SUPABASE_SERVICE_KEY);
+
+  await logger.info('START', `Starting incremental sync (session: ${sessionBatchId.slice(0, 8)}...)`);
 
   const startTime = Date.now();
   const errors = [];
+  const stats = {
+    contacts: { fetched: 0, inserted: 0, updated: 0 },
+    deals: { fetched: 0, inserted: 0, updated: 0 },
+    calls: { fetched: 0, inserted: 0, updated: 0 },
+  };
 
   // Sequential sync to avoid HubSpot API rate limits
   try {
-    await syncContacts(sessionBatchId);
+    await logger.info('SYNC_CONTACTS', 'Starting contacts sync');
+    const result = await syncContacts(sessionBatchId);
+    stats.contacts = { fetched: result.records, inserted: result.inserted, updated: result.updated };
+    await logger.info('SYNC_CONTACTS', `Contacts synced: ${result.records} fetched, ${result.inserted} new, ${result.updated} updated`);
   } catch (error) {
-    console.error('❌ Contacts sync failed:', error.message);
+    await logger.error('SYNC_CONTACTS', `Contacts sync failed: ${error.message}`, { error: error.message, stack: error.stack });
     errors.push(`Contacts: ${error.message}`);
   }
 
   try {
-    await syncDeals(sessionBatchId);
+    await logger.info('SYNC_DEALS', 'Starting deals sync');
+    const result = await syncDeals(sessionBatchId);
+    stats.deals = { fetched: result.records, inserted: result.inserted, updated: result.updated };
+    await logger.info('SYNC_DEALS', `Deals synced: ${result.records} fetched, ${result.inserted} new, ${result.updated} updated`);
   } catch (error) {
-    console.error('❌ Deals sync failed:', error.message);
+    await logger.error('SYNC_DEALS', `Deals sync failed: ${error.message}`, { error: error.message, stack: error.stack });
     errors.push(`Deals: ${error.message}`);
   }
 
   try {
-    await syncCalls(sessionBatchId);
+    await logger.info('SYNC_CALLS', 'Starting calls sync');
+    const result = await syncCalls(sessionBatchId);
+    stats.calls = { fetched: result.records, inserted: result.inserted, updated: result.updated };
+    await logger.info('SYNC_CALLS', `Calls synced: ${result.records} fetched, ${result.inserted} new, ${result.updated} updated`);
   } catch (error) {
-    console.error('❌ Calls sync failed:', error.message);
+    await logger.error('SYNC_CALLS', `Calls sync failed: ${error.message}`, { error: error.message, stack: error.stack });
     errors.push(`Calls: ${error.message}`);
   }
 
   // Refresh materialized views
-  console.log('\n🔄 Refreshing materialized views...');
   try {
+    await logger.info('REFRESH_VIEWS', 'Refreshing materialized views');
     await supabase.rpc('refresh_materialized_views');
-    console.log('   ✅ Materialized views refreshed');
+    await logger.info('REFRESH_VIEWS', 'Materialized views refreshed');
   } catch (error) {
-    console.warn('   ⚠️  Failed to refresh materialized views:', error.message);
+    await logger.warning('REFRESH_VIEWS', `Failed to refresh materialized views: ${error.message}`);
   }
 
   const totalDuration = Math.round((Date.now() - startTime) / 1000);
+  const durationMs = Date.now() - startTime;
 
-  console.log('\n╔═══════════════════════════════════════════╗');
+  // Calculate totals
+  const totalFetched = stats.contacts.fetched + stats.deals.fetched + stats.calls.fetched;
+  const totalInserted = stats.contacts.inserted + stats.deals.inserted + stats.calls.inserted;
+  const totalUpdated = stats.contacts.updated + stats.deals.updated + stats.calls.updated;
+
+  // Update run status
   if (errors.length === 0) {
-    console.log('║         SYNC COMPLETED SUCCESSFULLY       ║');
+    await logger.info('END', `Sync completed successfully in ${totalDuration}s`, { stats });
+    await updateRun(run.id, {
+      status: 'success',
+      finished_at: new Date().toISOString(),
+      duration_ms: durationMs,
+      records_fetched: totalFetched,
+      records_inserted: totalInserted,
+      records_updated: totalUpdated,
+      metadata: { session_batch_id: sessionBatchId, stats }
+    }, SUPABASE_URL, SUPABASE_SERVICE_KEY);
+    process.exit(0);
   } else if (errors.length < 3) {
-    console.log('║         SYNC COMPLETED PARTIALLY          ║');
+    await logger.warning('END', `Sync completed with ${errors.length} errors in ${totalDuration}s`, { errors, stats });
+    await updateRun(run.id, {
+      status: 'partial',
+      finished_at: new Date().toISOString(),
+      duration_ms: durationMs,
+      records_fetched: totalFetched,
+      records_inserted: totalInserted,
+      records_updated: totalUpdated,
+      error_message: errors.join('; '),
+      metadata: { session_batch_id: sessionBatchId, errors, stats }
+    }, SUPABASE_URL, SUPABASE_SERVICE_KEY);
+    process.exit(1);
   } else {
-    console.log('║            SYNC FAILED                    ║');
-  }
-  console.log('╚═══════════════════════════════════════════╝');
-  console.log(`\n⏱️  Total duration: ${totalDuration}s`);
-
-  if (errors.length > 0) {
-    console.log(`\n⚠️  Errors (${errors.length}):`);
-    errors.forEach(err => console.log(`   - ${err}`));
+    await logger.error('END', `Sync failed with ${errors.length} errors in ${totalDuration}s`, { errors });
+    await updateRun(run.id, {
+      status: 'failed',
+      finished_at: new Date().toISOString(),
+      duration_ms: durationMs,
+      error_message: errors.join('; '),
+      metadata: { session_batch_id: sessionBatchId, errors }
+    }, SUPABASE_URL, SUPABASE_SERVICE_KEY);
     process.exit(1);
   }
-
-  process.exit(0);
 }
 
-main().catch(error => {
+main().catch(async (error) => {
   console.error('\n❌ SYNC FAILED:', error);
+  // Try to log error if logger is available
+  try {
+    const run = await createRun('hubspot-incremental-sync', SUPABASE_URL, SUPABASE_SERVICE_KEY, 'manual');
+    const logger = new Logger(run.id, SUPABASE_URL, SUPABASE_SERVICE_KEY);
+    await logger.error('FATAL', `Sync crashed: ${error.message}`, { error: error.message, stack: error.stack });
+    await updateRun(run.id, {
+      status: 'failed',
+      finished_at: new Date().toISOString(),
+      error_message: error.message
+    }, SUPABASE_URL, SUPABASE_SERVICE_KEY);
+  } catch (logError) {
+    console.error('Failed to log error:', logError);
+  }
   process.exit(1);
 });

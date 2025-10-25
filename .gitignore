@@ -36,6 +36,7 @@ Thumbs.db
 # Logs
 *.log
 logs/
+!app/logs/
 archive/old-logs/
 
 # Next.js build artifacts
@@ -92,6 +93,6 @@ refresh-*.cjs
 *contacts*.json
 *deals*.json
 *sample*.json
-*all-*-properties.jsonlogs/
+*all-*-properties.json
 .claude/settings.json
 .playwright-mcp/
