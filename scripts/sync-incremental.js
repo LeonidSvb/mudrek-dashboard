@@ -7,6 +7,9 @@
  * Runs hourly via GitHub Actions
  */
 
+// Load environment variables from .env file (for local testing)
+require('dotenv').config();
+
 const { createClient } = require('@supabase/supabase-js');
 
 // Environment variables
@@ -442,17 +445,22 @@ async function syncContacts(sessionBatchId) {
   const batchId = crypto.randomUUID();
 
   // Log start
-  const { data: logData } = await supabase
+  const { data: logData, error: logError } = await supabase
     .from('sync_logs')
     .insert({
       object_type: 'contacts',
       triggered_by: 'github_action',
-      batch_id: batchId,
-      sync_batch_id: sessionBatchId,
+      batch_id: sessionBatchId,
       sync_started_at: new Date().toISOString(),
+      status: 'running',
     })
     .select()
     .single();
+
+  if (logError || !logData) {
+    console.error('Failed to create sync log:', logError);
+    throw new Error(`Failed to create sync log: ${logError?.message || 'Unknown error'}`);
+  }
 
   try {
     const lastSyncTime = await getLastSuccessfulSyncTime('contacts');
@@ -516,9 +524,9 @@ async function syncDeals(sessionBatchId) {
     .insert({
       object_type: 'deals',
       triggered_by: 'github_action',
-      batch_id: batchId,
-      sync_batch_id: sessionBatchId,
+      batch_id: sessionBatchId,
       sync_started_at: new Date().toISOString(),
+      status: 'running',
     })
     .select()
     .single();
@@ -583,9 +591,9 @@ async function syncCalls(sessionBatchId) {
     .insert({
       object_type: 'calls',
       triggered_by: 'github_action',
-      batch_id: batchId,
-      sync_batch_id: sessionBatchId,
+      batch_id: sessionBatchId,
       sync_started_at: new Date().toISOString(),
+      status: 'running',
     })
     .select()
     .single();
