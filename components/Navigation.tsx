@@ -8,7 +8,7 @@ export function Navigation() {
 
   const navItems = [
     { href: '/dashboard', label: 'Dashboard' },
-    { href: '/sync', label: 'Sync' },
+    { href: '/logs', label: 'Logs' },
   ];
 
   return (

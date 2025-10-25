@@ -174,30 +174,30 @@ export default function ExecutionLogsPage() {
     const diffMs = now.getTime() - then.getTime();
     const diffMins = Math.floor(diffMs / 60000);
 
-    if (diffMins < 1) return 'Только что';
-    if (diffMins < 60) return `${diffMins} мин назад`;
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins} min ago`;
 
     const diffHours = Math.floor(diffMins / 60);
-    if (diffHours < 24) return `${diffHours} час${diffHours > 1 ? 'а' : ''} назад`;
+    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
 
     const diffDays = Math.floor(diffHours / 24);
-    return `${diffDays} день/дня назад`;
+    return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
   }
 
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold mb-2">Логи Выполнения</h1>
-        <p className="text-gray-600">Мониторинг и отладка синхронизаций</p>
+        <h1 className="text-3xl font-bold mb-2">Execution Logs</h1>
+        <p className="text-gray-600">Monitor and debug synchronizations</p>
       </div>
 
       <div className="flex gap-4 mb-6">
         <Select value={filterStatus} onValueChange={setFilterStatus}>
           <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Фильтр по статусу" />
+            <SelectValue placeholder="Filter by status" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Все статусы</SelectItem>
+            <SelectItem value="all">All statuses</SelectItem>
             <SelectItem value="success">Success</SelectItem>
             <SelectItem value="failed">Failed</SelectItem>
             <SelectItem value="partial">Partial</SelectItem>
@@ -207,10 +207,10 @@ export default function ExecutionLogsPage() {
 
         <Select value={filterScript} onValueChange={setFilterScript}>
           <SelectTrigger className="w-[200px]">
-            <SelectValue placeholder="Фильтр по скрипту" />
+            <SelectValue placeholder="Filter by script" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Все скрипты</SelectItem>
+            <SelectItem value="all">All scripts</SelectItem>
             <SelectItem value="contacts">Contacts</SelectItem>
             <SelectItem value="deals">Deals</SelectItem>
             <SelectItem value="calls">Calls</SelectItem>
@@ -223,15 +223,15 @@ export default function ExecutionLogsPage() {
         <div className="lg:col-span-1">
           <Card>
             <CardHeader>
-              <CardTitle>Последние запуски</CardTitle>
-              <CardDescription>50 последних выполнений</CardDescription>
+              <CardTitle>Recent Runs</CardTitle>
+              <CardDescription>Last 50 executions</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
               <ScrollArea className="h-[600px]">
                 {loading ? (
-                  <div className="p-4 text-center text-gray-500">Загрузка...</div>
+                  <div className="p-4 text-center text-gray-500">Loading...</div>
                 ) : runs.length === 0 ? (
-                  <div className="p-4 text-center text-gray-500">Нет запусков</div>
+                  <div className="p-4 text-center text-gray-500">No runs found</div>
                 ) : (
                   <div className="divide-y">
                     {runs.map((run) => (
@@ -249,7 +249,7 @@ export default function ExecutionLogsPage() {
                         <div className="text-xs text-gray-600 space-y-1">
                           <div>⏱ {formatDuration(run.duration_ms)}</div>
                           {run.records_fetched !== null && (
-                            <div>📊 {run.records_fetched} записей</div>
+                            <div>📊 {run.records_fetched} records</div>
                           )}
                           <div className="text-gray-500">{getTimeAgo(run.started_at)}</div>
                         </div>
@@ -273,7 +273,7 @@ export default function ExecutionLogsPage() {
                       {getStatusBadge(selectedRun.status)}
                     </CardTitle>
                     <CardDescription>
-                      Начато {formatTimestamp(selectedRun.started_at)}
+                      Started {formatTimestamp(selectedRun.started_at)}
                     </CardDescription>
                   </div>
                 </div>
@@ -281,30 +281,30 @@ export default function ExecutionLogsPage() {
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
                   <div>
-                    <div className="text-xs text-gray-600">Длительность</div>
+                    <div className="text-xs text-gray-600">Duration</div>
                     <div className="font-semibold">{formatDuration(selectedRun.duration_ms)}</div>
                   </div>
                   {selectedRun.records_fetched !== null && (
                     <div>
-                      <div className="text-xs text-gray-600">Получено</div>
+                      <div className="text-xs text-gray-600">Fetched</div>
                       <div className="font-semibold">{selectedRun.records_fetched}</div>
                     </div>
                   )}
                   {selectedRun.records_inserted !== null && (
                     <div>
-                      <div className="text-xs text-gray-600">Вставлено</div>
+                      <div className="text-xs text-gray-600">Inserted</div>
                       <div className="font-semibold">{selectedRun.records_inserted}</div>
                     </div>
                   )}
                   {selectedRun.records_updated !== null && (
                     <div>
-                      <div className="text-xs text-gray-600">Обновлено</div>
+                      <div className="text-xs text-gray-600">Updated</div>
                       <div className="font-semibold">{selectedRun.records_updated}</div>
                     </div>
                   )}
                   {selectedRun.records_failed !== null && selectedRun.records_failed > 0 && (
                     <div>
-                      <div className="text-xs text-gray-600">Ошибки</div>
+                      <div className="text-xs text-gray-600">Errors</div>
                       <div className="font-semibold text-red-600">{selectedRun.records_failed}</div>
                     </div>
                   )}
@@ -312,15 +312,15 @@ export default function ExecutionLogsPage() {
 
                 {selectedRun.error_message && (
                   <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-                    <div className="text-sm font-medium text-red-800 mb-1">Сообщение об ошибке</div>
+                    <div className="text-sm font-medium text-red-800 mb-1">Error Message</div>
                     <div className="text-sm text-red-600">{selectedRun.error_message}</div>
                   </div>
                 )}
 
-                <div className="mb-2 font-semibold">Детальные логи</div>
+                <div className="mb-2 font-semibold">Detailed Logs</div>
                 <ScrollArea className="h-[400px] border rounded-lg">
                   {logs.length === 0 ? (
-                    <div className="p-4 text-center text-gray-500">Нет логов</div>
+                    <div className="p-4 text-center text-gray-500">No logs</div>
                   ) : (
                     <div className="divide-y">
                       {logs.map((log) => (
@@ -350,7 +350,7 @@ export default function ExecutionLogsPage() {
           ) : (
             <Card>
               <CardContent className="flex items-center justify-center h-[600px] text-gray-500">
-                Выберите запуск для просмотра логов
+                Select a run to view logs
               </CardContent>
             </Card>
           )}
