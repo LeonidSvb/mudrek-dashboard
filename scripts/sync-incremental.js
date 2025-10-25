@@ -572,7 +572,6 @@ async function main() {
   const stats = {
     contacts: { fetched: 0, inserted: 0, updated: 0 },
     deals: { fetched: 0, inserted: 0, updated: 0 },
-    calls: { fetched: 0, inserted: 0, updated: 0 },
   };
 
   // Sequential sync to avoid HubSpot API rate limits
@@ -596,16 +595,6 @@ async function main() {
     errors.push(`Deals: ${error.message}`);
   }
 
-  try {
-    await logger.info('SYNC_CALLS', 'Starting calls sync');
-    const result = await syncCalls(sessionBatchId);
-    stats.calls = { fetched: result.records, inserted: result.inserted, updated: result.updated };
-    await logger.info('SYNC_CALLS', `Calls synced: ${result.records} fetched, ${result.inserted} new, ${result.updated} updated`);
-  } catch (error) {
-    await logger.error('SYNC_CALLS', `Calls sync failed: ${error.message}`, { error: error.message, stack: error.stack });
-    errors.push(`Calls: ${error.message}`);
-  }
-
   // Refresh materialized views
   try {
     await logger.info('REFRESH_VIEWS', 'Refreshing materialized views');
@@ -619,9 +608,9 @@ async function main() {
   const durationMs = Date.now() - startTime;
 
   // Calculate totals
-  const totalFetched = stats.contacts.fetched + stats.deals.fetched + stats.calls.fetched;
-  const totalInserted = stats.contacts.inserted + stats.deals.inserted + stats.calls.inserted;
-  const totalUpdated = stats.contacts.updated + stats.deals.updated + stats.calls.updated;
+  const totalFetched = stats.contacts.fetched + stats.deals.fetched;
+  const totalInserted = stats.contacts.inserted + stats.deals.inserted;
+  const totalUpdated = stats.contacts.updated + stats.deals.updated;
 
   // Update run status
   if (errors.length === 0) {
@@ -636,7 +625,7 @@ async function main() {
       metadata: { session_batch_id: sessionBatchId, stats }
     }, SUPABASE_URL, SUPABASE_SERVICE_KEY);
     process.exit(0);
-  } else if (errors.length < 3) {
+  } else if (errors.length < 2) {
     await logger.warning('END', `Sync completed with ${errors.length} errors in ${totalDuration}s`, { errors, stats });
     await updateRun(run.id, {
       status: 'partial',

@@ -449,7 +449,6 @@ async function main() {
   const stats = {
     contacts: { fetched: 0, inserted: 0, updated: 0 },
     deals: { fetched: 0, inserted: 0, updated: 0 },
-    calls: { fetched: 0, inserted: 0, updated: 0 },
   };
 
   // Auto-detect custom contact properties
@@ -486,16 +485,6 @@ async function main() {
     errors.push(`Deals: ${error.message}`);
   }
 
-  try {
-    await logger.info('SYNC_CALLS', 'Starting calls sync');
-    const result = await syncCalls(sessionBatchId);
-    stats.calls = { fetched: result.records || 0, inserted: result.inserted || 0, updated: result.updated || 0 };
-    await logger.info('SYNC_CALLS', `Calls synced: ${stats.calls.fetched} fetched, ${stats.calls.inserted} new, ${stats.calls.updated} updated`);
-  } catch (error) {
-    await logger.error('SYNC_CALLS', `Calls sync failed: ${error.message}`, { error: error.message, stack: error.stack });
-    errors.push(`Calls: ${error.message}`);
-  }
-
   // Refresh materialized views
   try {
     await logger.info('REFRESH_VIEWS', 'Refreshing materialized views');
@@ -509,9 +498,9 @@ async function main() {
   const durationMs = Date.now() - startTime;
 
   // Calculate totals
-  const totalFetched = stats.contacts.fetched + stats.deals.fetched + stats.calls.fetched;
-  const totalInserted = stats.contacts.inserted + stats.deals.inserted + stats.calls.inserted;
-  const totalUpdated = stats.contacts.updated + stats.deals.updated + stats.calls.updated;
+  const totalFetched = stats.contacts.fetched + stats.deals.fetched;
+  const totalInserted = stats.contacts.inserted + stats.deals.inserted;
+  const totalUpdated = stats.contacts.updated + stats.deals.updated;
 
   // Update run status
   if (errors.length === 0) {
@@ -526,7 +515,7 @@ async function main() {
       metadata: { session_batch_id: sessionBatchId, custom_properties_count: customProperties.length, stats }
     }, SUPABASE_URL, SUPABASE_SERVICE_KEY);
     process.exit(0);
-  } else if (errors.length < 3) {
+  } else if (errors.length < 2) {
     await logger.warning('END', `Full sync completed with ${errors.length} errors in ${totalDuration}s`, { errors, stats });
     await updateRun(run.id, {
       status: 'partial',
