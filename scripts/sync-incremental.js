@@ -138,21 +138,43 @@ async function makeHubSpotRequest(endpoint, options = {}, retryCount = 0) {
 }
 
 async function getLastSuccessfulSyncTime() {
-  const { data, error } = await supabase
+  // Try to find last successful sync by current script name
+  let { data, error } = await supabase
     .from('runs')
     .select('finished_at')
     .eq('script_name', 'hubspot-incremental-sync')
     .eq('status', 'success')
     .not('finished_at', 'is', null)
     .order('finished_at', { ascending: false })
-    .limit(1)
-    .single();
+    .limit(1);
 
-  if (error || !data) {
-    return null;
+  if (data && data.length > 0) {
+    return new Date(data[0].finished_at);
   }
 
-  return new Date(data.finished_at);
+  // Fallback 1: Try to find by old script names (before refactoring)
+  console.log('⚠️  No hubspot-incremental-sync found, trying old script names...');
+  const oldScriptNames = ['contacts', 'deals', 'calls'];
+
+  for (const scriptName of oldScriptNames) {
+    const { data: oldData } = await supabase
+      .from('runs')
+      .select('finished_at')
+      .eq('script_name', scriptName)
+      .eq('status', 'success')
+      .not('finished_at', 'is', null)
+      .order('finished_at', { ascending: false })
+      .limit(1);
+
+    if (oldData && oldData.length > 0) {
+      console.log(`✅ Found last sync from old script: ${scriptName} at ${oldData[0].finished_at}`);
+      return new Date(oldData[0].finished_at);
+    }
+  }
+
+  // Fallback 2: Return 7 days ago (safe default for incremental sync)
+  console.log('⚠️  No previous sync found. Using fallback: 7 days ago');
+  return new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 }
 
 async function searchContactsByDate(since, properties) {
@@ -481,12 +503,6 @@ async function syncContacts(sessionBatchId) {
   const batchId = crypto.randomUUID();
 
   const lastSyncTime = await getLastSuccessfulSyncTime();
-
-  if (!lastSyncTime) {
-    console.log('⚠️  No previous sync found. Use sync-full.js for first sync.');
-    throw new Error('First sync must be full sync');
-  }
-
   console.log(`🔄 Incremental sync: fetching contacts modified since ${lastSyncTime.toISOString()}`);
   const contacts = await searchContactsByDate(lastSyncTime, CONTACT_PROPERTIES);
 
@@ -509,12 +525,6 @@ async function syncDeals(sessionBatchId) {
   const batchId = crypto.randomUUID();
 
   const lastSyncTime = await getLastSuccessfulSyncTime();
-
-  if (!lastSyncTime) {
-    console.log('⚠️  No previous sync found. Use sync-full.js for first sync.');
-    throw new Error('First sync must be full sync');
-  }
-
   console.log(`🔄 Incremental sync: fetching deals modified since ${lastSyncTime.toISOString()}`);
   const deals = await searchDealsByDate(lastSyncTime, DEAL_PROPERTIES);
 
@@ -537,12 +547,6 @@ async function syncCalls(sessionBatchId) {
   const batchId = crypto.randomUUID();
 
   const lastSyncTime = await getLastSuccessfulSyncTime();
-
-  if (!lastSyncTime) {
-    console.log('⚠️  No previous sync found. Use sync-full.js for first sync.');
-    throw new Error('First sync must be full sync');
-  }
-
   console.log(`🔄 Incremental sync: fetching calls created since ${lastSyncTime.toISOString()}`);
   const calls = await searchCallsByDate(lastSyncTime, CALL_PROPERTIES);
 
