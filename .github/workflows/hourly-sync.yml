@@ -1,15 +1,15 @@
-name: Daily Full Sync
+name: Hourly Sync (Incremental)
 
 on:
   schedule:
-    # Every day at 02:00 UTC
-    - cron: '0 2 * * *'
+    # Every hour (24 times per day)
+    - cron: '0 * * * *'
 
   # Manual trigger from GitHub Actions tab
   workflow_dispatch:
 
 jobs:
-  full-sync:
+  hourly-sync:
     runs-on: ubuntu-latest
 
     env:
@@ -30,11 +30,11 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Sync Contacts (full)
-        run: node scripts/sync-contacts.js --all
+      - name: Sync Contacts
+        run: node scripts/sync-contacts.js
 
-      - name: Sync Deals (full)
-        run: node scripts/sync-deals.js --all
+      - name: Sync Deals
+        run: node scripts/sync-deals.js
 
-      - name: Sync Calls (full)
-        run: node scripts/sync-calls.js --all
+      - name: Sync Calls
+        run: node scripts/sync-calls.js
