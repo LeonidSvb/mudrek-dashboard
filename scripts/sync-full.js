@@ -447,10 +447,22 @@ async function main() {
   );
 
   const logger = new Logger(run.id, SUPABASE_URL, SUPABASE_SERVICE_KEY);
+  const startTime = Date.now();
+
+  // Timeout protection: fail if sync takes longer than 1 hour
+  const SYNC_TIMEOUT_MS = 60 * 60 * 1000; // 1 hour
+  const timeoutHandle = setTimeout(async () => {
+    await logger.error('TIMEOUT', 'Full sync exceeded 1 hour, terminating');
+    await updateRun(run.id, {
+      status: 'failed',
+      finished_at: new Date().toISOString(),
+      duration_ms: Date.now() - startTime,
+      error_message: 'Timeout: sync exceeded 1 hour'
+    }, SUPABASE_URL, SUPABASE_SERVICE_KEY);
+    process.exit(1);
+  }, SYNC_TIMEOUT_MS);
 
   await logger.info('START', `Starting full sync (session: ${sessionBatchId.slice(0, 8)}...)`);
-
-  const startTime = Date.now();
   const errors = [];
   const stats = {
     contacts: { fetched: 0, inserted: 0, updated: 0 },
@@ -507,6 +519,9 @@ async function main() {
   const totalFetched = stats.contacts.fetched + stats.deals.fetched;
   const totalInserted = stats.contacts.inserted + stats.deals.inserted;
   const totalUpdated = stats.contacts.updated + stats.deals.updated;
+
+  // Clear timeout (sync completed before timeout)
+  clearTimeout(timeoutHandle);
 
   // Update run status
   if (errors.length === 0) {

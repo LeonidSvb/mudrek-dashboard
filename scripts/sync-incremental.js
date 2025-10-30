@@ -570,10 +570,22 @@ async function main() {
   );
 
   const logger = new Logger(run.id, SUPABASE_URL, SUPABASE_SERVICE_KEY);
+  const startTime = Date.now();
+
+  // Timeout protection: fail if sync takes longer than 30 minutes
+  const SYNC_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes (incremental should be faster)
+  const timeoutHandle = setTimeout(async () => {
+    await logger.error('TIMEOUT', 'Incremental sync exceeded 30 minutes, terminating');
+    await updateRun(run.id, {
+      status: 'failed',
+      finished_at: new Date().toISOString(),
+      duration_ms: Date.now() - startTime,
+      error_message: 'Timeout: sync exceeded 30 minutes'
+    }, SUPABASE_URL, SUPABASE_SERVICE_KEY);
+    process.exit(1);
+  }, SYNC_TIMEOUT_MS);
 
   await logger.info('START', `Starting incremental sync (session: ${sessionBatchId.slice(0, 8)}...)`);
-
-  const startTime = Date.now();
   const errors = [];
   const stats = {
     contacts: { fetched: 0, inserted: 0, updated: 0 },
@@ -617,6 +629,9 @@ async function main() {
   const totalFetched = stats.contacts.fetched + stats.deals.fetched;
   const totalInserted = stats.contacts.inserted + stats.deals.inserted;
   const totalUpdated = stats.contacts.updated + stats.deals.updated;
+
+  // Clear timeout (sync completed before timeout)
+  clearTimeout(timeoutHandle);
 
   // Update run status
   if (errors.length === 0) {
