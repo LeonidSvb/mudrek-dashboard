@@ -62,36 +62,67 @@ CRON_SECRET=your-random-secret
 mudrek-dashboard/
 ├── app/                      # Next.js App Router
 │   ├── api/                  # API Routes
-│   │   ├── sync/            # HubSpot sync endpoints
 │   │   ├── metrics/         # Metrics API
 │   │   ├── sales-funnel/    # Sales funnel data
 │   │   └── deals/           # Deals breakdown
 │   ├── dashboard/           # Dashboard page
-│   └── sync/                # Manual sync page
+│   └── logs/                # Logs page (view sync history)
 ├── components/              # React components
 │   ├── ui/                  # shadcn/ui components
 │   └── dashboard/           # Dashboard-specific components
 ├── lib/
 │   ├── db/                  # Database functions
 │   │   └── metrics-fast.ts  # Fast metrics via SQL functions
-│   ├── sync/                # HubSpot sync logic
-│   │   ├── contacts.ts
-│   │   ├── deals.ts
-│   │   ├── calls.ts
-│   │   └── owners.ts
+│   ├── sync/                # Modular HubSpot sync library
+│   │   ├── logger.js        # Triple logging (console + JSON + Supabase)
+│   │   ├── api.js           # HubSpot API client with retry
+│   │   ├── transform.js     # Data transformation
+│   │   ├── upsert.js        # JSONB merge logic
+│   │   ├── properties.js    # HubSpot field configuration
+│   │   └── cli.js           # CLI argument parser
+│   ├── cron-logger.js       # Cron run tracking
 │   └── metric-definitions.ts # Metric explanations
-├── migrations/              # Supabase SQL migrations
-└── scripts/                 # Utility scripts
+├── scripts/                 # Sync scripts (GitHub Actions)
+│   ├── sync-contacts.js     # Contacts sync (modular)
+│   ├── sync-deals.js        # Deals sync (modular)
+│   ├── sync-calls.js        # Calls sync (modular)
+│   └── utils/               # Utility scripts
+├── supabase/migrations/     # Database migrations (Supabase CLI)
+└── .github/workflows/       # GitHub Actions (automated sync)
+    ├── incremental-sync.yml # Every 4 hours
+    └── daily-full-sync.yml  # Daily at 02:00 UTC
 ```
 
 ## Key Features
 
 ### 1. Automatic HubSpot Synchronization
 
-- **Incremental Sync**: Every 2 hours (via Vercel Cron)
-- **Full Sync**: Daily at 00:00 UTC
-- **Manual Sync**: Available at `/sync`
-- **Rate Limiting**: Automatic retry when exceeding HubSpot API limits
+**GitHub Actions (FREE, no Vercel Pro needed)**
+
+- **Incremental Sync**: Every 4 hours (00:00, 04:00, 08:00, 12:00, 16:00, 20:00 UTC)
+- **Full Sync**: Daily at 02:00 UTC
+- **Modular Architecture**: Separate scripts for contacts, deals, calls
+- **Timeout Protection**: 30 minutes (incremental), 1 hour (full)
+- **Triple Logging**: Console + JSON files (`logs/YYYY-MM-DD.jsonl`) + Supabase
+- **JSONB Merge**: Preserves old custom fields when updating
+- **Fallback Logic**: 3-level fallback for finding last sync time
+
+**Manual Sync**:
+```bash
+# Incremental (since last successful sync)
+node scripts/sync-contacts.js
+node scripts/sync-deals.js
+node scripts/sync-calls.js
+
+# Full sync (all records)
+node scripts/sync-contacts.js --all
+node scripts/sync-deals.js --all
+node scripts/sync-calls.js --all
+
+# Custom date range
+node scripts/sync-contacts.js --last=7d
+node scripts/sync-deals.js --from=2025-10-01 --to=2025-10-15
+```
 
 ### 2. Real-time Metrics
 
