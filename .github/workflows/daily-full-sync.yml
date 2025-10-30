@@ -25,9 +25,23 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Run full sync (auto-detect new custom fields)
+      - name: Sync Contacts (full)
         env:
           HUBSPOT_API_KEY: ${{ secrets.HUBSPOT_API_KEY }}
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-        run: node scripts/sync-full.js
+        run: node scripts/sync-contacts.js --all
+
+      - name: Sync Deals (full)
+        env:
+          HUBSPOT_API_KEY: ${{ secrets.HUBSPOT_API_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: node scripts/sync-deals.js --all
+
+      - name: Sync Calls (full)
+        env:
+          HUBSPOT_API_KEY: ${{ secrets.HUBSPOT_API_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: node scripts/sync-calls.js --all
