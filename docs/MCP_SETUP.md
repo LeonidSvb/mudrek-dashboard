@@ -19,16 +19,26 @@
 cp .mcp.json.example .mcp.json
 ```
 
-### 2. Замени токен
+### 2. Замени токены
 
 Открой `.mcp.json` и замени:
+
+**Supabase:**
 ```json
 "SUPABASE_ACCESS_TOKEN": "YOUR_SUPABASE_ACCESS_TOKEN_HERE"
 ```
-
 На свой токен из `.env`:
 ```json
 "SUPABASE_ACCESS_TOKEN": "sbp_10b4ce..."
+```
+
+**GitHub:**
+```json
+"GITHUB_PERSONAL_ACCESS_TOKEN": "YOUR_GITHUB_TOKEN_HERE"
+```
+На свой токен с https://github.com/settings/tokens:
+```json
+"GITHUB_PERSONAL_ACCESS_TOKEN": "ghp_xxxxx..."
 ```
 
 ### 3. Обнови путь к проекту (если нужно)
@@ -75,6 +85,10 @@ C:\Users\79818\AppData\Roaming\Claude\claude_desktop_config.json
 - **Назначение:** Доступ к файлам проекта
 - **Путь:** `C:\Users\79818\Desktop\Shadi - new`
 
+### GitHub
+- **Назначение:** Работа с GitHub репозиториями (issues, PRs, commits)
+- **Токен:** Personal Access Token с правами `repo`, `read:org`, `workflow`
+
 ---
 
 ## Troubleshooting
@@ -106,7 +120,12 @@ C:\Users\79818\AppData\Roaming\Claude\claude_desktop_config.json
 
 ## История изменений
 
-**2025-10-30:**
+**2025-10-30 (v2):**
+- ✅ Добавлен GitHub MCP в локальный конфиг
+- ✅ Удален GitHub из глобального конфига
+- ✅ Обновлен токен (новый без срока действия)
+
+**2025-10-30 (v1):**
 - ✅ Переход на локальную конфигурацию
 - ✅ Удален Supabase из глобального конфига
 - ✅ Добавлен `.mcp.json.example` для документации
