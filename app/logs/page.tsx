@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -52,19 +52,7 @@ export default function ExecutionLogsPage() {
     }
   }, []);
 
-  useEffect(() => {
-    if (supabase) {
-      fetchRuns();
-    }
-  }, [filterStatus, filterScript, supabase]);
-
-  useEffect(() => {
-    if (selectedRun && supabase) {
-      fetchLogs(selectedRun.id);
-    }
-  }, [selectedRun, supabase]);
-
-  async function fetchRuns() {
+  const fetchRuns = useCallback(async () => {
     if (!supabase) return;
     setLoading(true);
     let query = supabase
@@ -92,9 +80,9 @@ export default function ExecutionLogsPage() {
       }
     }
     setLoading(false);
-  }
+  }, [supabase, filterStatus, filterScript, selectedRun]);
 
-  async function fetchLogs(runId: string) {
+  const fetchLogs = useCallback(async (runId: string) => {
     if (!supabase) return;
     const { data, error } = await supabase
       .from('logs')
@@ -107,7 +95,19 @@ export default function ExecutionLogsPage() {
     } else {
       setLogs(data || []);
     }
-  }
+  }, [supabase]);
+
+  useEffect(() => {
+    if (supabase) {
+      fetchRuns();
+    }
+  }, [fetchRuns, supabase]);
+
+  useEffect(() => {
+    if (selectedRun && supabase) {
+      fetchLogs(selectedRun.id);
+    }
+  }, [selectedRun, supabase, fetchLogs]);
 
   function getStatusBadge(status: string) {
     const variants = {
