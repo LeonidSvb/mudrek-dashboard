@@ -326,6 +326,84 @@ export default async function DashboardPage() {
 
 ---
 
+### 9. Why Hybrid Materialized Views Refresh Strategy?
+
+**Decision:** Use pg_cron + GitHub Actions for MV refresh (Hybrid Approach)
+
+**Context:**
+- October 2025: Materialized views not updating automatically
+- Data after Oct 25 not showing on dashboard
+- 3 MVs: `daily_metrics_mv`, `call_contact_matches_mv`, `contact_call_stats_mv`
+
+**Alternatives Considered:**
+1. ❌ Only pg_cron (low visibility, no CI/CD integration)
+2. ❌ Only GitHub Actions (depends on external service)
+3. ✅ **Hybrid: pg_cron + GitHub Actions** (chosen)
+4. ❌ Real-time triggers (overkill, high DB load)
+
+**Implementation:**
+
+```sql
+-- pg_cron: Every hour (backup + fallback)
+SELECT cron.schedule(
+  'refresh-materialized-views',
+  '0 * * * *',  -- Every hour
+  $$SELECT refresh_materialized_views();$$
+);
+
+-- Function refreshes all 3 MVs
+CREATE FUNCTION refresh_materialized_views() RETURNS void AS $$
+BEGIN
+  REFRESH MATERIALIZED VIEW call_contact_matches_mv;
+  REFRESH MATERIALIZED VIEW daily_metrics_mv;
+  REFRESH MATERIALIZED VIEW contact_call_stats_mv;
+END;
+$$ LANGUAGE plpgsql;
+```
+
+```javascript
+// GitHub Actions: After every sync (primary)
+// scripts/sync-full.js
+await supabase.rpc('refresh_materialized_views');
+
+// scripts/sync-incremental.js
+await supabase.rpc('refresh_materialized_views');
+```
+
+**Benefits:**
+- ✅ **Redundancy**: 2 independent systems (99.9% uptime)
+- ✅ **Performance**: Refreshed immediately after sync
+- ✅ **Cost**: FREE (both included in base plans)
+- ✅ **Visibility**: GitHub Actions logs + pg_cron history
+- ✅ **Industry Standard**: Stripe, GitLab, Shopify use similar
+
+**Trade-offs:**
+- ➖ Two refresh mechanisms to maintain
+- ➕ But provides fault tolerance
+- ➕ Max data age: 1 hour (pg_cron guarantee)
+- ➕ Typical data age: < 4 hours (GitHub Actions)
+
+**Why Not CONCURRENTLY?**
+- `REFRESH MATERIALIZED VIEW CONCURRENTLY` requires unique indexes
+- Our MVs don't have WHERE clause for unique constraints
+- Non-concurrent refresh is fast enough (~5-10 seconds)
+- No user-facing impact (dashboard not real-time)
+
+**Monitoring:**
+```sql
+-- Check cron status
+SELECT jobname, schedule, active FROM cron.job;
+
+-- Check execution history
+SELECT status, return_message, start_time, end_time
+FROM cron.job_run_details
+WHERE jobid = 7
+ORDER BY start_time DESC
+LIMIT 10;
+```
+
+---
+
 ## Current Status (2025-10-31)
 
 ### Metrics

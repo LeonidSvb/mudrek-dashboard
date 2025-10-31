@@ -185,17 +185,72 @@ logs  -- Filtered event logs (START, END, ERROR, WARNING)
 
 ### Materialized Views
 
-**Purpose**: Pre-computed joins for performance
+**Purpose**: Pre-computed aggregations and joins for performance
 
 ```sql
+-- Metrics MVs (refreshed automatically)
+daily_metrics_mv         -- Pre-aggregated daily metrics by owner
 call_contact_matches_mv  -- Matches calls to contacts by phone number
-phone_to_owner_mapping   -- ML-based phone → owner mapping
+contact_call_stats_mv    -- Call statistics per contact
 ```
 
-**Refresh:**
+**Auto-Refresh Strategy (Hybrid Approach):**
+
+```
+┌─────────────────────────────────────────────────────────┐
+│              AUTOMATIC MV REFRESH (2 layers)            │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│  1️⃣ GitHub Actions (Primary)                           │
+│     ├── Full Sync: Daily 02:00 UTC                     │
+│     ├── Incremental: Every 4 hours                     │
+│     └── Calls: refresh_materialized_views()            │
+│                                                         │
+│  2️⃣ pg_cron (Backup + Fallback)                        │
+│     ├── Schedule: Every hour                           │
+│     └── Command: SELECT refresh_materialized_views();  │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
+
+Result: Max data age = 1 hour (worst case)
+        Typical data age = < 4 hours
+```
+
+**Manual Refresh (if needed):**
 ```sql
+-- Refresh all MVs at once
+SELECT refresh_materialized_views();
+
+-- Or refresh individually (without CONCURRENTLY - no unique indexes)
 REFRESH MATERIALIZED VIEW call_contact_matches_mv;
-REFRESH MATERIALIZED VIEW phone_to_owner_mapping;
+REFRESH MATERIALIZED VIEW daily_metrics_mv;
+REFRESH MATERIALIZED VIEW contact_call_stats_mv;
+```
+
+**Why Hybrid Approach?**
+- ✅ **Redundancy**: If GitHub Actions fails, pg_cron continues
+- ✅ **Performance**: MV refreshed immediately after sync
+- ✅ **Cost**: FREE (GitHub Actions + pg_cron included in Supabase)
+- ✅ **Industry Standard**: Used by Stripe, GitLab, Shopify
+
+**Monitoring:**
+```sql
+-- Check cron job status
+SELECT jobname, schedule, active
+FROM cron.job
+WHERE jobname = 'refresh-materialized-views';
+
+-- Check last refresh times
+SELECT
+  jobid,
+  status,
+  return_message,
+  start_time,
+  end_time
+FROM cron.job_run_details
+WHERE jobid = 7
+ORDER BY start_time DESC
+LIMIT 10;
 ```
 
 ### SQL Functions (for fast metrics)

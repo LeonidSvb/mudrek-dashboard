@@ -192,9 +192,43 @@ For quick reference in future projects.
 
 ---
 
+## 📚 Main Project Documentation
+
+### Core Documentation Files
+
+**Architecture & Design:**
+- [ARCHITECTURE.md](./ARCHITECTURE.md) - System design, database schema, deployment
+- [ADR.md](./ADR.md) - Architecture Decision Records (append-only)
+- [LOGGING.md](./LOGGING.md) - Triple logging system
+
+**Metrics & Features:**
+- [METRICS_GUIDE.generated.md](./METRICS_GUIDE.generated.md) - All 24 metrics explained (auto-generated)
+- [metrics-schema.yaml](./metrics-schema.yaml) - Source of truth for metrics
+
+**Setup Guides:**
+- [setup/SETUP.md](./setup/SETUP.md) - Project setup
+- [setup/HUBSPOT_SETUP.md](./setup/HUBSPOT_SETUP.md) - HubSpot integration
+- [setup/MCP_SETUP.md](./setup/MCP_SETUP.md) - MCP server setup
+
+**Meta:**
+- [DOCUMENTATION_PRACTICES.md](./DOCUMENTATION_PRACTICES.md) - How to maintain docs
+
+### How to Keep Docs Fresh
+
+See [DOCUMENTATION_PRACTICES.md](./DOCUMENTATION_PRACTICES.md) for:
+- ✅ Auto-generation strategies
+- ✅ ADR best practices
+- ✅ Update frequency guidelines
+- ✅ Industry best practices
+
+**TL;DR:** Auto-generate where possible, use ADR for decisions, update timestamps.
+
+---
+
 ## Summary
 
 **Rules:** CLAUDE.md files (loaded automatically)
 **Examples:** docs/*.md files (loaded on demand)
+**Project Docs:** ARCHITECTURE.md, ADR.md, METRICS_GUIDE.md
 
 **Result:** Faster, more efficient, context-aware AI assistance.
