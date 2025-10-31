@@ -1,0 +1,15 @@
+{
+  "name": "hubspot-mcp-server",
+  "version": "1.0.0",
+  "description": "Local MCP server for HubSpot API integration using Personal Access Token",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "echo '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{}}' | node server.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

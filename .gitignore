@@ -33,6 +33,9 @@ Thumbs.db
 # MCP configuration (may contain sensitive paths)
 .mcp.json
 
+# HubSpot CLI configuration (contains Personal Access Token)
+hubspot.config.yml
+
 # Logs
 *.log
 logs/
