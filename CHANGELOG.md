@@ -3,6 +3,87 @@
 Все значимые изменения в этом проекте будут задокументированы в этом файле.
 
 
+## [v3.36.0] - 2025-10-31 - Оптимизация GitHub Actions + Исправление Vercel Build
+
+### Проблема 1: GitHub Actions запускались слишком часто
+- **Workflow `hourly-sync.yml` запускался каждый час** (24 раза/день)
+- В README документировано "каждые 4 часа", но в коде было `cron: '0 * * * *'`
+- Расход GitHub Actions минут: 24 запуска/день (избыточно)
+- Несоответствие документации и реального расписания
+
+### Решение:
+- ✅ Изменен cron: `'0 * * * *'` → `'0 */4 * * *'` (каждые 4 часа)
+- ✅ Переименован файл: `hourly-sync.yml` → `incremental-sync.yml`
+- ✅ Обновлено название workflow: "Incremental Sync (Every 4 Hours)"
+- ✅ Экономия: 75% GitHub Actions минут (24→6 запусков/день)
+
+**Коммит:** `c168d72` - refactor: reduce sync frequency from hourly to every 4 hours
+
+---
+
+### Проблема 2: Vercel build падал с ESLint ошибками
+
+**Ошибка:**
+```
+Failed to compile.
+./lib/file-logger.js
+1:12  Error: A `require()` style import is forbidden.  @typescript-eslint/no-require-imports
+```
+
+**Причина:**
+- 3 файла использовали CommonJS (`require()`, `module.exports`)
+- Next.js требует ES Modules (`import`, `export`)
+- ESLint блокировал production build на Vercel
+- Локально могло работать (если запускали `npm run dev`, а не `npm run build`)
+
+**Файлы с проблемой:**
+- `lib/file-logger.js` - `const fs = require('fs')`
+- `lib/sync/logger.js` - `const fs = require('fs')`
+- `lib/sync/upsert.js` - `const { createClient } = require('@supabase/supabase-js')`
+- `app/logs/page.tsx` - missing useEffect dependencies (React warning)
+
+### Решение:
+- ✅ Конвертировал `require()` → `import` в 3 файлах
+- ✅ Конвертировал `module.exports` → `export` в 3 файлах
+- ✅ Обернул `fetchRuns`/`fetchLogs` в `useCallback` с правильными dependencies
+- ✅ Проверено локально: `npm run build` проходит успешно
+- ✅ Vercel deployment разблокирован
+
+**Коммит:** `7a101fa` - fix: convert CommonJS to ES modules for Vercel build
+
+---
+
+### Почему это важно:
+
+**Next.js vs Node.js - разные стандарты:**
+- **Node.js скрипты** (scripts/sync-*.js) → могут использовать CommonJS
+- **Next.js компоненты** (app/, lib/) → ДОЛЖНЫ использовать ES Modules
+- Причина: tree-shaking, browser support, TypeScript интеграция
+
+**Проверка перед push:**
+```bash
+npm run build  # ВСЕГДА запускай перед git push
+```
+
+Если build падает локально → на Vercel тоже упадет.
+
+---
+
+### Изменения:
+
+**Файлы:**
+- `.github/workflows/incremental-sync.yml` - обновлено расписание
+- `lib/file-logger.js` - ES Modules
+- `lib/sync/logger.js` - ES Modules
+- `lib/sync/upsert.js` - ES Modules
+- `app/logs/page.tsx` - исправлены React hooks
+
+**Коммиты:**
+1. `c168d72` - refactor: reduce sync frequency from hourly to every 4 hours
+2. `7a101fa` - fix: convert CommonJS to ES modules for Vercel build
+
+---
+
 ## [v3.35.1] - 2025-10-30 - Диагностика проблемы с MCP Supabase
 
 ### Проблема:
