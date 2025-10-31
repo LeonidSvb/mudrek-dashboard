@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { subDays } from 'date-fns';
-import { Navigation } from '@/components/Navigation';
 import { MetricCard } from '@/components/MetricCard';
 import { FilterPanel } from '@/components/dashboard/FilterPanel';
 import { DashboardHelp } from '@/components/dashboard/DashboardHelp';
@@ -66,39 +65,29 @@ export default function DashboardPage() {
 
   if (error) {
     return (
-      <>
-        <Navigation />
-        <div className="min-h-screen bg-gray-50 p-8">
-        <div className="mx-auto max-w-7xl">
-          <div className="rounded-lg border border-red-200 bg-red-50 p-6">
-            <h3 className="text-lg font-semibold text-red-900">Error loading metrics</h3>
-            <p className="mt-2 text-sm text-red-700">{error}</p>
-            <button
-              onClick={() => window.location.reload()}
-              className="mt-4 rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
-            >
-              Retry
-            </button>
-          </div>
+      <div className="min-h-screen bg-gray-50 p-8">
+      <div className="mx-auto max-w-7xl">
+        <div className="rounded-lg border border-red-200 bg-red-50 p-6">
+          <h3 className="text-lg font-semibold text-red-900">Error loading metrics</h3>
+          <p className="mt-2 text-sm text-red-700">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-4 rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+          >
+            Retry
+          </button>
         </div>
-        </div>
-      </>
+      </div>
+      </div>
     );
   }
 
   if (loading || !metrics) {
-    return (
-      <>
-        <Navigation />
-        <LoadingSkeleton />
-      </>
-    );
+    return <LoadingSkeleton />;
   }
 
   return (
-    <>
-      <Navigation />
-      <div className="min-h-screen bg-gray-50 p-8">
+    <div className="min-h-screen bg-gray-50 p-8">
       <div className="mx-auto max-w-7xl">
         <div className="flex items-center justify-between mb-6">
           <FilterPanel
@@ -413,8 +402,7 @@ export default function DashboardPage() {
         </div>
 
       </div>
-      </div>
-    </>
+    </div>
   );
 }
 
