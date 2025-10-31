@@ -1,0 +1,298 @@
+# Single Source of Truth for all metrics
+# This file is used to generate:
+# - lib/metric-definitions.generated.ts (for runtime)
+# - docs/METRICS_GUIDE.generated.md (for documentation)
+
+categories:
+  sales:
+    title: "Sales Metrics"
+    metrics:
+      totalSales:
+        title: "Total Sales"
+        description: "Total revenue from closed deals"
+        source: "HubSpot Deals → 'Amount' field (dealstage = closedwon)"
+        sql: |
+          SELECT SUM(amount) AS total_sales
+          FROM deals
+          WHERE dealstage = 'closedwon'
+            AND closedate BETWEEN :date_from AND :date_to
+        interpretation: "Higher is better. Shows overall business performance."
+        goodBenchmark: "Depends on your business goals"
+
+      avgDealSize:
+        title: "Average Deal Size"
+        description: "Average revenue per closed deal"
+        source: "HubSpot Deals → Sum of 'Amount' / Count of closedwon deals"
+        sql: |
+          SELECT AVG(amount) AS avg_deal_size
+          FROM deals
+          WHERE dealstage = 'closedwon'
+            AND closedate BETWEEN :date_from AND :date_to
+        interpretation: "Higher is better. Shows deal quality and pricing effectiveness."
+        goodBenchmark: "$5,000-$15,000 (varies by industry)"
+
+      totalDeals:
+        title: "Total Closed Deals"
+        description: "Total number of closed won deals"
+        source: "HubSpot Deals → Count where dealstage = closedwon"
+        sql: |
+          SELECT COUNT(*) AS total_deals
+          FROM deals
+          WHERE dealstage = 'closedwon'
+            AND closedate BETWEEN :date_from AND :date_to
+        interpretation: "Higher is better. Shows sales volume."
+        goodBenchmark: "Varies by business size and team"
+
+      conversionRate:
+        title: "Conversion Rate"
+        description: "Percentage of contacts who became paying customers"
+        source: "HubSpot Contacts created → Deals closedwon ratio"
+        sql: |
+          SELECT
+            COUNT(DISTINCT d.contact_id)::float /
+            NULLIF(COUNT(DISTINCT c.id), 0) * 100 AS conversion_rate
+          FROM contacts c
+          LEFT JOIN deals d ON d.contact_id = c.id AND d.dealstage = 'closedwon'
+          WHERE c.createdate BETWEEN :date_from AND :date_to
+        interpretation: "Good rate: 5-15%. Shows overall funnel effectiveness."
+        goodBenchmark: "5-15%"
+
+      totalContactsCreated:
+        title: "New Contacts Created"
+        description: "New contacts added in selected period"
+        source: "HubSpot Contacts → 'Created date' field"
+        sql: |
+          SELECT COUNT(*) AS total_contacts
+          FROM contacts
+          WHERE createdate BETWEEN :date_from AND :date_to
+        interpretation: "Shows lead generation performance. More contacts = more opportunities."
+        goodBenchmark: "Depends on marketing budget and channels"
+
+  calls:
+    title: "Call Performance Metrics"
+    metrics:
+      totalCalls:
+        title: "Total Calls"
+        description: "Total calls made in selected period"
+        source: "HubSpot Calls → All logged call activities"
+        sql: |
+          SELECT COUNT(*) AS total_calls
+          FROM calls
+          WHERE call_date BETWEEN :date_from AND :date_to
+        interpretation: "Higher call volume = more engagement. Track alongside conversion metrics."
+        goodBenchmark: "50-100 calls/day per sales manager"
+
+      avgCallTime:
+        title: "Average Call Time"
+        description: "Average duration of calls in minutes"
+        source: "HubSpot Calls → 'Duration' field average"
+        sql: |
+          SELECT AVG(duration_minutes) AS avg_call_time
+          FROM calls
+          WHERE call_date BETWEEN :date_from AND :date_to
+        interpretation: "Longer calls (2-5 min) often indicate more engaged conversations."
+        goodBenchmark: "2-5 minutes"
+
+      totalCallTime:
+        title: "Total Call Time"
+        description: "Total time spent on calls in hours"
+        source: "HubSpot Calls → Sum of all 'Duration' fields"
+        sql: |
+          SELECT SUM(duration_minutes) / 60.0 AS total_call_hours
+          FROM calls
+          WHERE call_date BETWEEN :date_from AND :date_to
+        interpretation: "Shows team effort. Combine with conversion rate to measure efficiency."
+        goodBenchmark: "Depends on team size"
+
+      pickupRate:
+        title: "Pickup Rate"
+        description: "Percentage of calls where contact answered and had real conversation"
+        source: "HubSpot Calls → 'Call outcome' property (Connected status with 4+ min duration)"
+        sql: |
+          SELECT
+            COUNT(*) FILTER (WHERE outcome = 'CONNECTED' AND duration_minutes >= 4)::float /
+            NULLIF(COUNT(*), 0) * 100 AS pickup_rate
+          FROM calls
+          WHERE call_date BETWEEN :date_from AND :date_to
+        interpretation: "Good rate: 40-50%. Lower rate may indicate bad timing or wrong numbers."
+        goodBenchmark: "40-50%"
+
+      fiveMinReachedRate:
+        title: "5+ Minute Call Rate"
+        description: "Percentage of calls lasting 5 minutes or longer"
+        source: "HubSpot Calls → 'Duration' >= 5 minutes"
+        sql: |
+          SELECT
+            COUNT(*) FILTER (WHERE duration_minutes >= 5)::float /
+            NULLIF(COUNT(*), 0) * 100 AS five_min_rate
+          FROM calls
+          WHERE call_date BETWEEN :date_from AND :date_to
+        interpretation: "Quality indicator. High-value conversations typically last 5+ minutes."
+        goodBenchmark: "30-50%"
+
+  conversion:
+    title: "Conversion Metrics"
+    metrics:
+      qualifiedRate:
+        title: "Qualified Rate"
+        description: "Percentage of deals marked as qualified to buy"
+        source: "HubSpot Deals → 'Qualified status' custom field"
+        interpretation: "Shows lead quality. Good rate: 30-60%."
+        goodBenchmark: "30-60%"
+        ifZero: "Fill 'qualified_status' field in HubSpot deals to see data."
+
+      trialRate:
+        title: "Trial Rate"
+        description: "Percentage of deals that entered trial stage"
+        source: "HubSpot Deals → 'Trial status' custom field"
+        interpretation: "Shows trial conversion. Track trial-to-paid separately."
+        goodBenchmark: "20-40%"
+        ifZero: "Fill 'trial_status' field in HubSpot deals to see data."
+
+      cancellationRate:
+        title: "Cancellation Rate"
+        description: "Percentage of deals that were cancelled or lost"
+        source: "HubSpot Deals → dealstage = 'closedlost' or cancelled"
+        sql: |
+          SELECT
+            COUNT(*) FILTER (WHERE dealstage = 'closedlost')::float /
+            NULLIF(COUNT(*), 0) * 100 AS cancellation_rate
+          FROM deals
+          WHERE createdate BETWEEN :date_from AND :date_to
+        interpretation: "Lower is better. High rate (>40%) indicates pricing or qualification issues."
+        goodBenchmark: "<30%"
+
+  payment:
+    title: "Payment Metrics"
+    metrics:
+      upfrontCashCollected:
+        title: "Upfront Cash Collected"
+        description: "Total upfront payments collected from customers"
+        source: "HubSpot Deals → 'Upfront payment' custom field (closedwon deals)"
+        interpretation: "Shows immediate cash flow. Higher is better for business liquidity."
+        goodBenchmark: "Depends on pricing model"
+        ifZero: "Fill 'upfront_payment' field in HubSpot deals to see data."
+
+      avgInstallments:
+        title: "Average Installments"
+        description: "Average payment plan length in months"
+        source: "HubSpot Deals → 'Number of installments' custom field"
+        interpretation: "Shows typical payment terms. Longer plans may indicate affordability focus."
+        goodBenchmark: "3-12 months typical"
+        ifZero: "Fill 'number_of_installments__months' field in HubSpot deals to see data."
+
+  followup:
+    title: "Followup Metrics"
+    metrics:
+      followupRate:
+        title: "Followup Rate"
+        description: "Percentage of contacts with follow-up calls"
+        source: "HubSpot Contacts → Calls count > 1"
+        sql: |
+          SELECT
+            COUNT(DISTINCT contact_id) FILTER (WHERE call_count > 1)::float /
+            NULLIF(COUNT(DISTINCT contact_id), 0) * 100 AS followup_rate
+          FROM (
+            SELECT contact_id, COUNT(*) as call_count
+            FROM calls
+            GROUP BY contact_id
+          ) subquery
+        interpretation: "Good rate: 60-80%. Shows persistence in outreach."
+        goodBenchmark: "60-80%"
+
+      avgFollowups:
+        title: "Average Followups"
+        description: "Average number of calls per contact"
+        source: "HubSpot Contacts → Average calls count"
+        sql: |
+          SELECT AVG(call_count) AS avg_followups
+          FROM (
+            SELECT contact_id, COUNT(*) as call_count
+            FROM calls
+            GROUP BY contact_id
+          ) subquery
+        interpretation: "Typical: 2-4 calls. Too high (>6) may indicate poor targeting."
+        goodBenchmark: "2-4 calls"
+
+      timeToFirstContact:
+        title: "Time to First Contact"
+        description: "Average days from contact creation to first call"
+        source: "HubSpot Contacts 'Created date' → First call timestamp"
+        sql: |
+          SELECT AVG(first_call_days) AS avg_time_to_first_contact
+          FROM (
+            SELECT
+              c.id,
+              MIN(call_date) - c.createdate AS first_call_days
+            FROM contacts c
+            JOIN calls ON calls.contact_id = c.id
+            WHERE c.createdate BETWEEN :date_from AND :date_to
+            GROUP BY c.id
+          ) subquery
+        interpretation: "Lower is better. Fast response (< 1 day) improves conversion."
+        goodBenchmark: "<1 day"
+
+  offers:
+    title: "Offer Metrics"
+    metrics:
+      offersGivenRate:
+        title: "Offers Given Rate"
+        description: "Percentage of deals where offer was presented"
+        source: "HubSpot Deals → 'Offer given' custom field or deal stage"
+        interpretation: "Shows how many leads reach offer stage. Good rate: 50-70%."
+        goodBenchmark: "50-70%"
+        ifZero: "Set up 'offer given' tracking in HubSpot deals or use deal stages."
+
+      offerCloseRate:
+        title: "Offer Close Rate"
+        description: "Percentage of offers that converted to closed won"
+        source: "HubSpot Deals → Offers given → Closedwon ratio"
+        interpretation: "Good rate: 20-40%. Low rate indicates pricing or objection handling issues."
+        goodBenchmark: "20-40%"
+        ifZero: "Set up 'offer given' tracking in HubSpot deals."
+
+  time:
+    title: "Time Metrics"
+    metrics:
+      timeToSale:
+        title: "Time to Sale"
+        description: "Average days from contact creation to closed deal"
+        source: "HubSpot Contacts 'Created date' → Associated deal 'Close date'"
+        sql: |
+          SELECT AVG(close_date - createdate) AS avg_time_to_sale
+          FROM contacts c
+          JOIN deals d ON d.contact_id = c.id
+          WHERE d.dealstage = 'closedwon'
+            AND d.closedate BETWEEN :date_from AND :date_to
+        interpretation: "Lower is better. Shows sales cycle speed. Typical: 7-30 days."
+        goodBenchmark: "7-30 days"
+
+  calltoclose:
+    title: "Call-to-Close Metrics"
+    metrics:
+      callToCloseRate:
+        title: "Call-to-Close Rate"
+        description: "Percentage of calls that resulted in closed won deals"
+        source: "HubSpot Calls → Associated contacts → Deals (closedwon) / Total calls"
+        interpretation: "Good rate: 1-3%. Shows conversion efficiency from calls to sales."
+        goodBenchmark: "1-3%"
+        ifZero: "May indicate: no closed deals yet, or contacts not properly associated with calls."
+
+  abtesting:
+    title: "A/B Testing Metrics"
+    metrics:
+      salesScriptVersion:
+        title: "Sales Script Version Performance"
+        description: "Conversion rates by different sales script versions"
+        source: "HubSpot Contacts → 'Sales script version' custom field"
+        interpretation: "Compare conversion rates to find best performing script."
+        goodBenchmark: "Test and compare versions"
+        ifZero: "Fill 'sales_script_version' field in HubSpot contacts for A/B testing."
+
+      vslWatched:
+        title: "VSL Watch Performance"
+        description: "Conversion rates by VSL video watch status"
+        source: "HubSpot Contacts → 'VSL watched' custom field (4min/18min markers)"
+        interpretation: "Compare conversion rates to measure VSL effectiveness."
+        goodBenchmark: "Test and compare watch depths"
+        ifZero: "Fill 'vsl_watched' field in HubSpot contacts for tracking."
