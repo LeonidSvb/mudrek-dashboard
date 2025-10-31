@@ -3,6 +3,95 @@
 Все значимые изменения в этом проекте будут задокументированы в этом файле.
 
 
+## [v3.37.0] - 2025-10-31 - Автогенерация метрик + Реорганизация документации
+
+### Автогенерация документации метрик
+
+**Проблема:**
+- Ручной `METRICS_GUIDE.md` содержал только 5 метрик
+- Реальный код использовал 24 метрики
+- Документация отставала от кода (дрифт)
+- Приходилось обновлять 2 файла: `lib/metric-definitions.ts` + `METRICS_GUIDE.md`
+
+**Решение:**
+- ✅ Создан YAML источник правды: `docs/metrics-schema.yaml` (24 метрики)
+- ✅ Скрипт автогенерации: `scripts/generate-from-yaml.ts`
+- ✅ Генерирует 2 файла:
+  - `lib/metric-definitions.generated.ts` - TypeScript типы
+  - `docs/METRICS_GUIDE.generated.md` - Документация для менеджеров
+- ✅ NPM команда: `npm run docs:generate`
+
+**Метрики (24 total):**
+- Sales (5): totalSales, avgDealSize, totalDeals, conversionRate, totalContactsCreated
+- Calls (5): totalCalls, avgCallTime, totalCallTime, pickupRate, fiveMinReachedRate
+- Conversion (3): qualifiedRate, trialRate, cancellationRate
+- Payment (2): upfrontCashCollected, avgInstallments
+- Followup (3): followupRate, avgFollowups, timeToFirstContact
+- Offers (2): offersGivenRate, offerCloseRate
+- Time (1): timeToSale
+- Call-to-Close (1): callToCloseRate
+- A/B Testing (2): salesScriptVersion, vslWatched
+
+**Коммит:** `a16968b` - docs: add auto-generated metrics documentation system
+
+---
+
+### Полная реорганизация документации
+
+**Проблема:**
+- README.md = 512 строк (в 3-5 раз больше стандарта 100-150)
+- 19 документов в docs/ без структуры
+- Дубликаты (METRICS_GUIDE.md vs TECHNICAL.md vs README)
+- Устаревшие документы (SQL_QUERIES от 2025-10-07)
+- Непонятно что живое, что архивное
+
+**Решение:**
+
+**README.md сокращен до 167 строк (было 512, -67%):**
+- Убрано: Architecture диаграммы, Logging details, Monitoring, Troubleshooting
+- Оставлено: Quick Start, Tech Stack, Configuration, Navigation
+- Теперь: Точка входа с ссылками на всю документацию
+
+**Создана структурированная документация:**
+
+`docs/ARCHITECTURE.md` (200 строк) - Полная архитектура:
+- Sync system (3 модульных скрипта, incremental vs full, GitHub Actions)
+- HubSpot integration (35 contacts, 21 deals, 9 calls properties)
+- Database (tables, views, SQL functions, indexes)
+- Frontend architecture (RSC, data flow, state management)
+
+`docs/LOGGING.md` (180 строк) - Triple logging:
+- Console (real-time, engineers)
+- JSON files (logs/YYYY-MM-DD.jsonl, audit trail)
+- Supabase (filtered, client dashboard)
+- Philosophy: "Observability for Engineers, Clarity for Clients"
+
+`docs/ADR.md` (360 строк) - Architecture Decision Record:
+- 8 ключевых решений с обоснованием
+- Modular sync, GitHub Actions, triple logging, 24 metrics
+- SQL functions, JSONB storage, auto-generated docs, Server Components
+
+**Реорганизация файлов:**
+
+`docs/setup/` (4 файла):
+- HUBSPOT_SETUP.md, MCP_SETUP.md, SETUP.md, SUPABASE_REPORTING_WITH_MAKE.md
+
+`docs/_archive/` (9 устаревших):
+- 2025-10-07_SQL_QUERIES_SOURCE_OF_TRUTH.md (→ metrics-schema.yaml)
+- 2025-10-21_METRICS_GUIDE_OLD.md (→ .generated.md)
+- 2025-10-25_LOGGING_SYSTEM_OLD.md (→ LOGGING.md)
+- 2025-10-31_TECHNICAL_OLD.md (дублировал README)
+- KAVKOM_API.md (не используется)
+- METRICS_ARCHITECTURE_MAP.md (→ ARCHITECTURE.md)
+- MIGRATIONS.md, SALES_FUNNEL_IMPLEMENTATION_PLAN.md, TESTING_RESULTS_2025-10-25.md
+
+**Было:** 19 документов без структуры
+**Стало:** 5 живых + 2 автогенерируемых + setup guides + архив
+
+**Коммит:** `fb80ba8` - docs: complete documentation reorganization and modernization
+
+---
+
 ## [v3.36.0] - 2025-10-31 - Оптимизация GitHub Actions + Исправление Vercel Build
 
 ### Проблема 1: GitHub Actions запускались слишком часто
