@@ -1,14 +1,14 @@
 # Architecture Decision Record (ADR)
 
-**Project:** Shadi Sales Metrics Dashboard
-**Last Updated:** 2025-10-06
+**Project:** Mudrek Dashboard - HubSpot Analytics Platform
+**Last Updated:** 2025-10-31
 **Status:** Active Development
 
 ---
 
 ## Overview
 
-Internal sales dashboard for displaying 22 key metrics from HubSpot CRM with automatic daily sync to Supabase and real-time visualization.
+Internal sales dashboard displaying **24 metrics** from HubSpot CRM with automatic sync to Supabase and real-time visualization.
 
 ---
 
@@ -16,491 +16,344 @@ Internal sales dashboard for displaying 22 key metrics from HubSpot CRM with aut
 
 ### Frontend
 - **Framework:** Next.js 15 (App Router)
-- **UI Library:** React 19 + TypeScript
-- **Components:** ShadCN UI (Radix UI + Tailwind CSS)
-- **Styling:** Tailwind CSS
-- **Data Fetching:** Supabase JS Client
+- **UI Library:** React 19 + TypeScript 5.6
+- **Components:** shadcn/ui (Radix UI + Tailwind CSS 4)
+- **Data Fetching:** Supabase JS Client (@supabase/ssr)
 - **Charts:** Recharts
+- **State:** URL parameters (nuqs)
 
 ### Backend
-- **Runtime:** Node.js (ES Modules)
-- **API:** Vercel Serverless Functions
-- **Sync Logic:** Custom HubSpot API integration
-- **Cron Jobs:** Vercel Cron (hourly sync)
+- **Runtime:** Node.js 20 (ES Modules)
+- **Sync Logic:** Modular HubSpot API integration (3 scripts)
+- **Automation:** GitHub Actions (FREE tier)
 
 ### Database & Storage
-- **Database:** Supabase (PostgreSQL)
-- **Schema:** RAW layer pattern (preserves full API responses)
-- **Auth:** Service role key (internal tool, no user auth)
+- **Database:** Supabase (PostgreSQL 17)
+- **Schema:** Raw tables + JSONB (preserves full API responses)
+- **Performance:** SQL functions + materialized views
 
 ### External Integrations
-- **HubSpot:** CRM data source (deals, contacts, calls)
+- **HubSpot:** CRM data source (contacts, deals, calls)
 - **Kavkom:** Call recordings integration (via HubSpot)
-- **Make.com:** Automation workflows (field population)
 
 ### Deployment
 - **Platform:** Vercel
-- **Domain:** mudrek-dashboard.vercel.app
-- **Environment:** Production only (internal use)
+- **Sync:** GitHub Actions (independent of frontend deployment)
 
 ---
 
-## Architecture Decisions
+## Key Architecture Decisions
 
-### 1. Why NOT Modular Architecture?
+### 1. Why Modular Sync Architecture?
 
-**Decision:** Use simplified `src/` structure instead of `modules/` pattern
+**Decision:** Use 3 independent scripts (contacts, deals, calls) instead of monolithic sync
 
-**Reasons:**
-- Single data source (HubSpot only)
-- Simple dashboard use case
-- No need for 9+ integrations like Outreach project
-- MCP available for future extensibility
-- Faster development and maintenance
+**Context:**
+- October 2025: Monolithic script (`sync-full.js`) reached 677 lines
+- Debugging was difficult (which entity failed?)
+- One API failure stopped entire sync
 
-**Future:** If adding Apollo/OpenAI/other integrations → migrate to modular
+**Alternatives Considered:**
+1. ❌ Keep monolithic (simple but fragile)
+2. ✅ **Modular scripts** (chosen)
+3. ❌ Microservices (overkill for 10k LOC)
+
+**Decision:**
+```
+scripts/
+├── sync-contacts.js    # 135 lines
+├── sync-deals.js       # 135 lines
+└── sync-calls.js       # 135 lines
+```
+
+**Benefits:**
+- ✅ **Isolation**: Failed contacts ≠ failed deals
+- ✅ **Debugging**: 135 lines vs 677 lines
+- ✅ **Parallel**: GitHub Actions runs all 3 simultaneously
+- ✅ **UNIX Philosophy**: Do one thing well
+- ✅ **Industry Standard**: Segment, Fivetran, Airbyte use modular
+
+**Trade-offs:**
+- ➖ More files (3 vs 1)
+- ➕ But shared library (`lib/sync/`) keeps DRY
 
 ---
 
-### 2. Why React + Next.js over HTML?
+### 2. Why GitHub Actions Instead of Vercel Cron?
 
-**Decision:** Next.js 15 with App Router + ShadCN UI
+**Decision:** Use GitHub Actions for automated sync
 
-**Reasons:**
-- Dynamic metric updates without page reload
-- Component reusability (MetricCard, Charts)
-- TypeScript for type safety
-- ShadCN = industry standard beautiful components
-- Vercel optimization (Edge Functions, ISR)
-- Proven pattern from Outreach project
+**Context:**
+- Vercel Hobby plan: 1 cron job (insufficient)
+- Vercel Pro: $20/month just for cron
+- GitHub Actions: FREE (2000 minutes/month)
 
-**Alternative Rejected:** Plain HTML
-- No dynamic updates
-- Manual DOM manipulation
-- No component system
-- Poor developer experience
+**Alternatives Considered:**
+1. ❌ Vercel Cron (requires Pro plan $20/mo)
+2. ✅ **GitHub Actions** (chosen - FREE)
+3. ❌ AWS Lambda (over-engineering)
+
+**Implementation:**
+```yaml
+# .github/workflows/incremental-sync.yml
+- cron: '0 */4 * * *'  # Every 4 hours
+
+# .github/workflows/daily-full-sync.yml
+- cron: '0 2 * * *'    # Daily at 02:00 UTC
+```
+
+**Benefits:**
+- ✅ **FREE**: 2000 minutes/month (vs $20/mo Vercel Pro)
+- ✅ **Independent**: Sync doesn't depend on frontend deployment
+- ✅ **Manual Trigger**: workflow_dispatch support
+- ✅ **Logs**: Built-in GitHub Actions UI
+
+**Trade-offs:**
+- ➖ External platform (not in Vercel)
+- ➕ But more reliable (no cold starts)
 
 ---
 
-### 3. Database Schema: RAW Layer Pattern
+### 3. Why Triple Logging System?
 
-**Decision:** Store full HubSpot API responses in JSONB columns
+**Decision:** Console + JSON Files + Supabase (filtered)
 
-**Schema Pattern:**
+**Context:**
+- Engineers need ALL events for debugging
+- Clients need ONLY important events for clarity
+- Single logging creates conflict
+
+**Alternatives Considered:**
+1. ❌ Console only (lost after execution)
+2. ❌ Supabase only (too noisy for clients)
+3. ✅ **Triple Logging** (chosen)
+
+**Implementation:**
+
+```javascript
+// lib/sync/logger.js
+const shouldLogToSupabase =
+  level === 'ERROR' ||
+  level === 'WARNING' ||
+  step === 'START' ||
+  step === 'END' ||
+  step === 'TIMEOUT';
+```
+
+**Logging Streams:**
+1. **Console** - Real-time (all events)
+2. **JSON Files** - `logs/YYYY-MM-DD.jsonl` (all events, audit trail)
+3. **Supabase** - Filtered (only START, END, ERROR, WARNING for client dashboard)
+
+**Benefits:**
+- ✅ **Engineers**: Full visibility via console + JSON
+- ✅ **Clients**: Clean dashboard (no technical noise)
+- ✅ **Industry Standard**: JSONL (AWS, Datadog, ELK)
+- ✅ **Troubleshooting**: Multiple debugging paths
+
+**Trade-offs:**
+- ➖ More complexity (3 streams)
+- ➕ But solves engineer vs client needs
+
+See [LOGGING.md](./LOGGING.md) for details.
+
+---
+
+### 4. Why 24 Metrics Instead of 22?
+
+**Decision:** Expand from 22 to 24 metrics
+
+**Added:**
+- `totalContactsCreated` (Sales) - lead generation tracking
+- `callToCloseRate` (Call-to-Close) - call → sale conversion
+
+**Context:**
+- October 2025: Needed better lead generation visibility
+- Wanted team call-to-close performance tracking
+
+**Benefits:**
+- ✅ Complete funnel view (contacts created → calls → deals)
+- ✅ Team performance tracking
+
+---
+
+### 5. Why SQL Functions Instead of Client-Side Aggregation?
+
+**Decision:** Pre-compute metrics in PostgreSQL SQL functions
+
+**Context:**
+- Before: Fetch all records → aggregate in Node.js → 30+ seconds
+- After: SQL functions with indexes → 2-3 seconds
+
+**Alternatives Considered:**
+1. ❌ Client-side aggregation (30+ seconds)
+2. ❌ Materialized view for ALL metrics (stale data)
+3. ✅ **SQL Functions** (chosen - real-time + fast)
+
+**Implementation:**
 ```sql
-CREATE TABLE hubspot_deals_raw (
-    hubspot_deal_id TEXT PRIMARY KEY,
+get_sales_metrics(owner_id, date_from, date_to)
+get_call_metrics(owner_id, date_from, date_to)
+get_conversion_metrics(...)
+-- etc (8 modular functions total)
+```
 
-    -- Extracted fields (for fast queries)
-    dealname TEXT,
-    amount NUMERIC,
-    dealstage TEXT,
+**Benefits:**
+- ✅ **Performance**: 2-3s vs 30s (10x faster)
+- ✅ **Real-time**: No cache staleness
+- ✅ **Modular**: Each metric category independent
+- ✅ **Testable**: Can test each function separately
 
-    -- CRITICAL: Full API response
-    raw_json JSONB NOT NULL,
+**Trade-offs:**
+- ➖ SQL code (not TypeScript)
+- ➕ But massive performance gain
 
-    -- Sync tracking
-    synced_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+---
+
+### 6. Why JSONB Storage for HubSpot Data?
+
+**Decision:** Store ALL HubSpot fields in JSONB column
+
+**Context:**
+- HubSpot has 421 contact properties
+- We use 35, but custom fields added regularly
+- Schema migrations for every new field = painful
+
+**Alternatives Considered:**
+1. ❌ Fetch only 35 properties (lose custom fields)
+2. ❌ Create column for every property (421 columns!)
+3. ✅ **JSONB column** (chosen)
+
+**Implementation:**
+```sql
+CREATE TABLE hubspot_contacts_raw (
+  id uuid PRIMARY KEY,
+  hs_object_id text UNIQUE,
+  email text,  -- frequently queried
+  phone text,  -- frequently queried
+  -- ... 35 critical fields ...
+  data jsonb   -- ALL HubSpot fields (including custom)
 );
 ```
 
 **Benefits:**
-- Never lose data from API
-- Can add new columns without data loss
-- Historical data preserved
-- Easy incremental sync
-- Flexible schema evolution
-
-**Pattern copied from:** Outreach `migrations/002_instantly_raw_layer.sql`
-
----
-
-### 4. Sync Strategy: Incremental Hourly
-
-**Decision:** Vercel Cron → hourly incremental sync
-
-**Flow:**
-```
-Vercel Cron (every hour)
-    ↓
-/api/cron/sync-hubspot
-    ↓
-Get last_synced_at from Supabase
-    ↓
-HubSpot Search API (hs_lastmodifieddate > last_synced_at)
-    ↓
-Transform to RAW format
-    ↓
-Upsert to Supabase RAW tables
-    ↓
-Update synced_at timestamp
-```
-
-**Why Incremental:**
-- Reduces API calls (HubSpot rate limits)
-- Faster sync (only changed data)
-- Lower costs
-- Real-time enough for dashboard
-
-**Why Hourly:**
-- Dashboard doesn't need real-time
-- HubSpot data changes slowly
-- Vercel Cron free tier sufficient
-
----
-
-### 5. Project Structure
-
-**Decision:** Monorepo with separate frontend/
-
-**Structure:**
-```
-shadi-new/
-├── frontend/           # Next.js app (React + ShadCN)
-├── src/               # Backend logic (HubSpot sync)
-├── tests/             # Test files
-├── migrations/        # SQL migrations
-├── docs/              # Documentation
-└── sprints/           # Sprint planning
-```
-
-**Benefits:**
-- Clear separation of concerns
-- Frontend can be deployed independently
-- Backend logic reusable
-- Tests organized by type
-- Documentation centralized
-
----
-
-### 6. Testing Strategy
-
-**Decision:** Integration tests > Unit tests
-
-**Location:** `tests/` in project root (industry standard)
-
-**Organization:**
-```
-tests/
-├── supabase/         # Database tests
-├── hubspot/          # API integration tests
-└── fixtures/         # Test data
-```
-
-**Why:**
-- Integration tests catch real issues
-- Small project → unit tests overkill
-- Focus on API + DB integration
-- Real data flows tested
-
----
-
-### 7. No User Authentication
-
-**Decision:** Public dashboard (no auth)
-
-**Reasons:**
-- Internal use only (10 users max)
-- Vercel project not public
-- No sensitive PII displayed
-- Simplifies development
-- Can add later if needed
-
-**Security:**
-- Vercel project private
-- Supabase RLS disabled (service key)
-- No data modification from frontend
-
----
-
-## Data Flow
-
-### Sync Flow (Hourly)
-```
-HubSpot API
-    ↓ (REST API calls)
-src/hubspot/api.js (collector)
-    ↓ (raw data)
-src/hubspot/transform.js
-    ↓ (normalized format)
-src/hubspot/sync.js
-    ↓ (upsert)
-Supabase RAW tables
-    ↓ (SQL views)
-Aggregated metrics
-```
-
-### Display Flow (User visits dashboard)
-```
-User → Next.js Dashboard
-    ↓
-Supabase Client (ANON key)
-    ↓
-SQL Views (pre-aggregated metrics)
-    ↓
-React Components render
-    ↓
-ShadCN Cards + Recharts
-```
-
----
-
-## Key Metrics (22 total)
-
-See `sprints/01-hubspot-metrics/README.md` for full list
-
-**Categories:**
-1. Revenue metrics (total sales, average deal size)
-2. Conversion metrics (qualified rate, trial rate)
-3. Call metrics (pickup rate, call duration)
-4. Sales efficiency (time to sale, followup rate)
-
----
-
-## Environment Variables
-
-```bash
-# HubSpot
-HUBSPOT_API_KEY=pat-xxx
-
-# Supabase
-SUPABASE_URL=https://xxx.supabase.co
-SUPABASE_SERVICE_KEY=xxx
-SUPABASE_ANON_KEY=xxx
-
-# Vercel Cron
-CRON_SECRET=xxx
-```
-
----
-
-## Migration Path
-
-### Current State → Target State
-
-**Phase 1: Restructure (This Sprint)**
-- ✅ Clean project structure
-- ✅ Move files to correct locations
-- ✅ Create frontend/ with Next.js
-
-**Phase 2: Database (Next)**
-- Create RAW layer migrations
-- Execute in Supabase SQL Editor
-- Test sync with sample data
-
-**Phase 3: Sync Logic (After DB)**
-- Implement incremental sync
-- Create Vercel Cron endpoint
-- Test hourly updates
-
-**Phase 4: Dashboard (Final)**
-- Build React components
-- Integrate ShadCN UI
-- Deploy to Vercel
-
----
-
-## References
-
-### Inspiration Projects
-- **Outreach Project:** Modular architecture pattern
-- **Outreach Frontend:** Next.js + ShadCN setup
-- **Outreach Migrations:** RAW layer SQL pattern
-
-### Documentation
-- `docs/PRD.md` - Product requirements
-- `sprints/01-hubspot-metrics/` - Current sprint goals
-- `CLAUDE.md` - Coding guidelines
-- `CHANGELOG.md` - Version history
-
----
-
-## Future Enhancements
-
-**Not in MVP, but possible:**
-- [ ] Multiple user authentication
-- [ ] Custom metric configurations
-- [ ] Mobile app
-- [ ] Real-time updates (WebSockets)
-- [ ] Advanced filtering
-- [ ] Export to PDF/Excel
-- [ ] Multi-language (AR/HE)
-- [ ] Dark mode
-- [ ] Apollo integration (if needed)
-- [ ] Make.com deeper integration
-
----
-
-## Decision Log
-
-| Date | Decision | Reason |
-|------|----------|--------|
-| 2025-10-06 | No modular architecture | Single data source, simple use case |
-| 2025-10-06 | React + Next.js | Dynamic updates, component reuse |
-| 2025-10-06 | RAW layer pattern | Data preservation, flexibility |
-| 2025-10-06 | Hourly incremental sync | Balance of freshness + cost |
-| 2025-10-06 | No authentication | Internal use only |
-| 2025-10-06 | **TypeScript over JavaScript** | Better autocomplete for AI coding, type safety, easier refactoring |
-| 2025-10-06 | **Next.js over Vite** | Known stack, Server Components, built-in API routes, free Vercel hosting |
-| 2025-10-06 | **@supabase/ssr for Next.js** | Proper SSR support, cookie management, Server Components compatible |
-| 2025-10-21 | **Supabase CLI + Baseline** | Industry standard, automatic tracking, clean slate from migration chaos |
-
----
-
-### 8. Why TypeScript over JavaScript?
-
-**Decision:** Use TypeScript for frontend (Next.js) and optionally migrate backend
-
-**Reasons:**
-- **AI Coding Advantage:** Claude Code gets full autocomplete with TypeScript interfaces
-  - Knows exact structure of HubSpot/Supabase data
-  - Writes correct code first try (no guessing field names)
-  - Safe refactoring (finds all usages automatically)
-- **Type Safety:** Catches errors before runtime
-- **Better IDE Support:** Full IntelliSense for all data structures
-- **Easier Maintenance:** Clear contracts between functions
-- **Industry Standard:** All modern dashboards use TypeScript
+- ✅ **Future-proof**: New custom fields auto-saved
+- ✅ **No migrations**: Add HubSpot fields without schema changes
+- ✅ **Full data**: Never lose information
+- ✅ **Merge logic**: Preserves old custom fields when updating
 
 **Trade-offs:**
-- Slightly slower initial development (writing types)
-- Learning curve (minimal, team already knows basics)
-- Build step required (but Next.js already has it)
-
-**Impact on AI Development:**
-```typescript
-// With TypeScript - Claude knows everything
-interface Deal {
-  dealname: string;
-  amount: number;
-  dealstage: 'open' | 'won' | 'lost';
-}
-
-// Claude autocompletes: deal.dealname, deal.amount, deal.dealstage
-// Wrong code gets caught immediately: deal.amont → ERROR
-```
+- ➖ Some queries slower (JSONB)
+- ➕ But critical fields indexed (email, phone, etc.)
 
 ---
 
-### 9. Why Next.js over Vite?
+### 7. Why Auto-Generated Metrics Documentation?
 
-**Decision:** Next.js 15 with App Router
+**Decision:** Generate docs from YAML source of truth
 
-**Reasons:**
-- **Team Knowledge:** Already used Next.js in Outreach project
-- **Server Components:** Secure API key handling (HubSpot keys on server)
-- **Built-in API Routes:** No need for separate Express server
-- **Free Hosting:** Vercel free tier includes everything
-- **Production Ready:** Image optimization, caching, edge functions built-in
-- **One Codebase:** Frontend + API in same project
+**Context:**
+- October 2025: Manual `METRICS_GUIDE.md` had 5 metrics
+- Real code had 24 metrics
+- Documentation drift = confusion
 
-**Vite Rejected Because:**
-- Would need separate backend server (more complexity)
-- Can't hide API keys (everything runs in browser)
-- Team unfamiliar with Vite patterns
-- Two deployments (frontend + backend)
+**Alternatives Considered:**
+1. ❌ Manual Markdown (hard to maintain)
+2. ✅ **YAML → auto-generate** (chosen)
+3. ❌ JSDoc comments (not user-friendly)
 
-**Cost Comparison:**
-- Next.js on Vercel: **$0/month** (free tier sufficient)
-- Vite + Backend: **$5-10/month** (need Railway/Render for API)
-
----
-
-### 10. Why @supabase/ssr over @supabase/supabase-js?
-
-**Decision:** Use `@supabase/ssr` for Next.js frontend
-
-**Reasons:**
-- **Server Components Compatible:** Works with Next.js App Router
-- **Proper Cookie Management:** `getAll()` and `setAll()` for auth
-- **SSR Support:** Handles server-side rendering correctly
-- **Official Recommendation:** Supabase docs recommend for Next.js 13+
-- **Future Proof:** Maintained actively, supabase-js deprecated for Next.js
-
-**Backend (Node.js scripts) Still Uses:**
-- `@supabase/supabase-js` with SERVICE_ROLE_KEY (correct for server-only)
-
-**Pattern:**
-```typescript
-// Frontend: @supabase/ssr
-import { createServerClient } from '@supabase/ssr';
-
-// Backend: @supabase/supabase-js
-import { createClient } from '@supabase/supabase-js';
+**Implementation:**
+```yaml
+# docs/metrics-schema.yaml (SSOT)
+categories:
+  sales:
+    metrics:
+      totalSales:
+        title: "Total Sales"
+        description: "..."
+        sql: "SELECT SUM(amount)..."
 ```
 
-### 11. Migration Management: Supabase CLI + Baseline
-
-**Decision:** Use Supabase CLI for all database migrations with baseline approach
-
-**Date:** 2025-10-21
-
-**Problem:**
-- 51 migration files existed in `migrations/` directory
-- Only 17 actually applied in Supabase database
-- No tracking system - chaos of which migrations were applied
-- Manual application through SQL Editor and MCP
-- No standardized workflow for team
-
-**Solution:**
-1. **Baseline Migration:** Created snapshot of current database state (2025-10-21)
-2. **Supabase CLI:** Official tool for migration management
-3. **Archive:** Moved all 51 old migrations to `archive/old-migrations/`
-4. **Clean Slate:** Start fresh with timestamp-based migrations in `supabase/migrations/`
-
-**New Workflow:**
 ```bash
-# Create migration
-npx supabase migration new feature_name
-
-# Apply migrations
-export SUPABASE_ACCESS_TOKEN="xxx"
-npx supabase db push
-
-# Check status
-npx supabase migration list
+# Auto-generate
+npm run docs:generate
 ```
 
-**Why Supabase CLI over Custom Script:**
-- **Industry Standard:** Official Supabase tool, well-maintained
-- **Automatic Tracking:** Creates and manages `schema_migrations` table automatically
-- **Timestamp Naming:** Prevents conflicts (20251021163342_feature_name.sql)
-- **Team Consistency:** Everyone uses same commands
-- **Less Code:** No need to maintain custom migration runner
-- **Version Control:** Full history in git + database
-
-**Why Baseline Approach:**
-- **Clean Start:** All existing changes already in production database
-- **No Re-Application:** Don't need to re-run old migrations
-- **Historical Record:** Old migrations archived for reference
-- **Agency Coding:** Simple, maintainable, no complex state reconciliation
+**Generates:**
+- `lib/metric-definitions.generated.ts` (TypeScript)
+- `docs/METRICS_GUIDE.generated.md` (User docs)
 
 **Benefits:**
-- ✅ Clear source of truth (Supabase CLI migration table)
-- ✅ No more manual SQL Editor application
-- ✅ Git history tracks all schema changes
-- ✅ Easy onboarding for new developers
-- ✅ Prevents migration drift
-
-**Files Created:**
-- `supabase/migrations/20251021163342_baseline.sql` - Baseline marker
-- `WORKFLOW.md` - Step-by-step migration guide
-- `archive/BASELINE.md` - Documents pre-baseline state
-- `scripts/migrate.sh` - Helper script for easy migration push
-- `.env.supabase` - Stores Supabase credentials
-
-**Migration Table:**
-- Table: `supabase_migrations.schema_migrations`
-- Created automatically by Supabase CLI on first push
-- No manual creation needed
-
-**References:**
-- See `WORKFLOW.md` for complete workflow documentation
-- See `archive/BASELINE.md` for historical context
-- See `CLAUDE.md` section "Database Migrations (Supabase CLI)"
+- ✅ **Single Source of Truth**: YAML
+- ✅ **No drift**: Docs always match code
+- ✅ **SQL included**: Developers see queries
+- ✅ **DRY**: One source, two outputs
 
 ---
 
-**Last Reviewed:** 2025-10-21
-**Next Review:** After Phase 1 completion
+### 8. Why Next.js Server Components by Default?
+
+**Decision:** Use Server Components for data fetching, minimize `'use client'`
+
+**Context:**
+- Next.js 15 App Router: RSC by default
+- Dashboard = mostly static with filters
+- Real-time updates not critical (hourly sync)
+
+**Alternatives Considered:**
+1. ❌ Client-side SPA (slow initial load)
+2. ✅ **Server Components** (chosen)
+3. ❌ SSG (data changes hourly)
+
+**Implementation:**
+```typescript
+// app/dashboard/page.tsx (Server Component)
+export default async function DashboardPage() {
+  const metrics = await getAllMetrics({ ownerId, dateFrom, dateTo });
+  return <MetricCard value={metrics.totalSales} />;
+}
+```
+
+**Benefits:**
+- ✅ **Performance**: Fast initial load
+- ✅ **SEO**: Fully rendered HTML
+- ✅ **Less JS**: Smaller bundle size
+- ✅ **Direct DB**: No API routes needed
+
+**Trade-offs:**
+- ➖ Client components for interactivity
+- ➕ But minimal (only for charts, filters)
+
+---
+
+## Current Status (2025-10-31)
+
+### Metrics
+- ✅ 24 metrics implemented
+- ✅ Auto-generated documentation
+- ✅ SQL functions (2-3s performance)
+
+### Sync
+- ✅ Modular architecture (3 scripts)
+- ✅ GitHub Actions automation
+- ✅ Triple logging system
+
+### Performance
+- ✅ 2-3s dashboard load
+- ✅ Materialized views for complex joins
+- ✅ Indexes on critical fields
+
+### Documentation
+- ✅ ARCHITECTURE.md (system design)
+- ✅ LOGGING.md (observability)
+- ✅ METRICS_GUIDE.generated.md (24 metrics)
+- ✅ This ADR (decisions)
+
+---
+
+## Related Documentation
+
+- [ARCHITECTURE.md](./ARCHITECTURE.md) - Technical architecture
+- [LOGGING.md](./LOGGING.md) - Triple logging system
+- [METRICS_GUIDE.generated.md](./METRICS_GUIDE.generated.md) - All 24 metrics
+- [setup/](./setup/) - Setup guides

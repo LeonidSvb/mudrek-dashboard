@@ -100,12 +100,11 @@ async function main() {
 
     await logger.info('PARSE', `Received ${deals.length} deals from HubSpot API`);
 
-    const batchId = crypto.randomUUID();
-    const transformed = deals.map(d => transformDeal(d, batchId));
-    await logger.info('TRANSFORM', `Transformed ${transformed.length} deals (batch_id: ${batchId})`);
+    const transformed = deals.map(d => transformDeal(d, run.id));
+    await logger.info('TRANSFORM', `Transformed ${transformed.length} deals (sync_batch_id: ${run.id})`);
 
     await logger.info('UPSERT', `Starting upsert to hubspot_deals_raw table`);
-    const { inserted, updated, failed } = await upsertWithMerge('hubspot_deals_raw', transformed);
+    const { inserted, updated, failed } = await upsertWithMerge('hubspot_deals_raw', transformed, run.id);
     await logger.info('RESULT', `Upsert complete: ${inserted} inserted, ${updated} updated, ${failed} failed`);
 
     clearTimeout(timeoutHandle);

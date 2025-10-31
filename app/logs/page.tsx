@@ -1,13 +1,13 @@
 'use client';
 
-export const dynamic = 'force-dynamic';
-
 import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 interface Run {
   id: string;
@@ -34,6 +34,13 @@ interface Log {
   meta: Record<string, unknown> | null;
 }
 
+interface SyncRecord {
+  id: string;
+  name: string;
+  action: 'created' | 'updated';
+  synced_at: string;
+}
+
 export default function ExecutionLogsPage() {
   const [supabase, setSupabase] = useState<ReturnType<typeof createClient> | null>(null);
   const [runs, setRuns] = useState<Run[]>([]);
@@ -42,6 +49,9 @@ export default function ExecutionLogsPage() {
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterScript, setFilterScript] = useState<string>('all');
   const [loading, setLoading] = useState(true);
+  const [syncDetails, setSyncDetails] = useState<SyncRecord[]>([]);
+  const [loadingDetails, setLoadingDetails] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -96,6 +106,25 @@ export default function ExecutionLogsPage() {
       setLogs(data || []);
     }
   }, [supabase]);
+
+  const fetchSyncDetails = useCallback(async (runId: string) => {
+    setLoadingDetails(true);
+    try {
+      const response = await fetch(`/api/sync/details?run_id=${runId}&limit=200`);
+      const data = await response.json();
+
+      if (response.ok) {
+        setSyncDetails(data.records || []);
+        setShowDetails(true);
+      } else {
+        console.error('Error fetching sync details:', data.error);
+      }
+    } catch (error) {
+      console.error('Error fetching sync details:', error);
+    } finally {
+      setLoadingDetails(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (supabase) {
@@ -309,6 +338,67 @@ export default function ExecutionLogsPage() {
                     </div>
                   )}
                 </div>
+
+                {/* View Details Button */}
+                {selectedRun.records_fetched && selectedRun.records_fetched > 0 && (
+                  <div className="mb-6">
+                    <Dialog open={showDetails} onOpenChange={setShowDetails}>
+                      <DialogTrigger asChild>
+                        <Button
+                          variant="outline"
+                          onClick={() => fetchSyncDetails(selectedRun.id)}
+                          disabled={loadingDetails}
+                        >
+                          {loadingDetails ? 'Loading...' : 'View Synced Records'}
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-4xl max-h-[80vh]">
+                        <DialogHeader>
+                          <DialogTitle>Synced Records - {selectedRun.script_name}</DialogTitle>
+                          <DialogDescription>
+                            Showing latest {syncDetails.length} records from this data type
+                            <span className="block text-gray-500 text-xs mt-1">
+                              Note: Displaying most recent records from the table (not filtered by sync time)
+                            </span>
+                          </DialogDescription>
+                        </DialogHeader>
+                        <ScrollArea className="h-[500px] pr-4">
+                          {syncDetails.length === 0 ? (
+                            <div className="text-center text-gray-500 py-8">No records found</div>
+                          ) : (
+                            <div className="space-y-2">
+                              <div className="grid grid-cols-12 gap-2 px-3 py-2 bg-gray-100 rounded-lg font-semibold text-xs">
+                                <div className="col-span-2">HubSpot ID</div>
+                                <div className="col-span-5">Name</div>
+                                <div className="col-span-2">Action</div>
+                                <div className="col-span-3">Synced At</div>
+                              </div>
+                              {syncDetails.map((record, index) => (
+                                <div
+                                  key={`${record.id}-${index}`}
+                                  className="grid grid-cols-12 gap-2 px-3 py-2 hover:bg-gray-50 rounded border border-gray-200 text-sm"
+                                >
+                                  <div className="col-span-2 font-mono text-xs text-gray-600 truncate">
+                                    {record.id}
+                                  </div>
+                                  <div className="col-span-5 truncate">{record.name}</div>
+                                  <div className="col-span-2">
+                                    <Badge variant={record.action === 'created' ? 'default' : 'secondary'}>
+                                      {record.action}
+                                    </Badge>
+                                  </div>
+                                  <div className="col-span-3 text-xs text-gray-600">
+                                    {formatTimestamp(record.synced_at)}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </ScrollArea>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                )}
 
                 {selectedRun.error_message && (
                   <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">

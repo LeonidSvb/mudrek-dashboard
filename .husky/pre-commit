@@ -1,0 +1,13 @@
+#!/bin/sh
+
+# Проверяем изменился ли metrics-schema.yaml
+if git diff --cached --name-only | grep -q "docs/metrics-schema.yaml"; then
+  echo "📝 metrics-schema.yaml changed, regenerating definitions..."
+  npm run docs:generate
+
+  # Добавляем сгенерированные файлы в коммит
+  git add lib/metric-definitions.generated.ts
+  git add docs/METRICS_GUIDE.generated.md
+
+  echo "✅ Auto-regenerated TypeScript and Markdown"
+fi
