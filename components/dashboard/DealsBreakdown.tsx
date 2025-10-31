@@ -68,8 +68,8 @@ export function DealsBreakdown({ ownerId, dateFrom, dateTo }: DealsBreakdownProp
 
   if (loading) {
     return (
-      <div className="mb-8">
-        <h2 className="text-lg font-semibold mb-4 text-gray-900">Deals by Stage</h2>
+      <div className="mb-3">
+        <h2 className="text-xs font-semibold mb-2 text-gray-600 uppercase tracking-wide">Deals by Stage</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
           {[1, 2, 3, 4].map((i) => (
             <Card key={i} className="p-4 animate-pulse">
@@ -84,8 +84,8 @@ export function DealsBreakdown({ ownerId, dateFrom, dateTo }: DealsBreakdownProp
 
   if (data.length === 0) {
     return (
-      <div className="mb-8">
-        <h2 className="text-lg font-semibold mb-4 text-gray-900">Deals by Stage</h2>
+      <div className="mb-3">
+        <h2 className="text-xs font-semibold mb-2 text-gray-600 uppercase tracking-wide">Deals by Stage</h2>
         <Card className="p-6">
           <p className="text-sm text-gray-500 text-center">No deals found for selected filters</p>
         </Card>
@@ -94,9 +94,9 @@ export function DealsBreakdown({ ownerId, dateFrom, dateTo }: DealsBreakdownProp
   }
 
   return (
-    <div className="mb-8">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold text-gray-900">Deals by Stage</h2>
+    <div className="mb-3">
+      <div className="flex items-center justify-between mb-2">
+        <h2 className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Deals by Stage</h2>
         <div className="text-sm text-gray-600">
           <span className="font-medium">{totalDeals}</span> deals
           {totalAmount > 0 && (

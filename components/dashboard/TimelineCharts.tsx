@@ -85,7 +85,7 @@ export function TimelineCharts({ ownerId, dateFrom, dateTo }: TimelineChartsProp
   }
 
   return (
-    <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
+    <div className="mb-3 grid grid-cols-1 gap-2 lg:grid-cols-2">
       {/* Sales Revenue Chart */}
       <div className="rounded-lg border border-gray-200 bg-white p-4">
         <h3 className="mb-4 text-sm font-semibold text-gray-700 uppercase tracking-wide">
@@ -210,7 +210,7 @@ export function TimelineCharts({ ownerId, dateFrom, dateTo }: TimelineChartsProp
 
 function ChartsSkeleton() {
   return (
-    <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
+    <div className="mb-3 grid grid-cols-1 gap-2 lg:grid-cols-2">
       <div className="rounded-lg border border-gray-200 bg-white p-4">
         <div className="mb-4 h-4 w-48 animate-pulse rounded bg-gray-200" />
         <div className="h-[300px] animate-pulse rounded bg-gray-100" />

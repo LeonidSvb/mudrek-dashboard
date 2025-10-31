@@ -61,8 +61,8 @@ export function SalesFunnel({ ownerId, dateFrom, dateTo }: SalesFunnelProps) {
 
   if (loading) {
     return (
-      <div className="mb-8">
-        <h2 className="text-lg font-semibold mb-4 text-gray-900">Sales Funnel</h2>
+      <div className="mb-3">
+        <h2 className="text-xs font-semibold mb-2 text-gray-600 uppercase tracking-wide">Sales Funnel</h2>
         <Card className="p-8 animate-pulse">
           <div className="space-y-6">
             {[1, 2, 3, 4].map((i) => (
@@ -79,8 +79,8 @@ export function SalesFunnel({ ownerId, dateFrom, dateTo }: SalesFunnelProps) {
 
   if (!data) {
     return (
-      <div className="mb-8">
-        <h2 className="text-lg font-semibold mb-4 text-gray-900">Sales Funnel</h2>
+      <div className="mb-3">
+        <h2 className="text-xs font-semibold mb-2 text-gray-600 uppercase tracking-wide">Sales Funnel</h2>
         <Card className="p-6">
           <p className="text-sm text-gray-500 text-center">No data available</p>
         </Card>
@@ -126,8 +126,8 @@ export function SalesFunnel({ ownerId, dateFrom, dateTo }: SalesFunnelProps) {
   ];
 
   return (
-    <div className="mb-8">
-      <h2 className="text-lg font-semibold mb-4 text-gray-900">Sales Funnel</h2>
+    <div className="mb-3">
+      <h2 className="text-xs font-semibold mb-2 text-gray-600 uppercase tracking-wide">Sales Funnel</h2>
 
       <Card className="p-4">
         <div className="flex flex-col items-center space-y-2">

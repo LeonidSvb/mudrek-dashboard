@@ -87,9 +87,9 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
+    <div className="min-h-screen bg-gray-50 p-6">
       <div className="mx-auto max-w-7xl">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-4">
           <FilterPanel
             selectedOwner={ownerId}
             dateRange={dateRange}
@@ -120,10 +120,10 @@ export default function DashboardPage() {
           dateTo={dateRange.to.toISOString().split('T')[0]}
         />
 
-        {/* Top 5 KPIs */}
-        <div className="mb-4">
-          <h2 className="mb-2 text-sm font-semibold text-gray-700 uppercase tracking-wide">Key Metrics</h2>
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-5">
+        {/* Key Metrics */}
+        <div className="mb-3">
+          <h2 className="mb-2 text-xs font-semibold text-gray-600 uppercase tracking-wide">Key Metrics</h2>
+          <div className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-4">
             <MetricCard
               title="Total Sales"
               value={metrics.totalSales}
@@ -156,20 +156,13 @@ export default function DashboardPage() {
               helpText={formatMetricHelp(METRIC_DEFINITIONS.conversionRate)}
             />
 
-            <MetricCard
-              title="Contacts Created"
-              value={metrics.totalContactsCreated || 0}
-              format="number"
-              subtitle="New contacts in period"
-              helpText={formatMetricHelp(METRIC_DEFINITIONS.totalContactsCreated)}
-            />
           </div>
         </div>
 
-        {/* Call Metrics */}
-        <div className="mb-4">
-          <h2 className="mb-2 text-sm font-semibold text-gray-700 uppercase tracking-wide">Call Performance</h2>
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-6">
+        {/* Call Performance */}
+        <div className="mb-3">
+          <h2 className="mb-2 text-xs font-semibold text-gray-600 uppercase tracking-wide">Call Performance</h2>
+          <div className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-4">
             <MetricCard
               title="Total Calls"
               value={metrics.totalCalls}
@@ -209,18 +202,13 @@ export default function DashboardPage() {
               subtitle="Calls over 5 minutes"
               helpText={formatMetricHelp(METRIC_DEFINITIONS.fiveMinReachedRate)}
             />
-
-            <TeamCallToClose
-              dateFrom={dateRange.from.toISOString().split('T')[0]}
-              dateTo={dateRange.to.toISOString().split('T')[0]}
-            />
           </div>
         </div>
 
-        {/* Conversion Metrics */}
-        <div className="mb-4">
-          <h2 className="mb-2 text-sm font-semibold text-gray-700 uppercase tracking-wide">Conversion</h2>
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
+        {/* Conversion & Pipeline */}
+        <div className="mb-3">
+          <h2 className="mb-2 text-xs font-semibold text-gray-600 uppercase tracking-wide">Conversion & Pipeline</h2>
+          <div className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-4">
             <MetricCard
               title="Qualified Rate"
               value={metrics.qualifiedRate}
@@ -244,13 +232,37 @@ export default function DashboardPage() {
               subtitle="Closed lost deals"
               helpText={formatMetricHelp(METRIC_DEFINITIONS.cancellationRate)}
             />
+
+            <MetricCard
+              title="Followup Rate"
+              value={metrics.followupRate}
+              format="percentage"
+              subtitle="Contacts with multiple calls"
+              helpText={formatMetricHelp(METRIC_DEFINITIONS.followupRate)}
+            />
+
+            <MetricCard
+              title="Avg Followups"
+              value={metrics.avgFollowups}
+              format="decimal"
+              subtitle="Calls per contact"
+              helpText={formatMetricHelp(METRIC_DEFINITIONS.avgFollowups)}
+            />
+
+            <MetricCard
+              title="Contacts Created"
+              value={metrics.totalContactsCreated || 0}
+              format="number"
+              subtitle="New contacts"
+              helpText={formatMetricHelp(METRIC_DEFINITIONS.totalContactsCreated)}
+            />
           </div>
         </div>
 
-        {/* Payment Metrics */}
-        <div className="mb-4">
-          <h2 className="mb-2 text-sm font-semibold text-gray-700 uppercase tracking-wide">Payments</h2>
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
+        {/* Payments & Timing */}
+        <div className="mb-3">
+          <h2 className="mb-2 text-xs font-semibold text-gray-600 uppercase tracking-wide">Payments & Timing</h2>
+          <div className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-4">
             <MetricCard
               title="Upfront Cash Collected"
               value={metrics.upfrontCashCollected}
@@ -266,48 +278,12 @@ export default function DashboardPage() {
               subtitle="Payment plan months"
               helpText={formatMetricHelp(METRIC_DEFINITIONS.avgInstallments)}
             />
-          </div>
-        </div>
 
-        {/* Followup Metrics */}
-        <div className="mb-4">
-          <h2 className="mb-2 text-sm font-semibold text-gray-700 uppercase tracking-wide">Followup</h2>
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
-            <MetricCard
-              title="Followup Rate"
-              value={metrics.followupRate}
-              format="percentage"
-              subtitle="Contacts with multiple calls"
-              helpText={formatMetricHelp(METRIC_DEFINITIONS.followupRate)}
-            />
-
-            <MetricCard
-              title="Avg Followups"
-              value={metrics.avgFollowups}
-              format="decimal"
-              subtitle="Followup calls per contact"
-              helpText={formatMetricHelp(METRIC_DEFINITIONS.avgFollowups)}
-            />
-
-            <MetricCard
-              title="Time to First Contact"
-              value={metrics.timeToFirstContact}
-              format="decimal"
-              subtitle="Days to first call"
-              helpText={formatMetricHelp(METRIC_DEFINITIONS.timeToFirstContact)}
-            />
-          </div>
-        </div>
-
-        {/* Time Metrics */}
-        <div className="mb-8">
-          <h2 className="mb-4 text-xl font-semibold text-gray-700">Time Performance</h2>
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
             <MetricCard
               title="Time to Sale"
               value={metrics.timeToSale}
               format="decimal"
-              subtitle="Days from create to close"
+              subtitle="Days to close"
               helpText={formatMetricHelp(METRIC_DEFINITIONS.timeToSale)}
             />
 
@@ -321,10 +297,10 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Offer Metrics */}
-        <div className="mb-8">
-          <h2 className="mb-4 text-xl font-semibold text-gray-700">Offer & Proposal</h2>
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+        {/* Offers */}
+        <div className="mb-3">
+          <h2 className="mb-2 text-xs font-semibold text-gray-600 uppercase tracking-wide">Offers</h2>
+          <div className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-4">
             <MetricCard
               title="Offers Given Rate"
               value={metrics.offersGivenRate}
@@ -343,12 +319,23 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* A/B Testing Metrics */}
+        {/* Team Performance */}
+        <div className="mb-3">
+          <h2 className="mb-2 text-xs font-semibold text-gray-600 uppercase tracking-wide">Team Performance</h2>
+          <div className="grid grid-cols-1 gap-2">
+            <TeamCallToClose
+              dateFrom={dateRange.from.toISOString().split('T')[0]}
+              dateTo={dateRange.to.toISOString().split('T')[0]}
+            />
+          </div>
+        </div>
+
+        {/* A/B Testing */}
         <div>
-          <h2 className="mb-2 text-sm font-semibold text-gray-700 uppercase tracking-wide">A/B Testing</h2>
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <div className="rounded-lg border border-gray-200 bg-white p-4">
-              <h3 className="mb-3 text-base font-semibold text-gray-900">Sales Script Performance</h3>
+          <h2 className="mb-2 text-xs font-semibold text-gray-600 uppercase tracking-wide">A/B Testing</h2>
+          <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+            <div className="rounded-lg border border-gray-200 bg-white p-3">
+              <h3 className="mb-2 text-sm font-semibold text-gray-900">Sales Script Performance</h3>
               {metrics.salesScriptStats && metrics.salesScriptStats.length > 0 ? (
                 <div className="space-y-2">
                   {metrics.salesScriptStats.map((stat) => (
@@ -371,8 +358,8 @@ export default function DashboardPage() {
               )}
             </div>
 
-            <div className="rounded-lg border border-gray-200 bg-white p-4">
-              <h3 className="mb-3 text-base font-semibold text-gray-900">VSL Watch Impact</h3>
+            <div className="rounded-lg border border-gray-200 bg-white p-3">
+              <h3 className="mb-2 text-sm font-semibold text-gray-900">VSL Watch Impact</h3>
               {metrics.vslWatchStats && metrics.vslWatchStats.length > 0 ? (
                 <div className="space-y-2">
                   {metrics.vslWatchStats.map((stat, idx) => (
@@ -408,41 +395,25 @@ export default function DashboardPage() {
 
 function LoadingSkeleton() {
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
+    <div className="min-h-screen bg-gray-50 p-6">
       <div className="mx-auto max-w-7xl">
-        {/* Header skeleton */}
-        <div className="mb-8">
-          <div className="mb-2 h-10 w-64 animate-pulse rounded-lg bg-gray-200" />
-          <div className="h-6 w-96 animate-pulse rounded-lg bg-gray-200" />
-        </div>
-
         {/* Filter skeleton */}
-        <div className="mb-6 flex gap-4">
+        <div className="mb-4 flex gap-4">
           <div className="h-10 w-48 animate-pulse rounded-lg bg-gray-200" />
           <div className="h-10 w-64 animate-pulse rounded-lg bg-gray-200" />
         </div>
 
-        {/* Top 4 KPIs skeleton */}
-        <div className="mb-8">
-          <div className="mb-4 h-8 w-72 animate-pulse rounded-lg bg-gray-200" />
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-32 animate-pulse rounded-lg bg-white p-6 shadow-sm">
-                <div className="mb-2 h-4 w-24 rounded bg-gray-200" />
-                <div className="mb-2 h-8 w-32 rounded bg-gray-200" />
-                <div className="h-3 w-28 rounded bg-gray-200" />
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Additional sections skeleton */}
-        {[1, 2, 3, 4, 5].map((section) => (
-          <div key={section} className="mb-8">
-            <div className="mb-4 h-8 w-64 animate-pulse rounded-lg bg-gray-200" />
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+        {/* Metric sections skeleton */}
+        {[1, 2, 3, 4, 5, 6].map((section) => (
+          <div key={section} className="mb-3">
+            <div className="mb-2 h-4 w-48 animate-pulse rounded-lg bg-gray-200" />
+            <div className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-4">
               {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-32 animate-pulse rounded-lg bg-white shadow-sm" />
+                <div key={i} className="h-24 animate-pulse rounded-lg bg-white p-2 shadow-sm">
+                  <div className="mb-2 h-3 w-20 rounded bg-gray-200" />
+                  <div className="mb-2 h-6 w-24 rounded bg-gray-200" />
+                  <div className="h-2 w-16 rounded bg-gray-200" />
+                </div>
               ))}
             </div>
           </div>
