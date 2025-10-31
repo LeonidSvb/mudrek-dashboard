@@ -356,10 +356,7 @@ export default function ExecutionLogsPage() {
                         <DialogHeader>
                           <DialogTitle>Synced Records - {selectedRun.script_name}</DialogTitle>
                           <DialogDescription>
-                            Showing latest {syncDetails.length} records from this data type
-                            <span className="block text-gray-500 text-xs mt-1">
-                              Note: Displaying most recent records from the table (not filtered by sync time)
-                            </span>
+                            Showing {syncDetails.length} of {selectedRun.records_fetched} records from this sync run
                           </DialogDescription>
                         </DialogHeader>
                         <ScrollArea className="h-[500px] pr-4">

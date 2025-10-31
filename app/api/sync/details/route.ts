@@ -127,10 +127,11 @@ export async function GET(request: NextRequest) {
           createdField = 'call_timestamp';
         }
 
-        // Simply show latest records (trying to filter by time doesn't work reliably)
+        // Filter by sync_batch_id to get exact records from this run
         const { data: simpleRecords, error: simpleError } = await supabase
           .from(tableName)
           .select(selectFields)
+          .eq('sync_batch_id', runId)
           .order('updated_at', { ascending: false })
           .limit(limit);
 

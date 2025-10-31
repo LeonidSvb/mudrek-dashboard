@@ -101,12 +101,11 @@ async function main() {
 
     await logger.info('PARSE', `Received ${calls.length} calls from HubSpot API`);
 
-    const batchId = crypto.randomUUID();
-    const transformed = calls.map(c => transformCall(c, batchId));
-    await logger.info('TRANSFORM', `Transformed ${transformed.length} calls (batch_id: ${batchId})`);
+    const transformed = calls.map(c => transformCall(c, run.id));
+    await logger.info('TRANSFORM', `Transformed ${transformed.length} calls (sync_batch_id: ${run.id})`);
 
     await logger.info('INSERT', `Starting insert to hubspot_calls_raw table (calls are immutable)`);
-    const { inserted, failed } = await insertNew('hubspot_calls_raw', transformed);
+    const { inserted, failed } = await insertNew('hubspot_calls_raw', transformed, run.id);
     await logger.info('RESULT', `Insert complete: ${inserted} inserted, ${failed} failed`);
 
     clearTimeout(timeoutHandle);

@@ -111,12 +111,11 @@ async function main() {
     await logger.info('PARSE', `Received ${contacts.length} contacts from HubSpot API`);
 
     // Transform & upsert
-    const batchId = crypto.randomUUID();
-    const transformed = contacts.map(c => transformContact(c, batchId));
-    await logger.info('TRANSFORM', `Transformed ${transformed.length} contacts (batch_id: ${batchId})`);
+    const transformed = contacts.map(c => transformContact(c, run.id));
+    await logger.info('TRANSFORM', `Transformed ${transformed.length} contacts (sync_batch_id: ${run.id})`);
 
     await logger.info('UPSERT', `Starting upsert to hubspot_contacts_raw table`);
-    const { inserted, updated, failed } = await upsertWithMerge('hubspot_contacts_raw', transformed);
+    const { inserted, updated, failed } = await upsertWithMerge('hubspot_contacts_raw', transformed, run.id);
     await logger.info('RESULT', `Upsert complete: ${inserted} inserted, ${updated} updated, ${failed} failed`);
 
     clearTimeout(timeoutHandle);
