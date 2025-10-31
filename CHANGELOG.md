@@ -3,6 +3,52 @@
 Все значимые изменения в этом проекте будут задокументированы в этом файле.
 
 
+## [v3.38.0] - 2025-10-31 - Drill-down для логов + Восстановление sync_batch_id
+
+### Drill-down функционал для execution logs
+
+**Проблема:**
+- На странице `/logs` видно только сводку runs (сколько записей синхронизировано)
+- Невозможно посмотреть КАКИЕ конкретно записи были синхронизированы
+- Нет способа дебажить что именно изменилось в конкретном run
+
+**Решение:**
+- ✅ Добавлена кнопка "View Synced Records" для каждого run
+- ✅ Dialog показывает детали: HubSpot ID, Name, Action (created/updated), Synced At
+- ✅ API endpoint: `/api/sync/details?run_id={uuid}&limit=200`
+- ✅ Восстановлена фильтрация по `sync_batch_id` для точного отображения
+
+**Изменения:**
+
+`app/logs/page.tsx`:
+- Добавлен Dialog компонент для drill-down
+- Кнопка "View Synced Records" (показывается если records_fetched > 0)
+- Таблица с колонками: HubSpot ID, Name, Action, Synced At
+- Loading states и error handling
+
+`app/api/sync/details/route.ts`:
+- GET endpoint для получения записей по run_id
+- Поддержка contacts, deals, calls
+- Фильтрация по `sync_batch_id` для точного матчинга
+- Fallback механизм с 3 уровнями
+
+`lib/sync/upsert.js`:
+- Параметр `runId` в `upsertWithMerge()` и `insertNew()`
+- Установка `sync_batch_id` для каждой записи
+
+`scripts/sync-*.js`:
+- Передача `run.id` вместо `crypto.randomUUID()`
+- Логирование `sync_batch_id` вместо `batch_id`
+
+**Важно:**
+- Старые runs (до этого коммита) не будут работать с drill-down
+- Новые sync runs корректно устанавливают `sync_batch_id = run.id`
+- Теперь можно точно увидеть что было синхронизировано в каждом run
+
+**Коммит:** `4db31c8` - feat: restore sync_batch_id tracking for drill-down functionality
+
+---
+
 ## [v3.37.0] - 2025-10-31 - Автогенерация метрик + Реорганизация документации
 
 ### Автогенерация документации метрик
