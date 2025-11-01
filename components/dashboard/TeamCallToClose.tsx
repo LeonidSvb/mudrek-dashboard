@@ -103,7 +103,7 @@ export function TeamCallToClose({ dateFrom, dateTo }: TeamCallToCloseProps) {
           </Tooltip>
         </TooltipProvider>
       </div>
-      <div className="text-2xl font-bold text-gray-900 mb-1">{teamRate.toFixed(1)}%</div>
+      <div className="text-2xl font-bold text-gray-900 mb-1">{teamRate.toFixed(2)}%</div>
 
       <div className="flex gap-3 text-xs">
         {top3.map((manager) => (
@@ -114,7 +114,7 @@ export function TeamCallToClose({ dateFrom, dateTo }: TeamCallToCloseProps) {
               (manager.call_to_close_rate || 0) > 0 ? 'text-yellow-600' :
               'text-gray-400'
             }`}>
-              {(manager.call_to_close_rate || 0).toFixed(1)}%
+              {(manager.call_to_close_rate || 0).toFixed(2)}%
             </span>
           </div>
         ))}
