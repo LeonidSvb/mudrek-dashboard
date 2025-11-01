@@ -32,11 +32,10 @@ export function TeamCallToClose({ dateFrom, dateTo }: TeamCallToCloseProps) {
   useEffect(() => {
     async function fetchMetrics() {
       try {
-        const params = new URLSearchParams();
-        if (dateFrom) params.set('date_from', dateFrom);
-        if (dateTo) params.set('date_to', dateTo);
-
-        const url = `/api/metrics/call-to-close${params.toString() ? '?' + params.toString() : ''}`;
+        // NOTE: Do NOT filter by date - this metric shows ALL-TIME performance
+        // Filtering by date would show 0% if no customers were closed in selected period
+        const url = `/api/metrics/call-to-close`;
+        console.log('[TeamCallToClose] Fetching from:', url); // DEBUG: verify no date params
         const res = await fetch(url);
         if (!res.ok) throw new Error('Failed to fetch');
 
@@ -56,13 +55,13 @@ export function TeamCallToClose({ dateFrom, dateTo }: TeamCallToCloseProps) {
         // Calculate team rate using weighted average (weighted by call volume)
         const totalCalls = salesManagers.reduce((sum: number, m: CallToCloseMetric) => sum + m.total_calls, 0);
         const weightedSum = salesManagers.reduce(
-          (sum: number, m: CallToCloseMetric) => sum + (m.call_to_close_rate * m.total_calls),
+          (sum: number, m: CallToCloseMetric) => sum + ((m.call_to_close_rate || 0) * m.total_calls),
           0
         );
         const rate = totalCalls > 0 ? weightedSum / totalCalls : 0;
 
-        // Sort by call_to_close_rate descending
-        const sorted = [...salesManagers].sort((a, b) => b.call_to_close_rate - a.call_to_close_rate);
+        // Sort by call_to_close_rate descending (handle null values)
+        const sorted = [...salesManagers].sort((a, b) => (b.call_to_close_rate || 0) - (a.call_to_close_rate || 0));
 
         setTeamRate(rate);
         setTop3(sorted);
@@ -76,7 +75,7 @@ export function TeamCallToClose({ dateFrom, dateTo }: TeamCallToCloseProps) {
     }
 
     fetchMetrics();
-  }, [dateFrom, dateTo]);
+  }, []); // Empty deps - fetch once on mount, don't refetch on date change
 
   if (loading) {
     return (
@@ -111,11 +110,11 @@ export function TeamCallToClose({ dateFrom, dateTo }: TeamCallToCloseProps) {
           <div key={manager.owner_id} className="flex items-center gap-1">
             <span className="text-gray-600">{manager.owner_name.split(' ')[0]}:</span>
             <span className={`font-semibold ${
-              manager.call_to_close_rate > 1 ? 'text-green-600' :
-              manager.call_to_close_rate > 0 ? 'text-yellow-600' :
+              (manager.call_to_close_rate || 0) > 1 ? 'text-green-600' :
+              (manager.call_to_close_rate || 0) > 0 ? 'text-yellow-600' :
               'text-gray-400'
             }`}>
-              {manager.call_to_close_rate.toFixed(1)}%
+              {(manager.call_to_close_rate || 0).toFixed(1)}%
             </span>
           </div>
         ))}
