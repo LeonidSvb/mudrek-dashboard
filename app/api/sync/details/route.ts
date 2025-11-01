@@ -140,7 +140,7 @@ export async function GET(request: NextRequest) {
         }
 
         // Transform records
-        const transformedRecords = simpleRecords?.map(record => {
+        const transformedRecords = simpleRecords?.map((record: any) => {
           let name = '';
           let createdAt = record.createdate || record.call_timestamp;
 
