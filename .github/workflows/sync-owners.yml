@@ -1,9 +1,9 @@
-name: Sync Owners (Daily)
+name: Sync Owners (Weekly)
 
 on:
   schedule:
-    # Every day at 00:00 UTC
-    - cron: '0 0 * * *'
+    # Every Sunday at 00:00 UTC
+    - cron: '0 0 * * 0'
 
   # Manual trigger from GitHub Actions tab
   workflow_dispatch:

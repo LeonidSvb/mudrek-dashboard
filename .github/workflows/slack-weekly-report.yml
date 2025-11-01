@@ -1,0 +1,44 @@
+name: Slack Weekly Report
+
+on:
+  schedule:
+    # Every Sunday at 10:00 UTC (13:00 Israel time)
+    - cron: '0 10 * * 0'
+
+  # Manual trigger from GitHub Actions tab
+  workflow_dispatch:
+    inputs:
+      date:
+        description: 'End date for the week (YYYY-MM-DD, leave empty for last week)'
+        required: false
+        type: string
+
+jobs:
+  send-report:
+    runs-on: ubuntu-latest
+
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Send Weekly Report to Slack
+        run: |
+          if [ -n "${{ github.event.inputs.date }}" ]; then
+            node scripts/utils/slack-weekly-report.js --date=${{ github.event.inputs.date }}
+          else
+            node scripts/utils/slack-weekly-report.js
+          fi
