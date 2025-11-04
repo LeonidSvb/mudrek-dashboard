@@ -57,6 +57,7 @@ frontend/
 *.tmp
 *.temp
 tmp/
+temp/
 scripts/tmp/
 
 # Discovery scripts (temporary analysis, may contain API keys)
