@@ -1,0 +1,207 @@
+{
+  "call_id": "93906547374",
+  "metadata": {
+    "call_id": "93906547374",
+    "duration": 1578,
+    "timestamp": "2025-11-04T04:37:23.799Z",
+    "recording_url": "https://api-na1.hubspot.com/recording/auth/provider/hublets/v1/external-url-retriever/getAuthRecording/portal/44890341/engagement/93906547374"
+  },
+  "analysis": {
+    "summary": {
+      "overall_score": 7,
+      "outcome": "Client showed interest but needed time to decide",
+      "deal_probability": "High",
+      "top_strength": "Comprehensive explanation of course benefits and structure",
+      "top_weakness": "Lack of immediate closing strategy"
+    },
+    "bant_qualification": {
+      "budget": {
+        "mentioned": true,
+        "details": "Client considered both payment options but had concerns about payment methods",
+        "qualified": false
+      },
+      "authority": {
+        "decision_maker": "Client himself",
+        "buying_committee": []
+      },
+      "need": {
+        "pain_points": [
+          "Interest in digital marketing",
+          "Desire for certified training",
+          "Need for practical application and results"
+        ],
+        "urgency_level": "Not mentioned"
+      },
+      "timeline": {
+        "mentioned": false,
+        "details": "Not mentioned"
+      }
+    },
+    "talk_metrics": {
+      "manager_talk_percentage": 80,
+      "client_talk_percentage": 20,
+      "questions_asked": {
+        "total": 15,
+        "open_questions": 10,
+        "closed_questions": 5,
+        "examples": [
+          "شو الإمكاني الأفضل؟",
+          "عندك بطاقة ديركت أحمد؟"
+        ]
+      },
+      "talk_ratio_score": 5
+    },
+    "sales_scorecard": {
+      "discovery_quality": {
+        "score": 8,
+        "notes": "The salesperson made efforts to understand the client's needs and preferences."
+      },
+      "value_proposition": {
+        "score": 9,
+        "benefits_mentioned": 5,
+        "features_mentioned": 4,
+        "notes": "The salesperson effectively communicated the benefits and features of the course."
+      },
+      "objection_handling": {
+        "score": 6,
+        "objections_found": [
+          "Payment method concern"
+        ],
+        "how_handled": [
+          "Offered alternatives but didn't resolve the client's specific issue"
+        ],
+        "notes": "The salesperson attempted to address concerns but didn't provide a satisfactory solution for the client's payment method issue."
+      },
+      "closing_effectiveness": {
+        "score": 6,
+        "commitment_level": "Client needed time to decide",
+        "next_steps_clear": true,
+        "notes": "The salesperson outlined the next steps but failed to secure an immediate commitment."
+      }
+    },
+    "conversation_flow": [
+      {
+        "stage": "Introduction",
+        "timestamp_estimate": "00:00-02:00",
+        "quality_score": 8,
+        "key_points": [
+          "Greeting",
+          "Confirmation of previous discussion"
+        ]
+      },
+      {
+        "stage": "Needs Discovery",
+        "timestamp_estimate": "02:00-10:00",
+        "quality_score": 8,
+        "key_points": [
+          "Understanding client's goals",
+          "Discussing client's experience with digital marketing"
+        ]
+      },
+      {
+        "stage": "Solution Presentation",
+        "timestamp_estimate": "10:00-20:00",
+        "quality_score": 9,
+        "key_points": [
+          "Explaining course details",
+          "Benefits of the course",
+          "Payment options"
+        ]
+      },
+      {
+        "stage": "Objection Handling",
+        "timestamp_estimate": "20:00-24:00",
+        "quality_score": 6,
+        "key_points": [
+          "Addressing payment method concerns"
+        ]
+      },
+      {
+        "stage": "Closing",
+        "timestamp_estimate": "24:00-26:18",
+        "quality_score": 6,
+        "key_points": [
+          "Client requested time to decide",
+          "Next steps discussed"
+        ]
+      }
+    ],
+    "strengths": [
+      {
+        "point": "Detailed course explanation",
+        "evidence": "طبعاً أحمد معاك كمان مرة سارة سجلت لكورس احتراف التسويق الالكتروني"
+      }
+    ],
+    "weaknesses": [
+      {
+        "point": "Ineffective handling of payment method concern",
+        "evidence": "لا والله إحسان حتى الضريج الجديد أنا كانت عندي شوية في مشكلة مالية فما عنديش حساب بنك حالياً"
+      }
+    ],
+    "critical_moments": [
+      {
+        "moment": "Client's payment method concern",
+        "what_happened": "Client expressed inability to use preferred payment method",
+        "how_handled": "Salesperson offered alternatives but did not resolve the specific issue",
+        "score": 6
+      }
+    ],
+    "client_sentiment": {
+      "overall": "mixed",
+      "journey": [
+        {
+          "phase": "Introduction",
+          "sentiment": "positive",
+          "indicators": [
+            "Polite greetings",
+            "Acknowledgment of previous conversation"
+          ]
+        },
+        {
+          "phase": "Solution Presentation",
+          "sentiment": "positive",
+          "indicators": [
+            "Interest in course details",
+            "Engagement with content"
+          ]
+        },
+        {
+          "phase": "Objection Handling",
+          "sentiment": "neutral",
+          "indicators": [
+            "Concern about payment methods",
+            "Considering options"
+          ]
+        },
+        {
+          "phase": "Closing",
+          "sentiment": "neutral",
+          "indicators": [
+            "Request for time to decide",
+            "Positive towards next steps"
+          ]
+        }
+      ]
+    },
+    "actionable_recommendations": {
+      "immediate_actions": [
+        "Explore additional payment solutions to accommodate clients with similar concerns.",
+        "Develop a more effective closing strategy to secure immediate commitments."
+      ],
+      "coaching_for_manager": [
+        "Train sales team on handling objections more effectively.",
+        "Improve sales team's ability to close deals within the first call."
+      ],
+      "process_improvements": [
+        "Implement a feedback loop for clients to address post-call concerns.",
+        "Enhance payment flexibility and options for clients."
+      ]
+    }
+  },
+  "processing": {
+    "tokens": 15664,
+    "cost": 0.15664,
+    "duration_ms": 54686
+  },
+  "generated_at": "2025-11-04T05:08:15.606Z"
+}

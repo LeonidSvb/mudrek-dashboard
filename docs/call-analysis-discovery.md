@@ -1,4 +1,4 @@
-# AI-Powered Sales Call Analysis - Discovery Results
+# AI-Powered Sales Call Analysis - Proof of Concept
 
 ## Executive Summary
 
@@ -28,12 +28,12 @@ We analyzed a real 26-minute sales call in Arabic. The system:
 ## Sample Analysis - See the Results
 
 ### Full Transcript
-**[View Complete Transcript →](../examples/call-analysis/transcript-sample.txt)**
+**[View Complete Transcript →](../examples/call-analysis/transcript-example.txt)**
 
-18,184 characters of conversation, fully transcribed with speaker identification and timestamps. Your clients can see exactly what was discussed.
+18,184 characters of conversation, fully transcribed with speaker identification and timestamps. See exactly what was discussed in every call.
 
 ### Detailed Analysis (JSON)
-**[View Structured Analysis →](../examples/call-analysis/analysis-sample.json)**
+**[View Structured Analysis →](../examples/call-analysis/call-analysis-example.json)**
 
 Complete breakdown including:
 - Overall performance score: **7/10**
@@ -43,9 +43,9 @@ Complete breakdown including:
 - Client sentiment throughout the call
 
 ### Client-Ready Report (HTML)
-**[View Beautiful Report →](../examples/call-analysis/report-sample.html)**
+**[View Beautiful Report →](../examples/call-analysis/report-example.html)**
 
-Professional Arabic report with visual metrics, color-coded insights, and specific recommendations. This is what your clients see.
+Professional Arabic report with visual metrics, color-coded insights, and specific recommendations. This is what your team sees.
 
 ## What the Analysis Found
 
@@ -80,7 +80,7 @@ Professional Arabic report with visual metrics, color-coded insights, and specif
 
 ## Business Impact - The ROI
 
-### For Sales Teams
+### For Your Sales Team
 
 **Immediate Benefits:**
 - Objective performance scores for every call
@@ -124,22 +124,6 @@ Let's say your average deal value is $500:
 - Data-driven coaching decisions
 - Pattern recognition across 100+ calls
 - Know exactly which skills to train
-
-### For Your Clients (Upsell Service)
-
-**Pitch:**
-> "We'll analyze every sales call your team makes and show you exactly why deals are won or lost. For less than the cost of a coffee per call, you'll get professional reports that pinpoint coaching opportunities and help your team close 20-30% more deals."
-
-**Pricing Model:**
-- Your cost: $0.29 per call
-- Your price: $2-5 per call (depending on volume)
-- **Margin: 600-1,700%**
-
-**Or package it:**
-- $99/month for 50 calls
-- $199/month for 100 calls
-- $399/month for 200 calls
-- **Sticky recurring revenue**
 
 ## Quality Metrics
 
@@ -187,11 +171,11 @@ Analyze 10 calls or 1,000 calls - same quality, same speed.
 - Automatic analysis on call completion
 - Real-time dashboard with team metrics
 
-### Phase 4: Productization (90 Days)
-- White-label client portal
+### Phase 4: Production (90 Days)
+- Team-wide rollout
 - Automated weekly reports
 - Alert system for critical calls
-- Upsell to existing clients
+- Continuous improvement tracking
 
 ## Expected Results
 
@@ -213,14 +197,14 @@ Based on industry benchmarks for sales coaching:
 
 This technology works. The analysis is accurate, actionable, and affordable.
 
-**The opportunity:**
+**Key Benefits:**
 - Low cost per call ($0.29)
-- High perceived value for clients ($2-5)
 - Measurable ROI (10-30% close rate improvement)
-- Recurring revenue model
-- Minimal competition in Arabic market
+- Actionable insights from every conversation
+- Scales effortlessly from 10 to 10,000 calls
+- Works in 99+ languages including Arabic
 
-**Ready to scale.**
+**Ready to improve your sales performance.**
 
 ---
 
