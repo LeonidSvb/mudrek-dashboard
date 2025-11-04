@@ -42,8 +42,8 @@ Complete breakdown including:
 - Conversation timeline
 - Client sentiment throughout the call
 
-### Client-Ready Report (HTML)
-**[View Beautiful Report →](../examples/call-analysis/report-example.html)**
+### Client-Ready Report
+**[View HTML Report →](../examples/call-analysis/report-example.html)** | **[Download PDF →](../examples/call-analysis/call-analysis-report.pdf)**
 
 Professional Arabic report with visual metrics, color-coded insights, and specific recommendations. This is what your team sees.
 
